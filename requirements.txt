@@ -1,0 +1,7 @@
+numpy
+scipy
+fatpack
+rainflow
+pylint
+pytest
+lvm_read
