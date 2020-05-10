@@ -19,7 +19,7 @@ rf = FLife.Rainflow(sd)
 
 # Spectral methods
 dirlik = FLife.Dirlik(sd)
-tb2 = FLife.TovoBenasciutti2(sd)
-print(f'          Rainflow: {rf.get_life(C = C, k=k):4.0f} s')
-print(f'            Dirlik: {dirlik.get_life(C = C, k=k):4.0f} s')
-print(f'Tovo Benasciutti 2: {tb2.get_life(C = C, k=k):4.0f} s')
+tb = FLife.TovoBenasciutti(sd)
+print('          Rainflow: {0:4.0f} s'.format(rf.get_life(C = C, k=k)))
+print('            Dirlik: {0:4.0f} s'.format(dirlik.get_life(C = C, k=k)))
+print('Tovo Benasciutti 2: {0:4.0f} s'.format(tb.get_life(C = C, k=k, method='improved')))

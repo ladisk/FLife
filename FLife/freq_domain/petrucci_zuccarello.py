@@ -4,11 +4,6 @@ class PetrucciZuccarello(object):
     """Class for fatigue life estimation using frequency domain 
     method by Petrucci and Zuccarello [1].
 
-    Notes
-    -----
-    Method gives satisfying fatigue life estimation only for time histories
-    with PSD similar to those used by authors.
-
     References
     ----------
     [1] G. Petrucci and B. Zuccarello. Fatigue life prediction under wide band
@@ -29,7 +24,7 @@ class PetrucciZuccarello(object):
         """Calculate fatigue life with parameters C, k, as defined in [2].
 
         :param C: [int,float]
-            Fatigue strength coefficient [Mpa**k].
+            Fatigue strength coefficient [MPa**k].
         :param k : [int,float]
             Fatigue strength exponent [/].
         :param Su: [int,float]
