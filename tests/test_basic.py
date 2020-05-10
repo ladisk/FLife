@@ -46,10 +46,8 @@ def test_data():
 
     # Spectral methods
     dirlik = FLife.Dirlik(sd)
-    tb1 = FLife.TovoBenasciutti1(sd)
-    tb2 = FLife.TovoBenasciutti2(sd)
-    zb1 = FLife.ZhaoBaker1(sd)
-    zb2 = FLife.ZhaoBaker2(sd)
+    tb = FLife.TovoBenasciutti(sd)
+    zb = FLife.ZhaoBaker(sd)
     nb = FLife.Narrowband(sd)
     a075 = FLife.Alpha075(sd)
     wl = FLife.WirschingLight(sd)
@@ -62,10 +60,10 @@ def test_data():
         'Rainflow': rf.get_life(C = C, k=k),
         'Rainflow-Goodman': rf.get_life(C = C, k = k, Su=Su),
         'Dirlik': dirlik.get_life(C = C, k=k),
-        'Tovo Benasciutti 1': tb1.get_life(C = C, k=k),
-        'Tovo Benasciutti 2': tb2.get_life(C = C, k=k),
-        'Zhao Baker 1': zb1.get_life(C = C, k=k),
-        'Zhao Baker 2': zb2.get_life(C = C, k=k),
+        'Tovo Benasciutti 1': tb.get_life(C = C, k=k, method='base'),
+        'Tovo Benasciutti 2': tb.get_life(C = C, k=k),
+        'Zhao Baker 1': zb.get_life(C = C, k=k, method='base'),
+        'Zhao Baker 2': zb.get_life(C = C, k=k),
         'Narrowband': nb.get_life(C = C, k=k),
         'Alpha 0.75': a075.get_life(C = C, k=k),
         'Wirsching Light': wl.get_life(C = C, k=k),

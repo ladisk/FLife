@@ -27,7 +27,23 @@ class ZhaoBaker(object):
         :param spectral_data:  Instance of object SpectralData
         '''     
         self.spectral_data = spectral_data
-    
+
+    def _calculate_coefficients(self, method='improved'):
+        """Calculate coefficients for base Zhao-Baker method.
+        
+        :param method:  string
+            'base'/'improved'. Selects base or improved Zhao-Baker method.
+        :return [a, b, w]: list
+            a and b are Weibull distribution coefficients. w is weight coefficient.
+        """
+        if method == 'base': 
+            a, b, w = self._calculate_coefficients_base()
+        elif method == 'improved': 
+            a, b, w = self._calculate_coefficients_improved()
+        else: raise Exception('Unrecognized Input Error')
+        return a, b, w
+
+
     def _calculate_coefficients_base(self):
         """Calculate coefficients for base Zhao-Baker method.
         
@@ -79,7 +95,7 @@ class ZhaoBaker(object):
 
         return [a, b, w]
 
-    def get_PDF(self, s, method='base'):
+    def get_PDF(self, s, method='improved'):
         """Returns cycle PDF(Probability Density Function) as a function of stress s.
 
         :param s:  numpy.ndarray
@@ -90,9 +106,7 @@ class ZhaoBaker(object):
         """
         m0 = self.spectral_data.moments[0]
 
-        if method == 'base': a, b, w = self._calculate_coefficients_base()
-        elif method == 'improved': a, b, w = self._calculate_coefficients_improved()
-        else: raise Exception('Unrecognized Input Error')
+        a, b, w = self._calculate_coefficients(method=method)
         
         pdf = w * ((a*b) / (np.sqrt(m0))) * ((s/np.sqrt(m0)))**(b-1) * np.exp(-a * (s/np.sqrt(m0))**b) +\
             (1-w) * (s/m0) * np.exp(-0.5 * (s/np.sqrt(m0))**2)
@@ -100,7 +114,7 @@ class ZhaoBaker(object):
         return pdf
         
 
-    def get_life(self, C, k, method='base'):
+    def get_life(self, C, k, method='improved'):
         """Calculate fatigue life with parameters C and k, as defined in [2].
 
         :param C: [int,float]
@@ -115,9 +129,7 @@ class ZhaoBaker(object):
         m0 = self.spectral_data.moments[0]
         m_p = self.spectral_data.m_p
 
-        if method == 'base': a, b, w = self._calculate_coefficients_base()
-        elif method == 'improved': a, b, w = self._calculate_coefficients_improved()
-        else: raise Exception('Unrecognized Input Error')
+        a, b, w = self._calculate_coefficients(method=method)
                
         d = (m_p/C) * m0**(0.5*k) * ( w * a**(-k/b) * gamma(1.0+k/b) +\
              (1.0-w) * 2**(0.5*k) * gamma(1.0+0.5*k) )

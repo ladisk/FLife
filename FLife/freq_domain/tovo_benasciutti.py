@@ -26,7 +26,24 @@ class TovoBenasciutti(object):
         :param spectral_data:  Instance of object SpectralData
         '''     
         self.spectral_data = spectral_data
-    
+
+    def _calculate_coefficient(self, method='improved'):
+        """Calculate weigthing parameter b for base Tovo-Benasciutti method. Parameter b is 
+            defined by Tovo[1].
+        
+        :param method:  string
+            'base'/'improved'. Selects base or improved Tovo-Benasciutti method.
+        :return b: float
+        """
+        if method == 'base': 
+            b = self._calculate_coefficient_base()
+        elif method == 'improved': 
+            b = self._calculate_coefficient_improved()
+        else: 
+            raise Exception('Unrecognized Input Error')
+        return b
+
+
     def _calculate_coefficient_base(self):
         """Calculate weigthing parameter b for base Tovo-Benasciutti method. Parameter b is 
             defined by Tovo[1].
@@ -53,7 +70,7 @@ class TovoBenasciutti(object):
 
         return b
         
-    def get_PDF(self, s, method='base'):
+    def get_PDF(self, s, method='improved'):
         '''Returns cycle PDF(Probability Density Function) as a function of stress s.
 
         :param s:  numpy.ndarray
@@ -65,16 +82,14 @@ class TovoBenasciutti(object):
         al2 = self.spectral_data.al2
         m0 = self.spectral_data.moments[0]
 
-        if method == 'base': b = self._calculate_coefficient_base()
-        elif method == 'improved': b = self._calculate_coefficient_improved()
-        else: raise Exception('Unrecognized Input Error')
+        b = self._calculate_coefficient(method=method)
 
         pdf = b * ((s / m0) * np.exp( - s**2 / (2 * m0))) + \
             (1 - b) * ((s / (m0 * al2**2)) * np.exp( - s**2 / (2 * al2**2 * m0)))
 
         return pdf
 
-    def get_life(self, C, k, method='base'): 
+    def get_life(self, C, k, method='improved'): 
         """Calculate fatigue life with parameters C, k, as defined in [3].
 
         :param C: [int,float]
@@ -90,9 +105,7 @@ class TovoBenasciutti(object):
         m0 = self.spectral_data.moments[0]
         al2 = self.spectral_data.al2
         
-        if method == 'base': b = self._calculate_coefficient_base()
-        elif method == 'improved': b = self._calculate_coefficient_improved()
-        else: raise Exception('Unrecognized Input Error')
+        b = self._calculate_coefficient(method=method)
 
         D_nb_lcc = m_p * al2 * np.sqrt(2 * m0)**k * ss.gamma(1.0 + k/2.0) / C
         l = b + ( 1.0 - b ) * al2**(k-1.0)
