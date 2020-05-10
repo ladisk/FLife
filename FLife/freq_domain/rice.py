@@ -19,13 +19,30 @@ class Rice(object):
         '''Get needed values from reference object.
         '''                
         self.spectral_data = spectral_data
+
+    def get_PDF(self, s):
+        '''Returns cycle PDF(Probability Density Function) as a function of stress s.
+
+        :param s:  numpy.ndarray
+            Stress vector.
+        :return pdf: numpy.ndarray
+        '''
+        m0 = self.spectral_data.moments[0]
+        al2 = self.spectral_data.al2
+
+        pdf = np.sqrt(1.0 - al2**2)/np.sqrt(2.0 * np.pi * m0) * \
+                np.exp( - (s**2) / (2.0 * m0 * (1.0 - al2**2))) + \
+                al2*s/m0 * np.exp( - (s**2) / (2*m0)) * \
+                ss.norm.cdf((al2 * s) / (np.sqrt(m0 * (1 - al2**2))))
+
+        return pdf
         
     
     def get_life(self, C, k):
         """Calculate fatigue life with parameters C, k, as defined in [2].
 
         :param C: [int,float]
-            Fatigue strength coefficient [Mpa**k].
+            Fatigue strength coefficient [MPa**k].
         :param k : [int,float]
             Fatigue strength exponent [/].
         :return T: float

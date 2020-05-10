@@ -1,5 +1,5 @@
 import numpy as np
-import scipy.special as ss
+from scipy.special import gamma
 
 class Narrowband(object):
     """Class for fatigue life estimation using frequency domain 
@@ -20,11 +20,24 @@ class Narrowband(object):
         '''                        
         self.spectral_data = spectral_data
 
+    def get_PDF(self, s):
+        '''Returns cycle PDF(Probability Density Function) as a function of stress s.
+
+        :param s:  numpy.ndarray
+            Stress vector.
+        :return pdf: numpy.ndarray
+        '''
+        m0 = self.spectral_data.moments[0]
+
+        pdf = (s / m0) * np.exp( - s**2 / (2 * m0)) 
+
+        return pdf
+
     def get_life(self, C, k): 
         """Calculate fatigue life with parameters C, k, as defined in [2].
 
         :param C: [int,float]
-            Fatigue strength coefficient [Mpa**k].
+            Fatigue strength coefficient [MPa**k].
         :param k : [int,float]
             Fatigue strength exponent [/].
         :return T: float
@@ -32,10 +45,8 @@ class Narrowband(object):
         """
         m0 = self.spectral_data.moments[0]
         nu = self.spectral_data.nu
-        gamma = ss.gamma
         
-#       D = mp * al2 * np.sqrt(2 * m0)**b * gamma(1.0 + b/2.0) # OK
-        D = nu * np.sqrt(2 * m0)**k * gamma(1.0 + k/2.0) / C  #OK
+        D = nu * np.sqrt(2 * m0)**k * gamma(1.0 + k/2.0) / C  
         T = 1.0/D
 
         return T

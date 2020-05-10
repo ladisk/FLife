@@ -162,19 +162,6 @@ class SpectralData(object):
         '''Calculate nu_p - peak intensity for narrowband signal.'''
         return np.sqrt(self.moments[2] / self.moments[0])
     
-#    def _get_gamma(self):
-#        '''Calculate irregularity factor gamma.'''
-#        return np.sqrt( 1. / \
-#                           (self.moments[0] * self.moments[4])) * self.moments[2]
-#
-#    def TimeDomainRMS(self):
-#        
-#        return np.sqrt(np.sum(self.data**2.0) / self.data.size)
-#    
-#    def FrqDomainRMS(self):
-#        
-#        return np.sqrt(self.moments[0])
-
     def readf(self, filename):
         """Read input file and extract values in form of array (float).
         

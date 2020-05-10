@@ -2,13 +2,12 @@ import numpy as np
 import scipy.special as ss
 
 class Dirlik(object):
-    """Class for fatigue life estimation using frequency domain 
-    method by Dirlik [1].
+    """Class for fatigue life estimation using frequency domain method by Dirlik [1].
    
     References
     ----------
     [1] Turan Dirlik. Application of computers in fatigue analysis. PhD thesis,
-        University of Warwick, 1985.
+        University of Warwick, 1985
     [2] Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
         Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage
         – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020
@@ -23,10 +22,6 @@ class Dirlik(object):
 
     def _calculate_coefficients(self):
         '''Calculate coefficients for Dirlik method.
-        
-        Returns
-        -------
-        Coefficient array [Z/x, Xm, Gamma, G1, R, G2, G3, Q]
         '''
         m0,m1,m2,_,m4 = self.spectral_data.moments
         
@@ -46,7 +41,7 @@ class Dirlik(object):
         """Calculate fatigue life with parameters C, k, as defined in [2].
 
         :param C: [int,float]
-            Fatigue strength coefficient [Mpa**k].
+            Fatigue strength coefficient [MPa**k].
         :param k : [int,float]
             Fatigue strength exponent [/].
         :return T: float

@@ -18,17 +18,15 @@ x = rms * x / np.std(x)
 
 
 # Spectral data
-sd = FLife.SpectralData(input=x, dt=t[1], nperseg=int(len(x)/10))
+sd = FLife.SpectralData(input=x, dt=t[1], nperseg=int(0.1/t[1]))
 
 # Rainflow reference fatigue life
 rf = FLife.Rainflow(sd)
 
 # Spectral methods
 dirlik = FLife.Dirlik(sd)
-tb1 = FLife.TovoBenasciutti1(sd)
-tb2 = FLife.TovoBenasciutti2(sd)
-zb1 = FLife.ZhaoBaker1(sd)
-zb2 = FLife.ZhaoBaker2(sd)
+tb = FLife.TovoBenasciutti(sd)
+zb = FLife.ZhaoBaker(sd)
 nb = FLife.Narrowband(sd)
 a075 = FLife.Alpha075(sd)
 wl = FLife.WirschingLight(sd)
@@ -44,10 +42,10 @@ results = {
     'Rainflow': rf.get_life(C = C, k=k),
     'Rainflow-Goodman': rf.get_life(C = C, k = k, Su=Su),
     'Dirlik': dirlik.get_life(C = C, k=k),
-    'Tovo Benasciutti 1': tb1.get_life(C = C, k=k),
-    'Tovo Benasciutti 2': tb2.get_life(C = C, k=k),
-    'Zhao Baker 1': zb1.get_life(C = C, k=k),
-    'Zhao Baker 2': zb2.get_life(C = C, k=k),
+    'Tovo Benasciutti 1': tb.get_life(C = C, k=k),
+    'Tovo Benasciutti 2': tb.get_life(C = C, k=k, method='improved'),
+    'Zhao Baker 1': zb.get_life(C = C, k=k),
+    'Zhao Baker 2': zb.get_life(C = C, k=k, method='improved'),
     'Narrowband': nb.get_life(C = C, k=k),
     'Alpha 0.75': a075.get_life(C = C, k=k),
     'Wirsching Light': wl.get_life(C = C, k=k),

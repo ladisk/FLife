@@ -8,6 +8,9 @@ class Rainflow(object):
     ----------
     [1] C. Amzallag et. al. Standardization of the rainflow counting method for
         fatigue analysis. International Journal of Fatigue, 16 (1994) 287-293
+    [2] Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
+        Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage
+        – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020
     """
     def __init__(self, spectral_data):
         '''Get needed values from reference object.
@@ -39,7 +42,9 @@ class Rainflow(object):
         t = self.spectral_data.t
         ranges,means = fatpack.find_rainflow_ranges(self.spectral_data.data, k=nr_load_classes, return_means=True)
         
-        if range == False: ranges *= 0.5
+        if range == True: pass
+        elif range == False: ranges *= 0.5
+        else: raise Exception('Unrecognized Input Error')
 
         if Su: ranges = ranges/(1. - means/Su)
 

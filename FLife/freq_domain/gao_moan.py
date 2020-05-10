@@ -26,7 +26,7 @@ class GaoMoan(object):
         
         self.psd = spectral_data.psd
         self.moments_freq = spectral_data.moments
-        self.moments = spectral_data.moments
+        self.moments = spectral_data.moments  #Preveri zakaj je to (ni od omege)
         self.calculate_spectral_moments_omega = lambda psd: spectral_data.calculate_spectral_moments_frequency(psd)[:3]
         self.t = spectral_data.t
         self.split_mode = spectral_data.gao_split_mode
@@ -37,7 +37,7 @@ class GaoMoan(object):
         """Calculate fatigue life with parameters C, k, as defined in [2].
 
         :param C: [int,float]
-            Fatigue strength coefficient [Mpa**k].
+            Fatigue strength coefficient [MPa**k].
         :param k : [int,float]
             Fatigue strength exponent [/].
         :return T: float
