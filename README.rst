@@ -40,10 +40,9 @@ Here is a simple example on how to use the code:
     # Spectral methods
     dirlik = FLife.Dirlik(sd)
     tb = FLife.TovoBenasciutti(sd)
-    print('          Rainflow: {0:4.0f} s'.format(rf.get_life(C = C, k=k)))
-    print('            Dirlik: {0:4.0f} s'.format(dirlik.get_life(C = C, k=k)))
-    print('Tovo Benasciutti 2: {0:4.0f} s'.format(tb.get_life(C = C, k=k, method='improved')))
-
+    print(f'          Rainflow: {rf.get_life(C = C, k=k):4.0f} s')
+    print(f'            Dirlik: {dirlik.get_life(C = C, k=k):4.0f} s')
+    print(f'Tovo Benasciutti 2: {tb.get_life(C = C, k=k, method="method 2"):4.0f} s')
 Reference:
 Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
 Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020

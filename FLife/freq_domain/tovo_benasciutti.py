@@ -4,10 +4,7 @@ import scipy.special as ss
 class TovoBenasciutti(object):
     """Class for fatigue life estimation using frequency domain 
     method by Tovo and Benasciutti[1, 2].
-    
-    Weighting parameter b is defined by two versions of the 
-    Tovo-Benasciutti method.
-   
+      
     References
     ----------
     [1] Roberto Tovo. Cycle distribution and fatigue damage under broadband
@@ -27,25 +24,27 @@ class TovoBenasciutti(object):
         '''     
         self.spectral_data = spectral_data
 
-    def _calculate_coefficient(self, method='improved'):
-        """Calculate weigthing parameter b for base Tovo-Benasciutti method. Parameter b is 
-            defined by Tovo[1].
+    def _calculate_coefficient(self, method='method 2'):
+        """Calculate weigthing parameter b for the Tovo-Benasciutti method. Parameter b is 
+            defined by Tovo and Benasciutti [1,2].
         
         :param method:  string
-            'base'/'improved'. Selects base or improved Tovo-Benasciutti method.
+            - 'method 1': `b` weighting parameter `b` is defined by Tovo[1].
+            - 'method 2': `b` weighting parameter `b` is defined by Tovo and Benasciutti [2].
+                          (This is the improved method)
         :return b: float
         """
-        if method == 'base': 
-            b = self._calculate_coefficient_base()
-        elif method == 'improved': 
-            b = self._calculate_coefficient_improved()
+        if method == 'method 1': 
+            b = self._calculate_coefficient_method_1()
+        elif method == 'method 2': 
+            b = self._calculate_coefficient_method_2()
         else: 
             raise Exception('Unrecognized Input Error')
         return b
 
 
-    def _calculate_coefficient_base(self):
-        """Calculate weigthing parameter b for base Tovo-Benasciutti method. Parameter b is 
+    def _calculate_coefficient_method_1(self):
+        """Calculate weigthing parameter b Tovo-Benasciutti method. Parameter b is 
             defined by Tovo[1].
         
         :return b: float
@@ -57,9 +56,9 @@ class TovoBenasciutti(object):
         
         return b
 
-    def _calculate_coefficient_improved(self):
+    def _calculate_coefficient_method_2(self):
         """Calculate weigthing parameter b for improved Tovo-Benasciutti method. Parameter b is 
-            defined by Tovo and Benasciutti[2].
+            defined by Tovo and Benasciutti [2].
         
         :return b: float
         """
@@ -70,13 +69,15 @@ class TovoBenasciutti(object):
 
         return b
         
-    def get_PDF(self, s, method='improved'):
+    def get_PDF(self, s, method='method 2'):
         '''Returns cycle PDF(Probability Density Function) as a function of stress s.
 
         :param s:  numpy.ndarray
             Stress vector.
         :param method:  string
-            'base'/'improved'. Selects base or improved Tovo-Benasciutti method.
+            - 'method 1': `b` weighting parameter `b` is defined by Tovo[1].
+            - 'method 2': `b` weighting parameter `b` is defined by Tovo and Benasciutti [2].
+                          (This is the improved method)
         :return pdf: numpy.ndarray
         '''
         al2 = self.spectral_data.al2
@@ -89,7 +90,7 @@ class TovoBenasciutti(object):
 
         return pdf
 
-    def get_life(self, C, k, method='improved'): 
+    def get_life(self, C, k, method='method 2'): 
         """Calculate fatigue life with parameters C, k, as defined in [3].
 
         :param C: [int,float]
@@ -97,7 +98,9 @@ class TovoBenasciutti(object):
         :param k : [int,float]
             Fatigue strength exponent [/].
         :param method:  string
-            'base'/'improved'. Selects base or improved Tovo-Benasciutti method.
+            - 'method 1': `b` weighting parameter `b` is defined by Tovo[1].
+            - 'method 2': `b` weighting parameter `b` is defined by Tovo and Benasciutti [2].
+                          (This is the improved method)
         :return T: float
             Estimated fatigue life in seconds.
         """ 

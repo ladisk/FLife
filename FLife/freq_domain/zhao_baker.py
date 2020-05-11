@@ -5,13 +5,7 @@ from scipy.optimize import fsolve
 class ZhaoBaker(object):
     """Class for fatigue life estimation using frequency domain 
     method by Zhao and Baker[1, 2].
-    
-    Method coefficients are defined by two versions of the Zhao-Baker 
-    method: 
-    - base method is tuned in simulations with material parameters 
-      in the range of 2 <= k <= 6, where k is S-N curve coefficient.
-    - improved method is derived for S-N curve coefficient k = 3.  
-   
+     
     References
     ----------
     [1] Wangwen Zhao and Michael J. Baker. On the probability density function
@@ -28,24 +22,29 @@ class ZhaoBaker(object):
         '''     
         self.spectral_data = spectral_data
 
-    def _calculate_coefficients(self, method='improved'):
-        """Calculate coefficients for base Zhao-Baker method.
+    def _calculate_coefficients(self, method='method 1'):
+        """Calculate coefficients for Zhao-Baker method.
         
         :param method:  string
-            'base'/'improved'. Selects base or improved Zhao-Baker method.
+            - 'method 1' is tuned in simulations with material parameters 
+               in the range of 2 <= k <= 6, where k is S-N curve coefficient.
+            - 'method 2' is derived for S-N curve coefficient k = 3.  
         :return [a, b, w]: list
             a and b are Weibull distribution coefficients. w is weight coefficient.
         """
-        if method == 'base': 
-            a, b, w = self._calculate_coefficients_base()
-        elif method == 'improved': 
-            a, b, w = self._calculate_coefficients_improved()
+        if method == 'method 1': 
+            a, b, w = self._calculate_coefficients_method_1()
+        elif method == 'method 2': 
+            a, b, w = self._calculate_coefficients_method_2()
         else: raise Exception('Unrecognized Input Error')
         return a, b, w
 
 
-    def _calculate_coefficients_base(self):
-        """Calculate coefficients for base Zhao-Baker method.
+    def _calculate_coefficients_method_1(self):
+        """Calculate coefficients for Zhao-Baker method 1.
+        
+        Method 1 is tuned in simulations with material parameters 
+        in the range of 2 <= k <= 6, where k is S-N curve coefficient.
         
         :return [a, b, w]: list
             a and b are Weibull distribution coefficients. w is weight coefficient.
@@ -61,8 +60,10 @@ class ZhaoBaker(object):
         
         return [a, b, w]
 
-    def _calculate_coefficients_improved(self):
-        """Calculate coefficients for improved Zhao-Baker method.
+    def _calculate_coefficients_method_2(self):
+        """Calculate coefficients for Zhao-Baker method 2.
+        
+        Method 2 is derived for S-N curve coefficient k = 3.  
         
         :return [a, b, w]: list
             a and b are Weibull distribution coefficients. w is weight coefficient.
@@ -95,13 +96,15 @@ class ZhaoBaker(object):
 
         return [a, b, w]
 
-    def get_PDF(self, s, method='improved'):
+    def get_PDF(self, s, method='method 1'):
         """Returns cycle PDF(Probability Density Function) as a function of stress s.
 
         :param s:  numpy.ndarray
             Stress vector.
         :param method:  string
-            'base'/'improved'. Selects base or improved Zhao-Baker method.
+            - 'method 1' is tuned in simulations with material parameters 
+               in the range of 2 <= k <= 6, where k is S-N curve coefficient.
+            - 'method 2' is derived for S-N curve coefficient k = 3.  
         :return pdf: numpy.ndarray
         """
         m0 = self.spectral_data.moments[0]
@@ -114,7 +117,7 @@ class ZhaoBaker(object):
         return pdf
         
 
-    def get_life(self, C, k, method='improved'):
+    def get_life(self, C, k, method='method 1'):
         """Calculate fatigue life with parameters C and k, as defined in [2].
 
         :param C: [int,float]
@@ -122,7 +125,10 @@ class ZhaoBaker(object):
         :param k : [int,float]
             Fatigue strength exponent [/].
         :param method : str
-            'base'/'improved'. Selects base or improved Zhao-Baker method.
+            - 'method 1' is tuned in simulations with material parameters 
+               in the range of 2 <= k <= 6, where k is S-N curve coefficient.
+            - 'method 2' is derived for S-N curve coefficient k = 3.  
+
         :return T: float
             Estimated fatigue life in seconds.
         """
