@@ -1,7 +1,8 @@
 import numpy as np
 from scipy.special import gamma
+from .narrowband import Narrowband
 
-class Alpha075(object):
+class Alpha075(Narrowband):
     """Class for fatigue life estimation using frequency domain 
     method by Benasciutti and Tovo [1]. 
 
@@ -19,7 +20,7 @@ class Alpha075(object):
 
         :param spectral_data:  Instance of object SpectralData
         '''                        
-        self.spectral_data = spectral_data
+        Narrowband.__init__(self, spectral_data)
     
     def get_life(self, C, k):
         """Calculate fatigue life with parameters C, k, as defined in [2].
@@ -35,8 +36,8 @@ class Alpha075(object):
         nu = self.spectral_data.nu
         a075 = self.spectral_data.m075 / np.sqrt(m0 * self.spectral_data.m150)
 
-        dNB = nu * np.sqrt(2 * m0)**k * gamma(1.0 + k/2.0) / C
-        D =  a075**2 * dNB
-        T = 1.0 / D
+        dNB = self.damage_intesity_NB(m0=m0, nu=nu, C=C, k=k) 
+        d =  a075**2 * dNB
+        T = 1.0 / d
         
         return T

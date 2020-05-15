@@ -67,8 +67,6 @@ class SpectralData(object):
 
         self.x = np.arange(0, self.t, dt)
 
-        self.gao_split_mode = np.array([])
-
         self.trim_length = psd_trim_length
 
         self.psd = self._calculate_psd(self.data, fs=1.0/self.dt, window=window,
@@ -100,8 +98,7 @@ class SpectralData(object):
         self.m_p = self._get_mp()
         self.m075 = self._get_m075()
         self.m150 = self._get_m150()
-        self.nu_p = self._get_nup()
-        self.nu = self.nu_p
+        self.nu = self._get_nup()
 
         self.al075 = self.m075 / (np.sqrt(self.moments[0] * self.m150))
         self.al1 = self.moments[1] / (np.sqrt(self.moments[0] * self.moments[2]))

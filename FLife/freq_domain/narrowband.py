@@ -20,18 +20,52 @@ class Narrowband(object):
         '''                        
         self.spectral_data = spectral_data
 
-    def get_PDF(self, s):
+    def _function_PDF(self, k=False):
+        '''Defines cycle PDF(Probability Density Function) function or k-th 
+        statistical moment function, if k is specified.
+        '''
+        m0 = self.spectral_data.moments[0]
+
+        if k==False: 
+            def pdf(s):
+                px = (s / m0) * np.exp( - s**2 / (2 * m0)) 
+                return px
+            return pdf
+        else:
+            if isinstance(k, (int,float)): 
+                def pdf_moment(s):
+                    px = (s / m0) * np.exp( - s**2 / (2 * m0)) 
+                    return s**k * px
+                return pdf_moment
+            else:
+                raise Exception('Unrecognized Input Error')
+
+    def get_PDF(self,s):
         '''Returns cycle PDF(Probability Density Function) as a function of stress s.
 
         :param s:  numpy.ndarray
             Stress vector.
         :return pdf: numpy.ndarray
         '''
-        m0 = self.spectral_data.moments[0]
+        return self._function_PDF()(s)
 
-        pdf = (s / m0) * np.exp( - s**2 / (2 * m0)) 
+    def damage_intesity_NB(self, m0, nu, C, k):
+        """Calculates narrowband damage intensity with parameters m0, nu, C, k, as defined in [2].
 
-        return pdf
+        :param m0: [int,float]
+            Zeroth spectral moment [MPa**2].
+        :param nu: [int,float]
+            Frequency of positive slope zero crossing [Hz].
+        :param C: [int,float]
+            Fatigue strength coefficient [MPa**k].
+        :param k : [int,float]
+            Fatigue strength exponent [/].
+        :return T: float
+            Estimated fatigue life in seconds.       
+        """
+        d = nu * np.sqrt(2 * m0)**k * gamma(1.0 + k/2.0) / C  
+
+        return  d
 
     def get_life(self, C, k): 
         """Calculate fatigue life with parameters C, k, as defined in [2].
@@ -46,7 +80,7 @@ class Narrowband(object):
         m0 = self.spectral_data.moments[0]
         nu = self.spectral_data.nu
         
-        D = nu * np.sqrt(2 * m0)**k * gamma(1.0 + k/2.0) / C  
-        T = 1.0/D
+        d = self.damage_intesity_NB(m0=m0, nu=nu, C=C, k=k) 
+        T = 1.0/d
 
         return T

@@ -96,26 +96,42 @@ class ZhaoBaker(object):
 
         return [a, b, w]
 
-    def get_PDF(self, s, method='method 1'):
-        """Returns cycle PDF(Probability Density Function) as a function of stress s.
+    def _function_PDF(self,  method='method 1', k=False):
+        '''Defines cycle PDF(Probability Density Function) function or k-th 
+        statistical moment function, if k is specified.
+        '''
+        m0 = self.spectral_data.moments[0]
+
+        a, b, w = self._calculate_coefficients(method=method)
+
+        if k==False: 
+            def pdf(s):
+                px =  w * ((a*b) / (np.sqrt(m0))) * ((s/np.sqrt(m0)))**(b-1) * np.exp(-a * (s/np.sqrt(m0))**b) +\
+                    (1-w) * (s/m0) * np.exp(-0.5 * (s/np.sqrt(m0))**2)
+                return px
+            return pdf
+        else:
+            if isinstance(k, (int,float)): 
+                def pdf_moment(s):
+                    px =  w * ((a*b) / (np.sqrt(m0))) * ((s/np.sqrt(m0)))**(b-1) * np.exp(-a * (s/np.sqrt(m0))**b) +\
+                        (1-w) * (s/m0) * np.exp(-0.5 * (s/np.sqrt(m0))**2)
+                    return s**k * px
+                return pdf_moment
+            else:
+                raise Exception('Unrecognized Input Error')
+
+    def get_PDF(self, s, method='method 2'):
+        '''Returns cycle PDF(Probability Density Function) as a function of stress s.
 
         :param s:  numpy.ndarray
             Stress vector.
         :param method:  string
             - 'method 1' is tuned in simulations with material parameters 
                in the range of 2 <= k <= 6, where k is S-N curve coefficient.
-            - 'method 2' is derived for S-N curve coefficient k = 3.  
+            - 'method 2' is derived for S-N curve coefficient k = 3. 
         :return pdf: numpy.ndarray
-        """
-        m0 = self.spectral_data.moments[0]
-
-        a, b, w = self._calculate_coefficients(method=method)
-        
-        pdf = w * ((a*b) / (np.sqrt(m0))) * ((s/np.sqrt(m0)))**(b-1) * np.exp(-a * (s/np.sqrt(m0))**b) +\
-            (1-w) * (s/m0) * np.exp(-0.5 * (s/np.sqrt(m0))**2)
-        
-        return pdf
-        
+        '''
+        return self._function_PDF(method=method)(s)
 
     def get_life(self, C, k, method='method 1'):
         """Calculate fatigue life with parameters C and k, as defined in [2].

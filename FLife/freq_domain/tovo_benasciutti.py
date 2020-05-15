@@ -1,7 +1,8 @@
 import numpy as np
 import scipy.special as ss
+from .narrowband import Narrowband
 
-class TovoBenasciutti(object):
+class TovoBenasciutti(Narrowband):
     """Class for fatigue life estimation using frequency domain 
     method by Tovo and Benasciutti[1, 2].
       
@@ -22,7 +23,7 @@ class TovoBenasciutti(object):
 
         :param spectral_data:  Instance of object SpectralData
         '''     
-        self.spectral_data = spectral_data
+        Narrowband.__init__(self, spectral_data)
 
     def _calculate_coefficient(self, method='method 2'):
         """Calculate weigthing parameter b for the Tovo-Benasciutti method. Parameter b is 
@@ -69,6 +70,31 @@ class TovoBenasciutti(object):
 
         return b
         
+    def _function_PDF(self, method='method 2', k=False):
+        '''Defines cycle PDF(Probability Density Function) function or k-th 
+        pdf moment function, if k is specified.
+        '''
+        al2 = self.spectral_data.al2
+        m0 = self.spectral_data.moments[0]
+
+        b = self._calculate_coefficient(method=method)
+        
+        if k==False: 
+            def pdf(s):
+                px = b * ((s / m0) * np.exp( - s**2 / (2 * m0))) + \
+                    (1 - b) * ((s / (m0 * al2**2)) * np.exp( - s**2 / (2 * al2**2 * m0))) 
+                return px
+            return pdf
+        else:
+            if isinstance(k, (int,float)): 
+                def pdf_moment(s):
+                    px = b * ((s / m0) * np.exp( - s**2 / (2 * m0))) + \
+                        (1 - b) * ((s / (m0 * al2**2)) * np.exp( - s**2 / (2 * al2**2 * m0)))
+                    return s**k * px
+                return pdf_moment
+            else:
+                raise Exception('Unrecognized Input Error')
+
     def get_PDF(self, s, method='method 2'):
         '''Returns cycle PDF(Probability Density Function) as a function of stress s.
 
@@ -80,15 +106,7 @@ class TovoBenasciutti(object):
                           (This is the improved method)
         :return pdf: numpy.ndarray
         '''
-        al2 = self.spectral_data.al2
-        m0 = self.spectral_data.moments[0]
-
-        b = self._calculate_coefficient(method=method)
-
-        pdf = b * ((s / m0) * np.exp( - s**2 / (2 * m0))) + \
-            (1 - b) * ((s / (m0 * al2**2)) * np.exp( - s**2 / (2 * al2**2 * m0)))
-
-        return pdf
+        return self._function_PDF(method=method)(s)
 
     def get_life(self, C, k, method='method 2'): 
         """Calculate fatigue life with parameters C, k, as defined in [3].
@@ -104,14 +122,14 @@ class TovoBenasciutti(object):
         :return T: float
             Estimated fatigue life in seconds.
         """ 
-        m_p = self.spectral_data.m_p
         m0 = self.spectral_data.moments[0]
+        nu = self.spectral_data.nu
         al2 = self.spectral_data.al2
         
         b = self._calculate_coefficient(method=method)
 
-        D_nb_lcc = m_p * al2 * np.sqrt(2 * m0)**k * ss.gamma(1.0 + k/2.0) / C
+        dNB = self.damage_intesity_NB(m0=m0, nu=nu, C=C, k=k) 
         l = b + ( 1.0 - b ) * al2**(k-1.0)
-        T = 1.0 / (D_nb_lcc * l)
+        T = 1.0 / (dNB * l)
         
         return T

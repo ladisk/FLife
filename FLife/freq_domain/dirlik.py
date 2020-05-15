@@ -37,6 +37,51 @@ class Dirlik(object):
         
         self.coeff = c
             
+    def _function_PDF(self, k=False):
+        '''Defines cycle PDF(Probability Density Function) function or k-th 
+        statistical moment function, if k is specified.
+        '''
+        m0 = self.spectral_data.moments[0]
+        Z1 = self.coeff[0]
+        R = self.coeff[4]
+        Q = self.coeff[7]
+        G1 = self.coeff[3]
+        G2 = self.coeff[5]
+        G3 = self.coeff[6]
+        
+        if k==False: 
+            def pdf(s):
+                Z =  Z1*s
+                px = (1.0/np.sqrt(m0)) * ( \
+                                (G1/Q)*np.exp(-Z/Q) + \
+                                ((G2*Z)/(R**2))*np.exp(-((Z)**2)/(2.*R**2)) + \
+                                (G3*Z)*np.exp(-((Z)**2)/2.) \
+                                )
+                return px
+            return pdf
+        else:
+            if isinstance(k, (int,float)): 
+                def pdf_moment(s):
+                    Z =  Z1*s
+                    px = (1.0/np.sqrt(m0)) * ( \
+                                    (G1/Q)*np.exp(-Z/Q) + \
+                                    ((G2*Z)/(R**2))*np.exp(-((Z)**2)/(2.*R**2)) + \
+                                    (G3*Z)*np.exp(-((Z)**2)/2.) \
+                                    )
+                    return s**k * px
+                return pdf_moment
+            else:
+                raise Exception('Unrecognized Input Error')
+
+    def get_PDF(self,s):
+        '''Returns cycle PDF(Probability Density Function) as a function of stress s.
+
+        :param s:  numpy.ndarray
+            Stress vector.
+        :return pdf: numpy.ndarray
+        '''
+        return self._function_PDF()(s)
+        
     def get_life(self, C, k):
         """Calculate fatigue life with parameters C, k, as defined in [2].
 
@@ -60,22 +105,3 @@ class Dirlik(object):
                                     ) )
     
         return T
-        
-    def get_PDF(self, s):
-        '''Returns cycle PDF(Probability Density Function) as a function of stress s.
-        '''
-        m0 = self.spectral_data.moments[0]
-        Z1 = self.coeff[0]
-        R = self.coeff[4]
-        Q = self.coeff[7]
-        G1 = self.coeff[3]
-        G2 = self.coeff[5]
-        G3 = self.coeff[6]
-        
-        Z =  Z1*s
-        pdf = (1.0/np.sqrt(m0)) * ( \
-                            (G1/Q)*np.exp(-Z/Q) + \
-                            ((G2*Z)/(R**2))*np.exp(-((Z)**2)/(2.*R**2)) + \
-                            (G3*Z)*np.exp(-((Z)**2)/2.) \
-                        )
-        return pdf

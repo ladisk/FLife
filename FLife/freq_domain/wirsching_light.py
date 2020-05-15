@@ -1,8 +1,8 @@
 import numpy as np
 from scipy.special import gamma
+from .narrowband import Narrowband
 
-
-class WirschingLight(object):
+class WirschingLight(Narrowband):
     """Class for fatigue life estimation using frequency domain 
     method by Wirsching and Light [1].
    
@@ -20,7 +20,7 @@ class WirschingLight(object):
 
         :param spectral_data:  Instance of object SpectralData
         '''
-        self.spectral_data = spectral_data
+        Narrowband.__init__(self, spectral_data)
                            
     def get_life(self, C, k):
         """Calculate fatigue life with parameters C, k, as defined in [2].
@@ -36,7 +36,7 @@ class WirschingLight(object):
         nu = self.spectral_data.nu
         al2 = self.spectral_data.al2
 
-        dNB = nu * np.sqrt(2 * m0)**k * gamma(1.0 + k/2.0) / C
+        dNB = self.damage_intesity_NB(m0=m0, nu=nu, C=C, k=k) 
         ak = 0.926 - 0.033 * k
         bk = 1.587 * k - 2.323
         eps = np.sqrt(1 - al2**2)
