@@ -50,7 +50,7 @@ Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar.
 Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020
 
 
-|codeship|
+|Build Status|
 
-.. |codeship| image:: https://app.codeship.com/projects/b8713910-6aaf-0138-8527-66d00b8d6fc9/status?branch=master
-    :target: https://app.codeship.com/projects/394339
+.. |Build Status| image:: https://travis-ci.com/ladisk/FLife.svg?branch=master
+   :target: https://travis-ci.com/ladisk/FLife

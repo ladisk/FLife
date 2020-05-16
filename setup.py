@@ -19,7 +19,7 @@ with open(init_file, 'r') as f:
             'Cannot find __version__ in {}'.format(init_file))
 
 # Read the "README.rst" for project description
-with open('README.rst', 'r') as f:
+with open('README.rst', 'r', encoding='utf8') as f:
     readme = f.read()
 
 # Automatically parse the requirements.txt file for project requirements
