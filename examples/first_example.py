@@ -4,8 +4,8 @@ sys.path.insert(0, my_path + '/../')
 import FLife
 import numpy as np
 
-
 dt = 1e-4
+np.random.seed(0)
 x = np.random.normal(scale=100, size=10000)
 
 C = 1.8e+22

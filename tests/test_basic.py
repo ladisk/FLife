@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.integrate import quad
 import sys, os
 my_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, my_path + '/../')
@@ -55,6 +56,18 @@ def test_data():
     gm = FLife.GaoMoan(sd)
     pz = FLife.PetrucciZuccarello(sd)
 
+    # Test PDF's; expected result should be 1
+    PDFs = {
+        'Dirlik': quad(dirlik.get_PDF, a=0, b=np.Inf)[0],
+        'Rice': quad(nb.get_PDF, a=0, b=np.Inf)[0],
+        'Rice -inf': quad(rice.get_PDF, a=-np.Inf, b=np.Inf)[0],
+        'Tovo Benasciutti 1': quad(tb.get_PDF, a=0, b=np.Inf, args=('method 1',))[0],
+        'Tovo Benasciutti 2': quad(tb.get_PDF, a=0, b=np.Inf, args=('method 2',))[0],
+        'Zhao Baker 1': quad(zb.get_PDF, a=0, b=np.Inf, args=('method 1',))[0],
+        'Zhao Baker 2': quad(zb.get_PDF, a=0, b=np.Inf, args=('method 2',))[0],
+    }
+    for method, value in PDFs.items():
+        np.testing.assert_almost_equal(value, 1., decimal=5, err_msg=f'Method: {method}')
 
     results = {
         'Rainflow': rf.get_life(C = C, k=k),
@@ -72,14 +85,32 @@ def test_data():
         'Petrucci Zuccarello': pz.get_life(C = C, k=k, Su=Su)
     }
 
-    for k, v in results.items():
-        if k=='Petrucci Zuccarello':
+    for method, value in results.items():
+        if method=='Petrucci Zuccarello':
             compare_to = 'Rainflow-Goodman'
         else:
             compare_to = 'Rainflow'
-        err = FLife.tools.relative_error(v, results[compare_to])
-        print(f'{k:>19s}:{v:6.0f} s,{100*err:>4.0f} % to {compare_to}')
-        np.testing.assert_almost_equal(v, results_ref[k], decimal=5, err_msg=f'Method: {k}')
+        err = FLife.tools.relative_error(value, results[compare_to])
+        print(f'{method:>19s}:{value:6.0f} s,{100*err:>4.0f} % to {compare_to}')
+        np.testing.assert_almost_equal(value, results_ref[method], decimal=5, err_msg=f'Method: {method}')
+
+    results_via_PDF = {
+        'Dirlik': dirlik.get_life(C = C, k=k, integrate_pdf=True),
+        'Tovo Benasciutti 1': tb.get_life(C = C, k=k, method='method 1', integrate_pdf=True),
+        'Tovo Benasciutti 2': tb.get_life(C = C, k=k, integrate_pdf=True),
+        'Zhao Baker 1': zb.get_life(C = C, k=k, integrate_pdf=True),
+        'Zhao Baker 2': zb.get_life(C = C, k=k, method='method 2', integrate_pdf=True),
+        'Narrowband': nb.get_life(C = C, k=k, integrate_pdf=True),
+        'Alpha 0.75': a075.get_life(C = C, k=k),
+        'Wirsching Light': wl.get_life(C = C, k=k),
+        'Rice': rice.get_life(C = C, k=k),
+        'Gao Moan': gm.get_life(C = C, k=k),
+        'Petrucci Zuccarello': pz.get_life(C = C, k=k, Su=Su)
+    }
+
+    for method, value in results_via_PDF.items():
+        np.testing.assert_almost_equal(value/results[method], 1.0, decimal=2, err_msg=f'Method: {method}')
+
 
 if __name__ == "__main__":
     test_data()

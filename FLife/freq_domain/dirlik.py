@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.special as ss
+from scipy.integrate import quad
 
 class Dirlik(object):
     """Class for fatigue life estimation using frequency domain method by Dirlik [1].
@@ -37,9 +38,13 @@ class Dirlik(object):
         
         self.coeff = c
             
-    def _function_PDF(self, k=False):
-        '''Defines cycle PDF(Probability Density Function) function or k-th 
-        statistical moment function, if k is specified.
+
+    def get_PDF(self,s):
+        '''Returns cycle PDF(Probability Density Function) as a function of stress s.
+
+        :param s:  numpy.ndarray
+            Stress vector.
+        :return pdf: function pdf(s)
         '''
         m0 = self.spectral_data.moments[0]
         Z1 = self.coeff[0]
@@ -48,60 +53,50 @@ class Dirlik(object):
         G1 = self.coeff[3]
         G2 = self.coeff[5]
         G3 = self.coeff[6]
-        
-        if k==False: 
-            def pdf(s):
-                Z =  Z1*s
-                px = (1.0/np.sqrt(m0)) * ( \
-                                (G1/Q)*np.exp(-Z/Q) + \
-                                ((G2*Z)/(R**2))*np.exp(-((Z)**2)/(2.*R**2)) + \
-                                (G3*Z)*np.exp(-((Z)**2)/2.) \
-                                )
-                return px
-            return pdf
-        else:
-            if isinstance(k, (int,float)): 
-                def pdf_moment(s):
-                    Z =  Z1*s
-                    px = (1.0/np.sqrt(m0)) * ( \
-                                    (G1/Q)*np.exp(-Z/Q) + \
-                                    ((G2*Z)/(R**2))*np.exp(-((Z)**2)/(2.*R**2)) + \
-                                    (G3*Z)*np.exp(-((Z)**2)/2.) \
-                                    )
-                    return s**k * px
-                return pdf_moment
-            else:
-                raise Exception('Unrecognized Input Error')
 
-    def get_PDF(self,s):
-        '''Returns cycle PDF(Probability Density Function) as a function of stress s.
+        def pdf(s):
+            Z =  Z1*s
+            px = (1.0/np.sqrt(m0)) * ( \
+                            (G1/Q)*np.exp(-Z/Q) + \
+                            ((G2*Z)/(R**2))*np.exp(-((Z)**2)/(2.*R**2)) + \
+                            (G3*Z)*np.exp(-((Z)**2)/2.) \
+                            )
+            return px
+        return pdf(s)
 
-        :param s:  numpy.ndarray
-            Stress vector.
-        :return pdf: numpy.ndarray
-        '''
-        return self._function_PDF()(s)
-        
-    def get_life(self, C, k):
+    def get_life(self, C, k, integrate_pdf=False):
         """Calculate fatigue life with parameters C, k, as defined in [2].
 
         :param C: [int,float]
             Fatigue strength coefficient [MPa**k].
         :param k : [int,float]
             Fatigue strength exponent [/].
+        :param integrate_pdf:  boolean
+            If true the the fatigue life is estimated by integrating the PDF, 
+            Default is false which means that the theoretical equation is used
         :return T: float
             Estimated fatigue life in seconds.
-        """
-        m0 = self.spectral_data.moments[0]
-        
-        R = self.coeff[4]
-        Q = self.coeff[7]
-        G1 = self.coeff[3]
-        G2 = self.coeff[5]
-        G3 = self.coeff[6]
-        
-        T = C / ( self.spectral_data.m_p * np.sqrt(m0)**k * (  \
-                                        G1 * (Q**k)*ss.gamma(1.0+k)+(np.sqrt(2.0)**k)*ss.gamma(1.+k/2.)*(G2 * abs(R)**k+G3) \
-                                    ) )
+        """ 
+        if integrate_pdf:
+            d = self.spectral_data.m_p / C * \
+                quad(lambda s: s**k*self.get_PDF(s), 
+                     a=0, b=np.Inf)[0]
+        else:
+            m0 = self.spectral_data.moments[0]
+            
+            R = self.coeff[4]
+            Q = self.coeff[7]
+            G1 = self.coeff[3]
+            G2 = self.coeff[5]
+            G3 = self.coeff[6]
+            
+            d = 1 / C * ( self.spectral_data.m_p 
+                          * np.sqrt(m0)**k 
+                          * (
+                                G1 * (Q**k)*ss.gamma(1.0+k)+(np.sqrt(2.0)**k)*\
+                                ss.gamma(1.+k/2.)*(G2 * abs(R)**k+G3)\
+                            )
+                        )
     
+        T = 1/d
         return T

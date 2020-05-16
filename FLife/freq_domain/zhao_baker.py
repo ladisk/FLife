@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.integrate import quad
 from scipy.special import gamma
 from scipy.optimize import fsolve
 
@@ -96,30 +97,6 @@ class ZhaoBaker(object):
 
         return [a, b, w]
 
-    def _function_PDF(self,  method='method 1', k=False):
-        '''Defines cycle PDF(Probability Density Function) function or k-th 
-        statistical moment function, if k is specified.
-        '''
-        m0 = self.spectral_data.moments[0]
-
-        a, b, w = self._calculate_coefficients(method=method)
-
-        if k==False: 
-            def pdf(s):
-                px =  w * ((a*b) / (np.sqrt(m0))) * ((s/np.sqrt(m0)))**(b-1) * np.exp(-a * (s/np.sqrt(m0))**b) +\
-                    (1-w) * (s/m0) * np.exp(-0.5 * (s/np.sqrt(m0))**2)
-                return px
-            return pdf
-        else:
-            if isinstance(k, (int,float)): 
-                def pdf_moment(s):
-                    px =  w * ((a*b) / (np.sqrt(m0))) * ((s/np.sqrt(m0)))**(b-1) * np.exp(-a * (s/np.sqrt(m0))**b) +\
-                        (1-w) * (s/m0) * np.exp(-0.5 * (s/np.sqrt(m0))**2)
-                    return s**k * px
-                return pdf_moment
-            else:
-                raise Exception('Unrecognized Input Error')
-
     def get_PDF(self, s, method='method 2'):
         '''Returns cycle PDF(Probability Density Function) as a function of stress s.
 
@@ -129,11 +106,18 @@ class ZhaoBaker(object):
             - 'method 1' is tuned in simulations with material parameters 
                in the range of 2 <= k <= 6, where k is S-N curve coefficient.
             - 'method 2' is derived for S-N curve coefficient k = 3. 
-        :return pdf: numpy.ndarray
+        :return pdf: function pdf(s)
         '''
-        return self._function_PDF(method=method)(s)
+        m0 = self.spectral_data.moments[0]
+        a, b, w = self._calculate_coefficients(method=method)
 
-    def get_life(self, C, k, method='method 1'):
+        def pdf(s):
+            return  w * ((a*b) / (np.sqrt(m0))) * ((s/np.sqrt(m0)))**(b-1) * np.exp(-a * (s/np.sqrt(m0))**b) +\
+                (1-w) * (s/m0) * np.exp(-0.5 * (s/np.sqrt(m0))**2)
+        return pdf(s)
+        
+        
+    def get_life(self, C, k, method='method 1', integrate_pdf=False): 
         """Calculate fatigue life with parameters C and k, as defined in [2].
 
         :param C: [int,float]
@@ -144,17 +128,24 @@ class ZhaoBaker(object):
             - 'method 1' is tuned in simulations with material parameters 
                in the range of 2 <= k <= 6, where k is S-N curve coefficient.
             - 'method 2' is derived for S-N curve coefficient k = 3.  
-
+        :param integrate_pdf:  boolean
+            If true the the fatigue life is estimated by integrating the PDF, 
+            Default is false which means that the theoretical equation is used
         :return T: float
             Estimated fatigue life in seconds.
         """
-        m0 = self.spectral_data.moments[0]
-        m_p = self.spectral_data.m_p
+        if integrate_pdf:
+            d = self.spectral_data.m_p / C * \
+                quad(lambda s: s**k*self.get_PDF(s, method=method), 
+                    a=0, b=np.Inf)[0]
+        else:
+            m0 = self.spectral_data.moments[0]
+            m_p = self.spectral_data.m_p
 
-        a, b, w = self._calculate_coefficients(method=method)
-               
-        d = (m_p/C) * m0**(0.5*k) * ( w * a**(-k/b) * gamma(1.0+k/b) +\
-             (1.0-w) * 2**(0.5*k) * gamma(1.0+0.5*k) )
-        T = np.float(1.0 / d)
-        
+            a, b, w = self._calculate_coefficients(method=method)
+                    
+            d = (m_p/C) * m0**(0.5*k) * ( w * a**(-k/b) * gamma(1.0+k/b) +\
+                    (1.0-w) * 2**(0.5*k) * gamma(1.0+0.5*k) )
+    
+        T = float(1.0/d)
         return T

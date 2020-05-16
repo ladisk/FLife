@@ -34,7 +34,8 @@ Here is a simple example on how to use the code:
     # Spectral data
     sd = FLife.SpectralData(input=x, dt=dt)
 
-    # Rainflow reference fatigue life
+    # Rainflow reference fatigue life 
+    # (do not be confused here, spectral data object also holds the time domain data)
     rf = FLife.Rainflow(sd)
 
     # Spectral methods
@@ -43,6 +44,7 @@ Here is a simple example on how to use the code:
     print(f'          Rainflow: {rf.get_life(C = C, k=k):4.0f} s')
     print(f'            Dirlik: {dirlik.get_life(C = C, k=k):4.0f} s')
     print(f'Tovo Benasciutti 2: {tb.get_life(C = C, k=k, method="method 2"):4.0f} s')
+    
 Reference:
 Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
 Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020

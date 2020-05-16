@@ -1,5 +1,5 @@
 import numpy as np
-import scipy.special as ss
+from scipy.integrate import quad
 from .narrowband import Narrowband
 
 class TovoBenasciutti(Narrowband):
@@ -70,31 +70,6 @@ class TovoBenasciutti(Narrowband):
 
         return b
         
-    def _function_PDF(self, method='method 2', k=False):
-        '''Defines cycle PDF(Probability Density Function) function or k-th 
-        pdf moment function, if k is specified.
-        '''
-        al2 = self.spectral_data.al2
-        m0 = self.spectral_data.moments[0]
-
-        b = self._calculate_coefficient(method=method)
-        
-        if k==False: 
-            def pdf(s):
-                px = b * ((s / m0) * np.exp( - s**2 / (2 * m0))) + \
-                    (1 - b) * ((s / (m0 * al2**2)) * np.exp( - s**2 / (2 * al2**2 * m0))) 
-                return px
-            return pdf
-        else:
-            if isinstance(k, (int,float)): 
-                def pdf_moment(s):
-                    px = b * ((s / m0) * np.exp( - s**2 / (2 * m0))) + \
-                        (1 - b) * ((s / (m0 * al2**2)) * np.exp( - s**2 / (2 * al2**2 * m0)))
-                    return s**k * px
-                return pdf_moment
-            else:
-                raise Exception('Unrecognized Input Error')
-
     def get_PDF(self, s, method='method 2'):
         '''Returns cycle PDF(Probability Density Function) as a function of stress s.
 
@@ -104,11 +79,20 @@ class TovoBenasciutti(Narrowband):
             - 'method 1': `b` weighting parameter `b` is defined by Tovo[1].
             - 'method 2': `b` weighting parameter `b` is defined by Tovo and Benasciutti [2].
                           (This is the improved method)
-        :return pdf: numpy.ndarray
+        :return pdf: function pdf(s)
         '''
-        return self._function_PDF(method=method)(s)
+        al2 = self.spectral_data.al2
+        m0 = self.spectral_data.moments[0]
 
-    def get_life(self, C, k, method='method 2'): 
+        b = self._calculate_coefficient(method=method)
+
+        def pdf(s):
+            px = b * ((s / m0) * np.exp( - s**2 / (2 * m0))) + \
+                (1 - b) * ((s / (m0 * al2**2)) * np.exp( - s**2 / (2 * al2**2 * m0))) 
+            return px
+        return pdf(s)
+
+    def get_life(self, C, k, method='method 2', integrate_pdf=False):
         """Calculate fatigue life with parameters C, k, as defined in [3].
 
         :param C: [int,float]
@@ -119,17 +103,26 @@ class TovoBenasciutti(Narrowband):
             - 'method 1': `b` weighting parameter `b` is defined by Tovo[1].
             - 'method 2': `b` weighting parameter `b` is defined by Tovo and Benasciutti [2].
                           (This is the improved method)
+        :param integrate_pdf:  boolean
+            If true the the fatigue life is estimated by integrating the PDF, 
+            Default is false which means that the theoretical equation is used
         :return T: float
             Estimated fatigue life in seconds.
         """ 
-        m0 = self.spectral_data.moments[0]
-        nu = self.spectral_data.nu
-        al2 = self.spectral_data.al2
-        
-        b = self._calculate_coefficient(method=method)
+        if integrate_pdf:
+            d = self.spectral_data.nu / C * \
+                quad(lambda s: s**k*self.get_PDF(s, method=method), 
+                     a=0, b=np.Inf)[0]
+        else:
+            m0 = self.spectral_data.moments[0]
+            nu = self.spectral_data.nu
+            al2 = self.spectral_data.al2
+            
+            b = self._calculate_coefficient(method=method)
 
-        dNB = self.damage_intesity_NB(m0=m0, nu=nu, C=C, k=k) 
-        l = b + ( 1.0 - b ) * al2**(k-1.0)
-        T = 1.0 / (dNB * l)
+            dNB = self.damage_intesity_NB(m0=m0, nu=nu, C=C, k=k) 
+            l = b + ( 1.0 - b ) * al2**(k-1.0)
+            d = dNB * l
         
+        T = 1.0/d
         return T

@@ -5,3 +5,4 @@ twine
 wheel
 pytest
 sphinx-rtd-theme
+matplotlib
