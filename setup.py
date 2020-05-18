@@ -49,7 +49,7 @@ if __name__ == '__main__':
         maintainer_email='janko.slavic@fs.uni-lj.si',
         install_requires=requirements,
         keywords=['vibration fatigue, spectral methods, structural dynamics'],
-        packages=['FLife'],
+        packages=['FLife', 'FLife.freq_domain', 'FLife.time_domain'],
         classifiers=['Development Status :: 3 - Alpha',
                      'Intended Audience :: Developers',
                      'Programming Language :: Python :: 3.6']
