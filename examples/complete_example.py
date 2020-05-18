@@ -69,7 +69,7 @@ plt.show()
 #Integral of PDF should be 1!
 PDFs = {
     'Dirlik': quad(dirlik.get_PDF, a=0, b=np.Inf)[0],
-    'Rice': quad(nb.get_PDF, a=0, b=np.Inf)[0],
+    'Narrowband': quad(nb.get_PDF, a=0, b=np.Inf)[0],
     'Rice -inf': quad(rice.get_PDF, a=-np.Inf, b=np.Inf)[0],
     'Tovo Benasciutti 1': quad(tb.get_PDF, a=0, b=np.Inf, args=('method 1',))[0],
     'Tovo Benasciutti 2': quad(tb.get_PDF, a=0, b=np.Inf, args=('method 2',))[0],
