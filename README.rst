@@ -14,6 +14,22 @@ Use `pip` to install it by:
     $ pip install FLife
 
 
+Supported methods in the frequency-domain
+-----------------------------------------
+
+    - Dirlik,
+    - Tovo Benasciutti,
+    - Zhao Baker,
+    - Narrowband,
+    - Alpha 0.75,
+    - Wirsching Light,
+    - Rice,
+    - Gao Moan,
+    - Petrucci Zuccarello.
+
+Rainflow (time-domain) is supported using the `fatpack` package.
+
+
 Simple examples
 ---------------
 
