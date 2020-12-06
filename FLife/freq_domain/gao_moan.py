@@ -169,7 +169,7 @@ class GaoMoan(Narrowband):
         x3 = np.arange(0, pdf_Q.size*dx , dx)
         
         # -- Define expected value of stress range ( int(S^k * p(s)) )
-        SP = si.simps(x2**k * pdf_P, x2, dx)  #quad funkcija
+        SP = si.simps(x2**k * pdf_P, x2, dx)  
         SQ = si.simps(x3**k * pdf_Q, x3, dx)
 
         # -- Calculate damage intensity d, fatigue life
