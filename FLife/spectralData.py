@@ -1,5 +1,5 @@
 import numpy as np
-import scipy.signal as ss
+from scipy import signal
 
 
 class SpectralData(object):
@@ -80,7 +80,7 @@ class SpectralData(object):
 
     def _calculate_psd(self, data, fs=1, window='hamming', nperseg=10280, noverlap=None, trim=None):
         """Calculates PSD using welch estimator."""
-        f, p = ss.welch(data, fs=fs, window=window,
+        f, p = signal.welch(data, fs=fs, window=window,
                         nperseg=nperseg, noverlap=noverlap)
 
         psd = np.vstack((f, p)).transpose()
