@@ -1,7 +1,6 @@
 import numpy as np
-import scipy.stats as ss
-import scipy.integrate as si
-import scipy.special as spe
+from scipy import stats
+from scipy import integrate
 import warnings
 from .narrowband import Narrowband
 
@@ -96,8 +95,8 @@ class GaoMoan(Narrowband):
             v0P = np.sqrt(m2H * eps_H**2 + m2M) * (np.sqrt(m0M) /  (m0H + m0M))
             
             # -- peak pdf 
-            pdf_H = lambda x: ss.rayleigh.pdf(x / np.sqrt(m0H)) / np.sqrt(m0H)
-            pdf_M = lambda x: ss.rayleigh.pdf(x / np.sqrt(m0M)) / np.sqrt(m0M)
+            pdf_H = lambda x: stats.rayleigh.pdf(x / np.sqrt(m0H)) / np.sqrt(m0H)
+            pdf_M = lambda x: stats.rayleigh.pdf(x / np.sqrt(m0M)) / np.sqrt(m0M)
         
             # -- max stress is 3*standard deviation
             smax = 3.0 * np.sqrt(self.spectral_data.moments[0])
@@ -108,7 +107,7 @@ class GaoMoan(Narrowband):
             x2 = np.arange(0, pdf_P.size * dx, dx)
             
             # -- Define expected value of stress range ( int(S^k * p(s)) ) P(t)
-            SP = si.simps(x2**k * pdf_P, x2, dx)
+            SP = integrate.simps(x2**k * pdf_P, x2, dx)
 
             dNB_H = self.damage_intesity_NB(m0=m0H, nu=v0H, C=C, k=k) 
             dNB_P = v0P * SP / C
@@ -154,9 +153,9 @@ class GaoMoan(Narrowband):
             / (2.0 * np.sqrt(m0H + m0M + m0L)**3)
 
         # -- peak pdf 
-        pdf_H = lambda x: ss.rayleigh.pdf(x/np.sqrt(m0H)) / np.sqrt(m0H)
-        pdf_M = lambda x: ss.rayleigh.pdf(x/np.sqrt(m0M)) / np.sqrt(m0M)
-        pdf_L = lambda x: ss.rayleigh.pdf(x/np.sqrt(m0L)) / np.sqrt(m0L)
+        pdf_H = lambda x: stats.rayleigh.pdf(x/np.sqrt(m0H)) / np.sqrt(m0H)
+        pdf_M = lambda x: stats.rayleigh.pdf(x/np.sqrt(m0M)) / np.sqrt(m0M)
+        pdf_L = lambda x: stats.rayleigh.pdf(x/np.sqrt(m0L)) / np.sqrt(m0L)
         
         # -- max stress is 3*standard deviation
         smax = 3.0 * np.sqrt(self.spectral_data.moments[0])
@@ -169,8 +168,8 @@ class GaoMoan(Narrowband):
         x3 = np.arange(0, pdf_Q.size*dx , dx)
         
         # -- Define expected value of stress range ( int(S^k * p(s)) )
-        SP = si.simps(x2**k * pdf_P, x2, dx)  
-        SQ = si.simps(x3**k * pdf_Q, x3, dx)
+        SP = integrate.simps(x2**k * pdf_P, x2, dx)  
+        SQ = integrate.simps(x3**k * pdf_Q, x3, dx)
 
         # -- Calculate damage intensity d, fatigue life
         dNB_H = self.damage_intesity_NB(m0=m0H, nu=v0H, C=C, k=k) 

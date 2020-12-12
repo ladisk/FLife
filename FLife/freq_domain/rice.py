@@ -1,6 +1,5 @@
 import numpy as np
-import scipy.integrate as si
-import scipy.stats as ss
+from scipy import stats
 from scipy.integrate import quad
 
 class Rice(object):
@@ -36,7 +35,7 @@ class Rice(object):
             px = np.sqrt(1.0 - al2**2)/np.sqrt(2.0 * np.pi * m0) * \
                 np.exp( - (s**2) / (2.0 * m0 * (1.0 - al2**2))) +\
                 al2*s/m0 * np.exp( - (s**2) / (2*m0)) * \
-                ss.norm.cdf((al2 * s) / (np.sqrt(m0 * (1 - al2**2))))
+                stats.norm.cdf((al2 * s) / (np.sqrt(m0 * (1 - al2**2))))
             return px
         return pdf(s)
 

@@ -1,5 +1,5 @@
 import numpy as np
-import scipy.special as ss
+from scipy import special
 from scipy.integrate import quad
 
 class Dirlik(object):
@@ -93,8 +93,8 @@ class Dirlik(object):
             d = 1 / C * ( self.spectral_data.m_p 
                           * np.sqrt(m0)**k 
                           * (
-                                G1 * (Q**k)*ss.gamma(1.0+k)+(np.sqrt(2.0)**k)*\
-                                ss.gamma(1.+k/2.)*(G2 * abs(R)**k+G3)\
+                                G1 * (Q**k)*special.gamma(1.0+k)+(np.sqrt(2.0)**k)*\
+                                special.gamma(1.+k/2.)*(G2 * abs(R)**k+G3)\
                             )
                         )
     
