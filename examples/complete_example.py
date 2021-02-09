@@ -81,7 +81,7 @@ for method, value in PDFs.items():
     print(f'{method:>19s}:{value:6.0f}')
 
 results = {
-    'Rainflow': rf.get_life(C = C, k=k),
+    'Rainflow': rf.get_life(C = C, k=k, algorithm='four-point'),
     'Rainflow-Goodman': rf.get_life(C = C, k = k, Su=Su),
     'Dirlik': dirlik.get_life(C = C, k=k),
     'Tovo Benasciutti 1': tb.get_life(C = C, k=k, method='method 1'),

@@ -70,7 +70,7 @@ def test_data():
         np.testing.assert_almost_equal(value, 1., decimal=5, err_msg=f'Method: {method}')
 
     results = {
-        'Rainflow': rf.get_life(C = C, k=k),
+        'Rainflow': rf.get_life(C = C, k=k, algorithm='four-point'),
         'Rainflow-Goodman': rf.get_life(C = C, k = k, Su=Su),
         'Dirlik': dirlik.get_life(C = C, k=k),
         'Tovo Benasciutti 1': tb.get_life(C = C, k=k, method='method 1'),
