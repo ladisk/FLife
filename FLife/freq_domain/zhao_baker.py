@@ -121,9 +121,9 @@ class ZhaoBaker(object):
         """Calculate fatigue life with parameters C and k, as defined in [2].
 
         :param C: [int,float]
-            Fatigue strength coefficient [MPa**k].
+            S-N curve intercept [MPa**k].
         :param k : [int,float]
-            Fatigue strength exponent [/].
+            S-N curve inverse slope [/].
         :param method : str
             - 'method 1' is tuned in simulations with material parameters 
                in the range of 2 <= k <= 6, where k is S-N curve coefficient.

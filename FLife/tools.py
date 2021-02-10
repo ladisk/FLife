@@ -17,11 +17,11 @@ def basquin_to_sn(Sf, b, range = False):
     :param Sf: [int,float]
         Fatigue strength coefficient [MPa**k].
     :param b : [int,float]
-        Fatigue strength exponent [/].
+        Fatigue strength exponent [/]. Represents S-N curve slope.
     :param range : bool
         False/True sets returned value C with regards to amplitude / range count, respectively.
     :return C, k: float
-        C - fatigue strength coefficient [MPa**k], k - fatigue strength exponent [/].
+        C - S-N curve intercept [MPa**k], k - S-N curve inverse slope [/].
     """ 
     if not range:
         k = -1/b 
