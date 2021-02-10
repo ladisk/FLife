@@ -44,8 +44,8 @@ Here is a simple example on how to use the code:
     dt = 1e-4
     x = np.random.normal(scale=100, size=10000)
 
-    C = 1.8e+22
-    k = 7.3
+    C = 1.8e+22  # S-N curve intercept [MPa]
+    k = 7.3 # S-N curve inverse slope [/]
 
     # Spectral data
     sd = FLife.SpectralData(input=x, dt=dt)
