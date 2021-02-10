@@ -3,13 +3,14 @@ import fatpack
 import rainflow
 
 class Rainflow(object):
-    """Class for fatigue life estimation using rainflow counting method [1].
+    """Class for fatigue life estimation using rainflow counting method [1, 2].
 
     References
     ----------
     [1] C. Amzallag et. al. Standardization of the rainflow counting method for
         fatigue analysis. International Journal of Fatigue, 16 (1994) 287-293
-    [2] Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
+    [2] ASTM E1049-85 
+    [3] Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
         Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage
         – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020
     """
@@ -22,12 +23,12 @@ class Rainflow(object):
 
 
     def get_life(self, C, k, algorithm = 'four-point',  Su = False, range = False, **kwargs):
-        r"""Calculate fatigue life with parameters C, k, as defined in [2].
+        """Calculate fatigue life with parameters C, k, as defined in [3].
  
         :param C: [int,float]
-            Fatigue strength coefficient [MPa**k].
+            S-N curve intercept [MPa**k].
         :param k : [int,float]
-            Fatigue strength exponent [/].
+            S-N curve inverse slope [/].
         :param algorithm: str
             Cycle counting method. Options are `three-point` and `four-point`.
             Defaults to `four-point`.

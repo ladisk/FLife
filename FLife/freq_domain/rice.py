@@ -43,9 +43,9 @@ class Rice(object):
         """Calculate fatigue life with parameters C, k, as defined in [2].
 
         :param C: [int,float]
-            Fatigue strength coefficient [MPa**k].
+            S-N curve intercept [MPa**k].
         :param k : [int,float]
-            Fatigue strength exponent [/].
+            S-N curve inverse slope [/].
         :return T: float
             Estimated fatigue life in seconds.
         """ 

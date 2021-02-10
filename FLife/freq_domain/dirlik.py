@@ -68,9 +68,9 @@ class Dirlik(object):
         """Calculate fatigue life with parameters C, k, as defined in [2].
 
         :param C: [int,float]
-            Fatigue strength coefficient [MPa**k].
+            S-N curve intercept [MPa**k].
         :param k : [int,float]
-            Fatigue strength exponent [/].
+            S-N curve inverse slope [/].
         :param integrate_pdf:  boolean
             If true the the fatigue life is estimated by integrating the PDF, 
             Default is false which means that the theoretical equation is used

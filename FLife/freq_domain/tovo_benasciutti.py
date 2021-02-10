@@ -96,9 +96,9 @@ class TovoBenasciutti(Narrowband):
         """Calculate fatigue life with parameters C, k, as defined in [3].
 
         :param C: [int,float]
-            Fatigue strength coefficient [MPa**k].
+            S-N curve intercept [MPa**k].
         :param k : [int,float]
-            Fatigue strength exponent [/].
+            S-N curve inverse slope [/].
         :param method:  string
             - 'method 1': `b` weighting parameter `b` is defined by Tovo[1].
             - 'method 2': `b` weighting parameter `b` is defined by Tovo and Benasciutti [2].
