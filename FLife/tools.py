@@ -328,32 +328,6 @@ class PSDgen(object):
     def set_scale_log(self):
         self.scale= 'log'
         self.plot_PSD()
-        
-    def set_axes_limit(self):
-        """
-        Set axes limit
-        """
-        window = tk.Toplevel(self.root)
-        # Title
-        window.title("FLife: PSD input - Set axes limit")
-        # Set icon
-        window.tk.call('wm', 'iconphoto', window._w, self.image)
-
-        lbl_xmax = tk.Label(window, text='PSD_min', anchor='w', width=10)
-        lbl_xmax.grid(row=0, column=0,    sticky='nsw')
-        ent_xmax = tk.Entry(window)
-        ent_xmax.grid(row=0, column=1, sticky='nsw')
-        lbl_ymax = tk.Label(window,  text='PSD_max', anchor='w', width=10)
-        lbl_ymax.grid(row=1, column=0, sticky='nsw')
-        ent_ymax = tk.Entry(window)
-        ent_ymax.grid(row=1, column=1, sticky='nsw')
-        btn_confirm = tk.Button(window, text="Set limits")
-        btn_confirm.bind('<Button-1>', lambda ent_xmax, ent_ymax:
-            self._set_axes_limit_confirm(ent_xmax, ent_ymax))
-        btn_confirm.grid(row=4, column=1, sticky='nse')
-
-    def _set_axes_limit_confirm(ent_xmax, ent_ymax):
-        pass
     
     def plot_PSD(self):
         """
@@ -614,6 +588,11 @@ class PSDgen(object):
             list_freq, list_psd, list_lbl_nmbr, list_ent_freq, list_ent_PSD = [list() for u in range(5)] 
 
         # Get selected frequency 
+        # if bigger then max freq
+        if freq_input > self.freq[-1]:
+            self.freq = np.arange(0, freq_input + self.dfreq, self.dfreq)
+            self.freq_max = self.freq[-1]
+
         x_ind = np.abs(freq_input - self.freq).argmin()
         freq_sel = self.freq[x_ind]
         
