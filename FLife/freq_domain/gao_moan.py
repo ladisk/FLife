@@ -1,217 +1,195 @@
 import numpy as np
 from scipy import stats
 from scipy import integrate
-import warnings
-from .narrowband import Narrowband
+from .jiao_moan import JiaoMoan
+from ..tools import pdf_rayleigh_sum
 
-class GaoMoan(Narrowband):
+class GaoMoan(JiaoMoan):
     """Class for fatigue life estimation using frequency domain 
     method by Gao and Moan [1].
     
-    :param spectral_data:  Instance of object SpectralData       
-    :param band_frequency:  list
-        List of frequencies that divides general wideband procces into 3 or less narrowband
-        processes. Specified frequency is considered as upper limit of narrowband process.
-        Defaults to False.
-
     References
     ----------
     [1] Zhen Gao and Torgeir Moan. Frequency-domain fatigue analysis of
         wide-band stationary Gaussian processes using a trimodal spectral formulation.
-        International Journal of Fatigue, 30(10-11):1944{1955, 2008
+        International Journal of Fatigue, 30(10-11): 1944-1955, 2008
     [2] Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
         Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage
         – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020
+    
+    Example
+    -------
+    Import modules, define time- and frequency-domain data
+
+    >>> import FLife
+    >>> import pyExSi as es
+    >>> import numpy as np
+    >>> from matplotlib import pyplot as plt
+    >>> # time-domain data
+    >>> N = 2 ** 16  # number of data points of time signal
+    >>> fs = 2048  # sampling frequency [Hz]
+    >>> t = np.arange(0, N) / fs  # time vector
+    >>> # frequency-domain data
+    >>> M = N // 2 + 1  # number of data points of frequency vector
+    >>> freq = np.arange(0, M, 1) * fs / N  # frequency vector
+    >>> PSD_lower = es.get_psd(freq, 20, 60, variance = 5)  # lower mode of random process
+    >>> PSD_middle = es.get_psd(freq, 100, 120, variance = 1)  # middle mode of random process
+    >>> PSD_higher = es.get_psd(freq, 300, 350, variance = 2)  # higher mode of random process
+    >>> PSD = PSD_lower + PSD_middle + PSDb_higher # trimodal one-sided flat-shaped PSD
+
+    Get Gaussian stationary signal, instantiate SpectralData object and plot PSD
+
+    >>> rg = np.random.default_rng(123) # random generator seed
+    >>> x = es.random_gaussian(N, PSD, fs, rg) # Gaussian stationary signal
+    >>> sd = FLife.SpectralData(input=x, dt=1/fs) # SpectralData instance
+    >>> plt.plot(sd.psd[:,0], sd.psd[:,1]) 
+    >>> plt.xlabel('Frequency [Hz]')
+    >>> plt.ylabel('PSD')
+
+    Define S-N curve parameters and get fatigue-life estimatate
+
+    >>> C = 1.8e+22  # S-N curve intercept [MPa**k]
+    >>> k = 7.3 # S-N curve inverse slope [/]
+    >>> gm = FLife.GaoMoan(sd, PSD_splitting=('userDefinedBands', [80,150,400]))  # fatigue-life estimator
+    >>> print(f'Fatigue life: {gm.get_life(C,k):.3e} s.')   
+
+    Plot segmentated PSD, used in Gao-Moan method
+
+    >>> lower_band_index, middle_band_index, upper_band_index= gm.band_stop_indexes
+    >>> plt.plot(sd.psd[:,0], sd.psd[:,1])
+    >>> plt.vlines(sd.psd[:,0][lower_band_index], 0, np.max(sd.psd[:,1]), 'k', linestyles='dashed', alpha=.5)
+    >>> # lower band
+    >>> plt.fill_between(sd.psd[:lower_band_index,0], sd.psd[:lower_band_index,1], 'o', label='lower band', alpha=.2, color='blue')
+    >>> plt.vlines(sd.psd[:,0][middle_band_index], 0, np.max(sd.psd[:,1]), 'k', linestyles='dashed', alpha=.5)
+    >>> # middle band
+    >>> plt.fill_between(sd.psd[lower_band_index:middle_band_index,0], sd.psd[lower_band_index:middle_band_index,1], 'o', label='middle band', alpha=.5, color ='orange')
+    >>> plt.vlines(sd.psd[:,0][upper_band_index], 0, np.max(sd.psd[:,1]), 'k', linestyles='dashed', alpha=.5)
+    >>> # upper band
+    >>> plt.fill_between(sd.psd[middle_band_index:upper_band_index,0], sd.psd[middle_band_index:upper_band_index,1], 'o', label='upper band', alpha=.5, color ='green')
+    >>> plt.xlabel('Frequency [Hz]')
+    >>> plt.ylabel('PSD')
+    >>> plt.xlim(0,450)
+    >>> plt.legend()
     """
-    def __init__(self, spectral_data, band_frequency=False):
-        '''Get needed values from reference object.
+    def __init__(self, spectral_data, PSD_splitting = ('equalAreaBands', 3)):
+        """Get needed values from reference object.
 
-        :param spectral_data:  Instance of object SpectralData       
-        :param band_frequency:  list
-            List of frequencies that divides general wideband procces into 3 or less narrowband
-            processes. Specified frequency is considered as upper limit of narrowband process.
-            Defaults to False.
-         '''
-        Narrowband.__init__(self, spectral_data)
+        :param spectral_data:  Instance of class SpectralData       
+        :param PSD_splitting: tuple
+                PSD_splitting[0] is PSD spliting method, PSD_splitting[1] is method argument. 
+                Splitting methods:
 
-        band = [] 
-        if isinstance(band_frequency, list):
-            for indx,freq in enumerate(band_frequency):
-                if indx <3:
-                    if isinstance(freq, (int,float)):
-                        band.append(freq)
-                    else:
-                        raise Exception('Unrecognized Input Error')
-                else:
-                    warnings.warn("Too many frequency bands provided. Onyl first 3 will be used.")
-                    break
+                - 'userDefinedBands', PSD_splitting[1] must be of type list or tupple, with N 
+                  elements specifying upper band frequencies of N random processes.
+                - 'equalAreaBands', PSD_splitting[1] must be of type int, specifying N random processes.
 
-        self.band_frequency = np.array(band)
-        self.bands = False 
+                Defaults to ('equalAreaBands', 3).
+        """
+        JiaoMoan.__init__(self, spectral_data, PSD_splitting)
         
     def get_life(self, C, k):
-        """Calculate fatigue life with parameters C, k, as defined in [2].
+        """Calculate fatigue life with parameters C, k, as defined in [1, 2].
 
-        :param C: [int,float]
+        :param C: [int,float];
             S-N curve intercept [MPa**k].
-        :param k : [int,float]
+        :param k: [int,float];
             S-N curve inverse slope [/].
-        :return T: float
+        :return:
             Estimated fatigue life in seconds.
+        :rtype: float
         """
-        
-        if len(self.band_frequency) == 1: # narrow-band, user specified bandwidth
-
-            psd = self.spectral_data.psd
-            f1 = self.band_frequency[0]     
-            f1_indx = np.abs(psd[:, 0]  - f1).argmin()
-
-            # -- spectral moments, positive slope zero crossing frequency
-            m0H,_,m2H,_,_ = self.spectral_data.calculate_spectral_moments_frequency(psd[:f1_indx, :])
-            v0H = np.sqrt(m2H / m0H)
-
-            # -- Define expected value of stress range ( int(S^k * p(s)) ) proces H(t), fatigue life
-            dNB_H = self.damage_intesity_NB(m0=m0H, nu=v0H, C=C, k=k) 
-            T = 1/dNB_H
-        
-            return T
-            
-        elif len(self.band_frequency) == 2: # bi-modal, user specified bandwidth
-            
-            psd = self.spectral_data.psd
-            f1, f2 = self.band_frequency[0], self.band_frequency[1] 
-            f1_indx = np.abs(psd[:, 0] - f1).argmin()
-            f2_indx = np.abs(psd[:, 0] - f2).argmin()
-            
-            # -- spectral moments
-            m0H,m1H,m2H,_,_ = self.spectral_data.calculate_spectral_moments_frequency(psd[:f1_indx,:])
-            m0M,_,m2M,_,_ = self.spectral_data.calculate_spectral_moments_frequency(psd[f1_indx:f2_indx,:])
-            
-            # -- Vanmarcke bandwidth parameter
-            eps_H = np.sqrt(1.0 - m1H**2/(m0H*m2H))
-            
-            # -- positive slope zero crossing frequency
-            v0H = np.sqrt(m2H / m0H)
-            v0P = np.sqrt(m2H * eps_H**2 + m2M) * (np.sqrt(m0M) /  (m0H + m0M))
-            
-            # -- peak pdf 
-            pdf_H = lambda x: stats.rayleigh.pdf(x / np.sqrt(m0H)) / np.sqrt(m0H)
-            pdf_M = lambda x: stats.rayleigh.pdf(x / np.sqrt(m0M)) / np.sqrt(m0M)
-        
-            # -- max stress is 3*standard deviation
-            smax = 3.0 * np.sqrt(self.spectral_data.moments[0])
-            dx = 0.05
-            x = np.arange(0, smax, dx) 
-            
-            pdf_P = dx * np.convolve(pdf_H(x), pdf_M(x)) 
-            x2 = np.arange(0, pdf_P.size * dx, dx)
-            
-            # -- Define expected value of stress range ( int(S^k * p(s)) ) P(t)
-            SP = integrate.simps(x2**k * pdf_P, x2, dx)
-
-            dNB_H = self.damage_intesity_NB(m0=m0H, nu=v0H, C=C, k=k) 
-            dNB_P = v0P * SP / C
-            
-            d = dNB_H + dNB_P
-            T = 1 / d
-                
-            return T
-            
-        elif len(self.band_frequency) == 3: # tri-modal, user specified band width
-            self.bands = True 
-            
-            psd = self.spectral_data.psd
-            f1, f2, f3 = self.band_frequency[0], self.band_frequency[1], self.band_frequency[2] 
-            f1_indx = np.abs(psd[:, 0] - f1).argmin()
-            f2_indx = np.abs(psd[:, 0] - f2).argmin()
-            f3_indx = np.abs(psd[:, 0] - f3).argmin()
-
-            self.frequencies_indx = (f1_indx, f2_indx, f3_indx)
-
-            return self._calculate_life_trimodal(C, k)  
-            
-        else: # tri-modal, equal variance bandwidth
-            return self._calculate_life_trimodal(C, k)  
-
-    def _calculate_life_trimodal(self, C, k):
-        '''Returns fatique life based on specified 3-modal process bandwith.
-        '''
-        # -- calculate equal area bands and its moments
-        m0H, m1H, m2H, m0M, m1M, m2M, m0L, _, m2L = self.getBands()
-
-        # -- positive slope zero crossing frequency
-        v0H = np.sqrt(m2H/m0H)
-
-        # -- Vanmarcke bandwidth parameter
-        eps_H, eps_M = [np.sqrt(1.0 - m1H**2/(m0H*m2H)), np.sqrt(1.0 - m1M**2/(m0M*m2M))]
-        
-        # -- positive slope zero crossing frequency
-        v0P = np.sqrt(m2H * eps_H**2 + m2M) * (np.sqrt(m0M) / (m0H + m0M))
-        v0Q = np.sqrt(m2H * eps_H**2 + m2M * eps_M**2 + m2L) * \
-            (2.0 * np.sqrt(m0L * (m0H + m0M + m0L)) - np.pi * np.sqrt(m0H * m0M) \
-            + 2.0 * np.sqrt(m0H * m0M) * np.arctan(np.sqrt((m0H * m0M ) /m0L) / np.sqrt(m0H + m0M + m0L))) \
-            / (2.0 * np.sqrt(m0H + m0M + m0L)**3)
-
-        # -- peak pdf 
-        pdf_H = lambda x: stats.rayleigh.pdf(x/np.sqrt(m0H)) / np.sqrt(m0H)
-        pdf_M = lambda x: stats.rayleigh.pdf(x/np.sqrt(m0M)) / np.sqrt(m0M)
-        pdf_L = lambda x: stats.rayleigh.pdf(x/np.sqrt(m0L)) / np.sqrt(m0L)
-        
-        # -- max stress is 3*standard deviation
-        smax = 3.0 * np.sqrt(self.spectral_data.moments[0])
-        dx = 0.05
-        x = np.arange(0, smax, dx)
-        
-        pdf_P = dx * np.convolve(pdf_H(x), pdf_M(x))
-        x2 = np.arange(0, pdf_P.size * dx, dx)
-        pdf_Q = dx * np.convolve(pdf_P, pdf_L(x2))
-        x3 = np.arange(0, pdf_Q.size*dx , dx)
-        
-        # -- Define expected value of stress range ( int(S^k * p(s)) )
-        SP = integrate.simps(x2**k * pdf_P, x2, dx)  
-        SQ = integrate.simps(x3**k * pdf_Q, x3, dx)
-
-        # -- Calculate damage intensity d, fatigue life
-        dNB_H = self.damage_intesity_NB(m0=m0H, nu=v0H, C=C, k=k) 
-        dNB_P = v0P * SP / C
-        dNB_Q = v0Q * SQ / C
-        
-        d = dNB_H + dNB_P + dNB_Q
-        T = 1/ d
-        
+        if len(self.band_stop_indexes) == 1: # narrow-band
+            T = self._life_NB(C,k)
+        elif len(self.band_stop_indexes) == 2: # bi-modal
+            T = self._life_bimodal(C,k)
+        elif len(self.band_stop_indexes) == 3: # tri-modal
+            T = self._life_trimodal(C,k)
+        else:
+            raise Exception('Specify up to tri-modal random process.')
         return T
 
-    def getBands(self):  
-        '''Produce data for calculation
-        based on three frequency bands'''
-        
-        if not self.bands:
-            frq = self.equalAreaBands()
-        else:
-            frq = self.frequencies_indx
-        
-        psd = self.spectral_data.psd
+    def _life_bimodal(self, C, k):
+        # -- spectral moments for each narrowband
+        moments = self.spectral_data.get_spectral_moments(self.PSD_splitting, moments=[0,2])
+        m0L, m2L = moments[0] #spectral moments for lower band
+        m0H, m2H = moments[1] #spectral moments for upper band
 
-        m_L = self.spectral_data.calculate_spectral_moments_frequency(psd[:frq[0],:])[:3] #only fist 3 moments
-        m_M = self.spectral_data.calculate_spectral_moments_frequency(psd[frq[0]:frq[1],:])[:3]
-        m_H = self.spectral_data.calculate_spectral_moments_frequency(psd[frq[1]:frq[2],:])[:3]
-        
-        return np.hstack((m_H, m_M, m_L))
+        # -- Vanmarcke bandwidth parameter
+        _, epsV_H = self.spectral_data.get_vanmarcke_parameter(self.PSD_splitting)
 
-    
-    def equalAreaBands(self):
-        '''Divide PSD in three bands with
-        equal area. Bands border at frequncys f1, f2 and f3.
-        '''
-        psd = self.spectral_data.psd[:,1]
-        q_area = np.sum(psd) # (not the REAL area because x-axis unit is omitted)
-        
-        # -- Calculate a cumulative sum vector of psd
-        c_psd = np.cumsum(psd)
-        
-        # -- Find where cumulative sum is equal to 1/3, 2/3 and 3/3 of A
-        f1 = np.abs(c_psd - q_area/3.0).argmin()
-        f2 = np.abs(c_psd - 2.0 * q_area/3.0).argmin()
-        f3 = np.abs(c_psd - 3.0 * q_area/3.0).argmin()
-         
-        return (f1, f2, f3)
+        # -- positive slope zero crossing frequency
+        _, v0H = self.spectral_data.get_nup(self.PSD_splitting)
+        v0P = 1/(2*np.pi) * (np.sqrt(m0L) / (m0H + m0L)) * np.sqrt(m2H * epsV_H**2 + m2L) 
+        #v0P1 = m0L_norm * v0L* np.sqrt(1 + m0H_norm/m0L_norm * (v0H/v0L*epsV_H)**2) #jiao-moan, izraz je ekvivalenten za bimodalen proces
+
+        # -- damage intensity
+        dNB_H = self.damage_intesity_NB(m0=m0H, nu=v0H, C=C, k=k) 
+        dNB_P = self._damage_intesity_bimodal_LF(m0L=m0L, m0H=m0H, nuP=v0P, C=C, k=k)  #deduje od jiao-moana
+
+        d = dNB_H + dNB_P
+        T = 1 / d
+        return T
+
+    def _life_trimodal(self, C, k):
+        moments = self.spectral_data.get_spectral_moments(self.PSD_splitting, moments=[0,2])
+        m0L, m2L = moments[0]
+        m0M, m2M = moments[1]
+        m0H, m2H = moments[2]
+
+        # -- Vanmarcke bandwidth parameter
+        _, epsV_M, epsV_H = self.spectral_data.get_vanmarcke_parameter(self.PSD_splitting)
+
+        # -- positive slope zero crossing frequency
+        _, _, v0H = self.spectral_data.get_nup(self.PSD_splitting)
+
+        # -- positive slope zero crossing frequency
+        # -- process HF + MF
+        v0P = 1/(2*np.pi) * (np.sqrt(m0M) / (m0H + m0M)) * np.sqrt(m2H * epsV_H**2 + m2M) 
+
+        # -- process HF + MF + LF
+        v0Q = 1/(4*np.pi) * np.sqrt(m2H * epsV_H**2 + m2M * epsV_M**2 + m2L) * \
+            (2.0 * np.sqrt(m0L * (m0H + m0M + m0L)) - np.pi * np.sqrt(m0H * m0M) \
+            + 2.0 * np.sqrt(m0H * m0M) * np.arctan(np.sqrt((m0H * m0M ) /m0L) / np.sqrt(m0H + m0M + m0L))) \
+            / (np.sqrt(m0H + m0M + m0L)**3)
+
+        # -- damage intensity
+        dNB_H = self.damage_intesity_NB(m0=m0H, nu=v0H, C=C, k=k) 
+        dNB_P = self._damage_intesity_bimodal_LF(m0L=m0L, m0H=m0H, nuP=v0P, C=C, k=k)
+        dNB_Q = self._damage_intesity_trimodal_LF(m0L=m0L,m0M=m0M, m0H=m0H, nuQ=v0Q, C=C, k=k)
+
+        d = dNB_H + dNB_P + dNB_Q
+        T = 1 / d
+        return T
+
+    def _damage_intesity_trimodal_LF(self, m0L, m0M, m0H, nuQ, C, k):
+        """Calculates damage intensity for low frequency component of bimodal random process,
+        with parameters m0, nuP, C, k, as defined in [2].
+
+        :param m0L: [int,float]
+            Zeroth spectral moment of low frequency component [MPa**2].
+        :param m0H: [int,float]
+            Zeroth spectral moment of high frequency component [MPa**2].
+        :param nuQ: [int,float]
+            Frequency of positive slope zero crossing of low frequency component[Hz].
+        :param C: [int,float]
+            Fatigue strength coefficient [MPa**k].
+        :param k : [int,float]
+            Fatigue strength exponent [/].
+        :return d: float
+            Estimated damage intensity of low frequency component.
+        """
+        # -- max stress is 3*standard deviation
+        m0 = m0L + m0M + m0H 
+        smax = 3.0 * np.sqrt(m0)
+
+        ds = smax/100
+        s = np.arange(0, smax, ds)
+
+        pdf_L = lambda s: stats.rayleigh.pdf(s/np.sqrt(m0L)) / np.sqrt(m0L)
+        pdf_P = pdf_rayleigh_sum(m0L ,m0H)
+        pdf_Q = ds * np.convolve(pdf_P(s), pdf_L(s))
+        s_new = np.arange(0, pdf_Q.size*ds , ds)
+
+        S_Q = integrate.simps(s_new**k * pdf_Q, s_new, ds)
+        d = nuQ * S_Q / C
+        return d
