@@ -229,6 +229,6 @@ Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damag
     :target: https://github.com/ladisk/FLife
     :alt: GUI - PSD input
     
-.. |SpectralMethods_img| image:: Freq-Methods-Tree.png
+.. |SpectralMethods_img| image:: FreqMethodsTree.png
     :target: https://github.com/ladisk/FLife/tree/ales/FLife/freq_domain
     :alt: Spectral methods
