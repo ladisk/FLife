@@ -2,15 +2,15 @@ import numpy as np
 from scipy.special import gamma
 from .narrowband import Narrowband
 
-class Alpha075(Narrowband):
+class OrtizChen(Narrowband):
     """Class for fatigue life estimation using frequency domain 
-    method by Benasciutti and Tovo [1]. 
-
+    method by Ortiz and Chen [1].
+   
     References
     ----------
-    [1] Denis Benasciutti and Robert Tovo. Rainflow cycle distribution and
-        fatigue damage in Gaussian random loadings. Technical report, Department
-        of Engineering, University of Ferrara, 2004
+    [1] K. Ortiz and N.K. Chen. Fatigue damage prediction for stationary wideband processes.
+        Fifth international conference on applications of statistics and probability in soil 
+        and structural engineering, 1987
     [2] Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
         Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage
         – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020
@@ -47,16 +47,16 @@ class Alpha075(Narrowband):
 
     >>> C = 1.8e+22  # S-N curve intercept [MPa**k]
     >>> k = 7.3 # S-N curve inverse slope [/]
-    >>> alpha075 = FLife.Alpha075(sd)
-    >>> print(f'Fatigue life: {alpha075.get_life(C,k):.3e} s.')
+    >>> oc = FLife.OrtizChen(sd)
+    >>> print(f'Fatigue life: {oc.get_life(C,k):.3e} s.')
     """
     def __init__(self, spectral_data):
         """Get needed values from reference object.
 
         :param spectral_data:  Instance of class SpectralData
-        """                        
+        """
         Narrowband.__init__(self, spectral_data)
-    
+                           
     def get_life(self, C, k):
         """Calculate fatigue life with parameters C, k, as defined in [2].
 
@@ -69,12 +69,17 @@ class Alpha075(Narrowband):
         :rtype: float
         """
         m0 = self.spectral_data.moments[0]
-        nu = self.spectral_data.nu
-        alpha075 = self.spectral_data.alpha075
+        m2 = self.spectral_data.moments[2]
 
-        dNB = self.damage_intesity_NB(m0=m0, nu=nu, C=C, k=k) 
-        d =  alpha075**2 * dNB
-        T = 1.0 / d
+        m_2k, = self.spectral_data.get_spectral_moments(self.spectral_data.PSD_splitting, moments=[2/k])[0]
+        m_2k_2, = self.spectral_data.get_spectral_moments(self.spectral_data.PSD_splitting, moments=[2/k + 2])[0]
+
+        nu = self.spectral_data.nu
+        alpha2 = self.spectral_data.alpha2
+
+        dNB = self.damage_intesity_NB(m0=m0, nu=nu, C=C, k=k)
+        ro = 1/alpha2 * np.sqrt((m2*m_2k)/(m0*m_2k_2))**k
+        T = 1 / (ro * dNB)
         
         return T
 

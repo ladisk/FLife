@@ -13,19 +13,28 @@ def test_version():
 
 def test_data():
     results_ref = {
-        'Rainflow': 906.217537,
-        'Rainflow-Goodman': 827.866874,
-        'Dirlik': 1067.423788,
-        'Tovo Benasciutti 1': 735.084318,
-        'Tovo Benasciutti 2': 1114.625812,
-        'Zhao Baker 1': 985.886435,
-        'Zhao Baker 2': 1048.549852,
-        'Narrowband': 711.258072,
-        'Alpha 0.75': 1086.593252,
-        'Wirsching Light': 1038.1813918800456,
-        'Rice': 687.739914,
-        'Gao Moan': 837.392263,
-        'Petrucci Zuccarello': 4.322102
+        'Rainflow': 1399.409574,
+        'Rainflow-Goodman': 1300.605740,
+        'Dirlik': 1595.031603,
+        'Tovo Benasciutti 1': 1099.438159,
+        'Tovo Benasciutti 2': 1657.218508,
+        'Zhao Baker 1': 1473.240454,
+        'Zhao Baker 2': 1564.902582,
+        'Narrowband': 1064.200649,
+        'Alpha 0.75': 1625.785759,
+        'Wirsching Light': 1461.814034,
+        'Rice': 1016.033688,
+        'Gao Moan': 1310.451362,
+        'Petrucci Zuccarello': 9.715686,
+        'Jiao Moan': 813.490369,
+        'Fu Cebon': 1151.170596,
+        'Modified Fu Cebon': 846.208325,
+        'Low': 1418.290961,
+        'Sakai Okamura': 4966.399683,
+        'Bands method': 1969.738539,
+        'Single moment': 1969.738539,
+        'Ortiz Chen': 1598.836389,
+        'Park': 1707.807255
     }
 
     data = lvm_read.read('./data/m1.lvm')[0]
@@ -34,13 +43,13 @@ def test_data():
     x = data['data'][:,1]
 
     rms = 100  
-    C = 1.8e+22
-    k = 7.3
+    C = 1.8e+19
+    k = 6
     Su = 446
     x = rms * x / np.std(x) 
 
     # Spectral data
-    sd = FLife.SpectralData(input=x, dt=t[1], nperseg=int(0.1/t[1]))
+    sd = FLife.SpectralData(input=(x,t[1]), nperseg=int(0.1/t[1]))
 
     # Rainflow reference fatigue life
     rf = FLife.Rainflow(sd)
@@ -55,6 +64,15 @@ def test_data():
     rice = FLife.Rice(sd)
     gm = FLife.GaoMoan(sd)
     pz = FLife.PetrucciZuccarello(sd)
+    jm = FLife.JiaoMoan(sd)
+    fc = FLife.FuCebon(sd)
+    mfc = FLife.ModifiedFuCebon(sd)
+    low = FLife.Low(sd)
+    so = FLife.SakaiOkamura(sd)
+    bm = FLife.BandsMethod(sd)
+    sm = FLife.SingleMoment(sd)
+    oc = FLife.OrtizChen(sd)
+    park = FLife.Park(sd)
 
     # Test PDF's; expected result should be 1
     PDFs = {
@@ -65,6 +83,7 @@ def test_data():
         'Tovo Benasciutti 2': quad(tb.get_PDF, a=0, b=np.Inf, args=('method 2',))[0],
         'Zhao Baker 1': quad(zb.get_PDF, a=0, b=np.Inf, args=('method 1',))[0],
         'Zhao Baker 2': quad(zb.get_PDF, a=0, b=np.Inf, args=('method 2',))[0],
+        'Park': quad(park.get_PDF, a=0, b=np.Inf)[0],
     }
     for method, value in PDFs.items():
         np.testing.assert_almost_equal(value, 1., decimal=5, err_msg=f'Method: {method}')
@@ -72,9 +91,9 @@ def test_data():
     results = {
         'Rainflow': rf.get_life(C = C, k=k, algorithm='four-point'),
         'Rainflow-Goodman': rf.get_life(C = C, k = k, Su=Su),
-        'Dirlik': dirlik.get_life(C = C, k=k),
-        'Tovo Benasciutti 1': tb.get_life(C = C, k=k, method='method 1'),
-        'Tovo Benasciutti 2': tb.get_life(C = C, k=k),
+        'Dirlik': float(dirlik.get_life(C = C, k=k)),
+        'Tovo Benasciutti 1': float(tb.get_life(C = C, k=k, method='method 1')),
+        'Tovo Benasciutti 2': float(tb.get_life(C = C, k=k)),
         'Zhao Baker 1': zb.get_life(C = C, k=k),
         'Zhao Baker 2': zb.get_life(C = C, k=k, method='method 2'),
         'Narrowband': nb.get_life(C = C, k=k),
@@ -82,7 +101,16 @@ def test_data():
         'Wirsching Light': wl.get_life(C = C, k=k),
         'Rice': rice.get_life(C = C, k=k),
         'Gao Moan': gm.get_life(C = C, k=k),
-        'Petrucci Zuccarello': pz.get_life(C = C, k=k, Su=Su)
+        'Petrucci Zuccarello': pz.get_life(C = C, k=k, Su=Su),
+        'Jiao Moan': jm.get_life(C = C, k=k),
+        'Fu Cebon': fc.get_life(C = C, k=k),
+        'Modified Fu Cebon': mfc.get_life(C = C, k=k),
+        'Low': low.get_life(C = C, k=int(k)),
+        'Sakai Okamura': so.get_life(C = C, k=k),
+        'Bands method': bm.get_life(C = C, k=k),
+        'Single moment': sm.get_life(C = C, k=k),
+        'Ortiz Chen': oc.get_life(C = C, k=k),
+        'Park': park.get_life(C = C, k=k)
     }
 
     for method, value in results.items():
@@ -105,7 +133,8 @@ def test_data():
         'Wirsching Light': wl.get_life(C = C, k=k),
         'Rice': rice.get_life(C = C, k=k),
         'Gao Moan': gm.get_life(C = C, k=k),
-        'Petrucci Zuccarello': pz.get_life(C = C, k=k, Su=Su)
+        'Petrucci Zuccarello': pz.get_life(C = C, k=k, Su=Su),
+        'Park': park.get_life(C = C, k=k),
     }
 
     for method, value in results_via_PDF.items():

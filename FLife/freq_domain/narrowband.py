@@ -13,21 +13,61 @@ class Narrowband(object):
     [2] Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
         Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage
         – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020
+
+    Example
+    -------
+    Import modules, define time- and frequency-domain data
+
+    >>> import FLife
+    >>> import pyExSi as es
+    >>> import numpy as np
+    >>> from matplotlib import pyplot as plt
+    >>> # time-domain data
+    >>> N = 2 ** 16  # number of data points of time signal
+    >>> fs = 2048  # sampling frequency [Hz]
+    >>> t = np.arange(0, N) / fs  # time vector
+    >>> # frequency-domain data
+    >>> M = N // 2 + 1  # number of data points of frequency vector
+    >>> freq = np.arange(0, M, 1) * fs / N  # frequency vector
+    >>> PSD = es.get_psd(freq, 20, 60, variance = 5)  # one-sided flat-shaped PSD
+
+    Get Gaussian stationary signal, instantiate SpectralData object and plot PSD
+
+    >>> rg = np.random.default_rng(123) # random generator seed
+    >>> x = es.random_gaussian(N, PSD, fs, rg) # Gaussian stationary signal
+    >>> sd = FLife.SpectralData(input=x, dt=1/fs) # SpectralData instance
+    >>> plt.plot(sd.psd[:,0], sd.psd[:,1]) 
+    >>> plt.xlabel('Frequency [Hz]')
+    >>> plt.ylabel('PSD')
+
+    Define S-N curve parameters and get fatigue-life estimatate
+
+    >>> C = 1.8e+22  # S-N curve intercept [MPa**k]
+    >>> k = 7.3 # S-N curve inverse slope [/]
+    >>> nb = FLife.Narrowband(sd)
+    >>> print(f'Fatigue life: {nb.get_life(C,k):.3e} s.')
+
+    Define stress vector and depict stress peak PDF
+
+    >>> s = np.arange(0,np.max(x),.01)
+    >>> plt.plot(s,nb.get_PDF(s))
+    >>> plt.xlabel('Stress [MPa]')
+    >>> plt.ylabel('PDF')
     """
     def __init__(self, spectral_data):
-        '''Get needed values from reference object.
+        """Get needed values from reference object.
         
-        :param spectral_data:  Instance of object SpectralData
-        '''                        
+        :param spectral_data:  Instance of class SpectralData
+        """                        
         self.spectral_data = spectral_data
 
     def get_PDF(self,s):
-        '''Returns cycle PDF(Probability Density Function) as a function of stress s.
+        """Returns cycle PDF(Probability Density Function) as a function of stress s.
 
         :param s:  numpy.ndarray
             Stress vector.
-        :return pdf: function pdf(s)
-        '''
+        :return: function pdf(s)
+        """
         m0 = self.spectral_data.moments[0]
 
         def pdf(s):
@@ -44,10 +84,11 @@ class Narrowband(object):
             Frequency of positive slope zero crossing [Hz].
         :param C: [int,float]
             Fatigue strength coefficient [MPa**k].
-        :param k : [int,float]
+        :param k: [int,float]
             Fatigue strength exponent [/].
-        :return T: float
-            Estimated fatigue life in seconds.       
+        :return:
+            Estimated damage intensity.   
+        :rtype: float
         """
         d = nu * np.sqrt(2 * m0)**k * gamma(1.0 + k/2.0) / C  
         return  d
@@ -57,13 +98,14 @@ class Narrowband(object):
 
         :param C: [int,float]
             S-N curve intercept [MPa**k].
-        :param k : [int,float]
+        :param k: [int,float]
             S-N curve inverse slope [/].
         :param integrate_pdf:  boolean
             If true the the fatigue life is estimated by integrating the PDF, 
             Default is false which means that the theoretical equation is used
-        :return T: float
+        :return:
             Estimated fatigue life in seconds.
+        :rtype: float
         """ 
         if integrate_pdf:
             d = self.spectral_data.nu / C * \

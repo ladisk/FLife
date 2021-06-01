@@ -1,6 +1,6 @@
 Getting started
 ===============
 
-.. include:: ../../README.rst
+.. include:: FLife.rst
 
 .. include:: ../../CONTRIBUTING.rst

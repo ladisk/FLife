@@ -43,7 +43,7 @@ if __name__ == '__main__':
         license='MIT license',
         url='https://github.com/ladisk/FLife',
         version=version,
-        author='Matjaž Mršnik, Aleš Zorman, Janko Slavič',
+        author='Aleš Zorman, Matjaž Mršnik, Janko Slavič',
         author_email='janko.slavic@fs.uni-lj.si',
         maintainer='Janko Slavič, Domen Gorjup, Aleš Zorman',
         maintainer_email='janko.slavic@fs.uni-lj.si',
@@ -52,5 +52,5 @@ if __name__ == '__main__':
         packages=['FLife', 'FLife.freq_domain', 'FLife.time_domain'],
         classifiers=['Development Status :: 3 - Alpha',
                      'Intended Audience :: Developers',
-                     'Programming Language :: Python :: 3.6']
+                     'Programming Language :: Python :: 3.7']
     )

@@ -2,15 +2,14 @@ import numpy as np
 from scipy.special import gamma
 from .narrowband import Narrowband
 
-class Alpha075(Narrowband):
+class SingleMoment(Narrowband):
     """Class for fatigue life estimation using frequency domain 
-    method by Benasciutti and Tovo [1]. 
-
+    method by Tovo and Benasciutti[1, 2].
+      
     References
     ----------
-    [1] Denis Benasciutti and Robert Tovo. Rainflow cycle distribution and
-        fatigue damage in Gaussian random loadings. Technical report, Department
-        of Engineering, University of Ferrara, 2004
+    [1] L.D. Lutes, C.E. Larsen. Improved spectral method for variable amplitude fatigue prediction,
+        Journal of Structural Engineering ASCE, 116(4):1149-1164, 1990
     [2] Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
         Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage
         – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020
@@ -47,16 +46,32 @@ class Alpha075(Narrowband):
 
     >>> C = 1.8e+22  # S-N curve intercept [MPa**k]
     >>> k = 7.3 # S-N curve inverse slope [/]
-    >>> alpha075 = FLife.Alpha075(sd)
-    >>> print(f'Fatigue life: {alpha075.get_life(C,k):.3e} s.')
+    >>> sm = FLife.SingleMoment(sd)
+    >>> print(f'Fatigue life: {sm.get_life(C,k):.3e} s.')
     """
     def __init__(self, spectral_data):
         """Get needed values from reference object.
 
         :param spectral_data:  Instance of class SpectralData
-        """                        
-        Narrowband.__init__(self, spectral_data)
-    
+        """     
+        self.spectral_data = spectral_data
+
+    def damage_intesity_SM(self, m_2k, C, k):
+        """Calculates damage intensity with parameters m_2k, nu, C, k, as defined in [1,2].
+
+        :param m_2k: [int,float]
+            2/k-th spectral moment [MPa**2].
+        :param C: [int,float]
+            Fatigue strength coefficient [MPa**k].
+        :param k: [int,float]
+            Fatigue strength exponent [/].
+        :return:
+            Estimated damage intensity.   
+        :rtype: float
+        """
+        d = 2**(k/2) / (2*np.pi*C) * gamma(1.0 + k/2.0) * m_2k**(k/2)
+        return  d
+
     def get_life(self, C, k):
         """Calculate fatigue life with parameters C, k, as defined in [2].
 
@@ -68,15 +83,11 @@ class Alpha075(Narrowband):
             Estimated fatigue life in seconds.
         :rtype: float
         """
-        m0 = self.spectral_data.moments[0]
-        nu = self.spectral_data.nu
-        alpha075 = self.spectral_data.alpha075
+        m_2k, = self.spectral_data.get_spectral_moments(self.spectral_data.PSD_splitting, moments=[2/k])[0]
 
-        dNB = self.damage_intesity_NB(m0=m0, nu=nu, C=C, k=k) 
-        d =  alpha075**2 * dNB
-        T = 1.0 / d
-        
+        dSM = self.damage_intesity_SM(m_2k, C, k)
+        T = 1.0/dSM
         return T
-
+    
     def get_PDF(self, s):
         raise Exception(f'Function <get_PDF> is not available for class {self.__class__.__name__:s}.')

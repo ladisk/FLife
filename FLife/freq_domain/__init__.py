@@ -7,3 +7,12 @@ from .alpha075 import Alpha075
 from .wirsching_light import WirschingLight
 from .rice import Rice
 from .gao_moan import GaoMoan
+from .fu_cebon import FuCebon
+from .low import Low
+from .modified_fu_cebon import ModifiedFuCebon
+from .sakai_okamura import SakaiOkamura
+from .single_moment import SingleMoment
+from .jiao_moan import JiaoMoan
+from .bands_method import BandsMethod
+from .ortiz_chen import OrtizChen
+from .park import Park

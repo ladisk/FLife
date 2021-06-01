@@ -89,7 +89,7 @@ This is default argument. User is prompted to enter PSD graphically and/or tabul
 
 |GUI_img| 
 
-If parameter `rg` (numpy.random._generator.Generator) is provided, stationary Gaussian time-history is generated. Otherwise, time-history is generated subsequently, when Rainflow fatigue-life is calculated.
+If Generator instance is given, stationary Gaussian time-history is generated. Otherwise, time-history is generated subsequently, when Rainflow fatigue-life is calculated.
 
 .. code-block:: python
 
@@ -225,10 +225,10 @@ Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damag
 .. |Build Status| image:: https://travis-ci.com/ladisk/FLife.svg?branch=master
    :target: https://travis-ci.com/ladisk/FLife
    
-.. |GUI_img| image:: PSDinput.png
+.. |GUI_img| image:: ../../PSDinput.png
     :target: https://github.com/ladisk/FLife
     :alt: GUI - PSD input
     
-.. |SpectralMethods_img| image:: FreqMethodsTree.png
+.. |SpectralMethods_img| image:: ../../FreqMethodsTree.png
     :target: https://github.com/ladisk/FLife/tree/ales/FLife/freq_domain
     :alt: Spectral methods

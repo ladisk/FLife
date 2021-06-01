@@ -15,7 +15,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('../..'))
+sys.path.insert(0, os.path.abspath('../../'))
 
 
 # -- Project information -----------------------------------------------------
@@ -45,6 +45,12 @@ extensions = [
     # Add support for the Google docstring format
     'sphinx.ext.napoleon', 
 ]
+
+autodoc_default_options = {
+    'members':         True,
+    'member-order':    'bysource',
+    'special-members': '__init__',
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

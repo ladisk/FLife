@@ -1,20 +1,19 @@
 import numpy as np
-from scipy import stats
 from scipy.integrate import quad
-import warnings
+from scipy.special import gamma
 
-class Rice(object):
-    """Deprecated - Class for fatigue life estimation using frequency domain 
-    method by Rice[1].
-
+class Park(object):
+    """Class for fatigue life estimation using frequency domain 
+    method by Tovo and Benasciutti[1, 2].
+      
     References
     ----------
-    [1] Stephen O. Rice. Mathematical analysis of random noise. The Bell
-        System Technical Journal, 24(1):46-156, 1945.
+    [1] Jun-Bum Park, Joonmo Choung and Kyung-Su Kim. A new fatigue prediction model for marine 
+        structures subject to wide band stress process. Ocean Engineering, 76: 144-151, 2014
     [2] Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
         Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage
         – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020
-    
+        
     Example
     -------
     Import modules, define time- and frequency-domain data
@@ -47,42 +46,67 @@ class Rice(object):
 
     >>> C = 1.8e+22  # S-N curve intercept [MPa**k]
     >>> k = 7.3 # S-N curve inverse slope [/]
-    >>> rice = FLife.Rice(sd)
-    >>> print(f'Fatigue life: {rice.get_life(C,k):.3e} s.')
+    >>> park = FLife.Park(sd)
+    >>> print(f'Fatigue life: {park.get_life(C,k):.3e} s.')
 
     Define stress vector and depict stress peak PDF
-    
-    >>> s = np.arange(-np.max(x),np.max(x),.01) #also negative stress
-    >>> plt.plot(s,rice.get_PDF(s))
+
+    >>> s = np.arange(0,np.max(x),.01) 
+    >>> plt.plot(s,park.get_PDF(s))
     >>> plt.xlabel('Stress [MPa]')
     >>> plt.ylabel('PDF')
     """
     def __init__(self, spectral_data):
         """Get needed values from reference object.
 
-        :param spectral_data: Instance of class SpectralData
-        """                
+        :param spectral_data:  Instance of class SpectralData
+        """     
         self.spectral_data = spectral_data
-        warnings.warn('Rice method has been deprecated since version 1.2 and will be removed in the future. ' + 
-        'Peak amplitude probability density function <get_PDF> is renamed to <get_peak_PDF> and moved to class SpectralData.')
 
     def get_PDF(self, s):
-        """Returns peak amplitude PDF(Probability Density Function) as a function of stress s.
+        """Returns cycle PDF(Probability Density Function) as a function of stress s.
 
         :param s:  numpy.ndarray
             Stress vector.
         :return: function pdf(s)
         """
         m0 = self.spectral_data.moments[0]
-        alpha2 = self.spectral_data.alpha2
 
-        def pdf(s):
-            px = np.sqrt(1.0 - alpha2**2)/np.sqrt(2.0 * np.pi * m0) * \
-                np.exp( - (s**2) / (2.0 * m0 * (1.0 - alpha2**2))) +\
-                alpha2*s/m0 * np.exp( - (s**2) / (2*m0)) * \
-                stats.norm.cdf((alpha2 * s) / (np.sqrt(m0 * (1 - alpha2**2))))
-            return px
-        return pdf(s)
+        #alpha are used for n-th moment of rainflow range distrubution Mrr(n)
+        alpha2 = self.spectral_data.alpha2
+        alpha0_95 = self.spectral_data.get_bandwidth_estimator(self.spectral_data.PSD_splitting, i=0.95)[0]
+        alpha1_97 = self.spectral_data.get_bandwidth_estimator(self.spectral_data.PSD_splitting, i=1.97)[0]
+        alpha0_54 = self.spectral_data.get_bandwidth_estimator(self.spectral_data.PSD_splitting, i=0.54)[0]
+        alpha0_93 = self.spectral_data.get_bandwidth_estimator(self.spectral_data.PSD_splitting, i=0.93)[0]
+        alpha1_95 = self.spectral_data.get_bandwidth_estimator(self.spectral_data.PSD_splitting, i=1.95)[0]
+
+        #Mrr(n)
+        M_rr_1 = alpha2
+        M_rr_2 = alpha0_95*alpha1_97
+        M_rr_3 = alpha0_54*alpha0_93*alpha1_95
+
+        #distribution parameters
+        sigma_r1 = alpha2
+        C_r1 = (M_rr_2 - M_rr_3) / (sigma_r1**2 * (1 - sigma_r1))
+        C_r2 = (-sigma_r1*M_rr_2 + M_rr_3) / (1-sigma_r1)
+        C_g = 1 - C_r1 - C_r2
+        V_1 = 1/np.sqrt(np.pi) * gamma(1)/gamma(1.5)
+        sigma_g = 1/(V_1*C_g) * (M_rr_1 - C_r1*sigma_r1 - C_r2)
+
+        def park_pdf(s):
+            #PDF of stress amplitude normalized by standard deviation of process
+            #half-Gaussian
+            gauss_pdf = lambda s: 2/(np.sqrt(2*np.pi)*sigma_g)* np.exp(-s**2/(2*sigma_g**2))
+            #Rayleigh
+            rayleigh1_pdf = lambda s: s/sigma_r1**2 * np.exp(-s**2/(2*sigma_r1**2))
+            #Rayleigh with unit variance
+            rayleigh2_pdf = lambda s: s * np.exp(-s**2/2)
+
+            pdf_out = C_g*gauss_pdf(s) + C_r1*rayleigh1_pdf(s) + C_r2*rayleigh2_pdf(s)
+            return pdf_out
+
+        return 1/np.sqrt(m0) * park_pdf(s/np.sqrt(m0))
+
 
     def get_life(self, C, k):
         """Calculate fatigue life with parameters C, k, as defined in [2].
@@ -95,10 +119,9 @@ class Rice(object):
             Estimated fatigue life in seconds.
         :rtype: float
         """ 
-        d = self.spectral_data.m_p / C * \
-            quad(lambda s: s**k*self.get_PDF(s), 
-                    a=0, b=np.Inf)[0]
+        m_p = self.spectral_data.m_p
+
+        d = m_p / C * quad(lambda s: s**k*self.get_PDF(s), a=0, b=np.Inf)[0]
 
         T = 1.0/d
-
         return T
