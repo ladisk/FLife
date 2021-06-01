@@ -89,7 +89,7 @@ This is default argument. User is prompted to enter PSD graphically and/or tabul
 
 |GUI_img| 
 
-If Generator instance is given, stationary Gaussian time-history is generated. Otherwise, time-history is generated subsequently, when Rainflow fatigue-life is calculated.
+If parameter `rg` (numpy.random._generator.Generator) is provided, stationary Gaussian time-history is generated. Otherwise, time-history is generated subsequently, when Rainflow fatigue-life is calculated.
 
 .. code-block:: python
 
