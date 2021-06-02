@@ -2,3 +2,12 @@
 
 # Defining the exact version will make sure things don't break
 sphinx>=3.0.0
+numpy
+scipy
+fatpack
+rainflow
+pylint
+pytest
+lvm_read
+matplotlib
+pyExSi
