@@ -114,7 +114,7 @@ numpy.random._generator.Generator instance `rg` is optional parameter and contro
 
     seed = 111
     rg =  np.random.default_rng(seed)
-    freq = np.array(0,1000, 0.01)
+    freq = np.arange(0,1000, 0.01)
     f_low, f_high = 100, 120
     A = 1 # PSD value
     PSD = np.interp(freq, [f_low, f_high], [A,A], left=0, right=0) # Flat-shaped one-sided PSD
