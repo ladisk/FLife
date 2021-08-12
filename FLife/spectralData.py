@@ -182,7 +182,7 @@ class SpectralData(object):
             input = (input, kwargs['dt'])
         
         # Default input is by GUI
-        if input == None:
+        if input == None or input == 'GUI':
             self.psd = PSDgen().get_PSD()
             psd = self.psd[:,1] # PSD
             f = self.psd[:,0] # frequency vector
