@@ -21,8 +21,8 @@ sys.path.insert(0, os.path.abspath('../../'))
 # -- Project information -----------------------------------------------------
 
 project = 'FLife'
-copyright = '2020, Matjaž Mršnik, Janko Slavič, Aleš Zorman'
-author = 'Matjaž Mršnik, Janko Slavič, Aleš Zorman'
+copyright = '2021, Aleš Zorman, Matjaž Mršnik, Janko Slavič'
+author = 'Aleš Zorman, Matjaž Mršnik, Janko Slavič'
 
 # The short X.Y version
 version = ''

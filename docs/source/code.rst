@@ -19,6 +19,7 @@ Wirsching-Light
 Ortiz-Chen
 **********
 .. autoclass:: FLife.freq_domain.OrtizChen
+    :exclude-members: get_PDF
 
 Alpha075
 ********

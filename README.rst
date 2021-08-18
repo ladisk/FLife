@@ -146,11 +146,11 @@ Time history `x` and sampling period `dt` are given as input. `x` must be of typ
 
 Spectral Methods
 -----------------
-Currently 16 spectral methods are supported. Methods for wideband process are organized into 3 subgroups: 
+Currently 16 spectral methods are supported. Methods for broadband process are organized into 3 subgroups: 
 
-    - Narrowband correction factor - methods are based on narrowband approximation, accounting for wideband procces with correction factor.
+    - Narrowband correction factor - methods are based on narrowband approximation, accounting for broadband procces with correction factor.
     - RFC PDF approximation - methods are based on approximation of Rainflow Probability Density Function.
-    - PSD splitting - methods are based on splitting of PSD of wideband process into N narrowband approximations and accounting their interactions.
+    - PSD splitting - methods are based on splitting of PSD of broadband process into N narrowband approximations and accounting their interactions.
 
 |SpectralMethods_img|
 
