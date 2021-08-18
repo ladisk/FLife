@@ -143,7 +143,7 @@ class ZhaoBaker(object):
 
         return [a, b, w]
 
-    def get_PDF(self, s, method='method 2'):
+    def get_PDF(self, s, method='method 1'):
         """Returns cycle PDF(Probability Density Function) as a function of stress s.
 
         :param s:  numpy.ndarray

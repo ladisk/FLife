@@ -4,13 +4,15 @@ from .narrowband import Narrowband
 
 class SingleMoment(Narrowband):
     """Class for fatigue life estimation using frequency domain 
-    method by Tovo and Benasciutti[1, 2].
+    method by Lutes and Larsen[1, 2].
       
     References
     ----------
     [1] L.D. Lutes, C.E. Larsen. Improved spectral method for variable amplitude fatigue prediction,
         Journal of Structural Engineering ASCE, 116(4):1149-1164, 1990
-    [2] Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
+    [2] C.E. Larsen, L.D. Lutes. Predicting the Fatigue Life of Offshore Structures by the Single-Moment Spectral Method,
+        Probabilistic Engineering Mechanics, 6(2):96-108, 1991 
+    [3] Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
         Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage
         – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020
 
@@ -73,7 +75,7 @@ class SingleMoment(Narrowband):
         return  d
 
     def get_life(self, C, k):
-        """Calculate fatigue life with parameters C, k, as defined in [2].
+        """Calculate fatigue life with parameters C, k, as defined in [1,2,3].
 
         :param C: [int,float]
             S-N curve intercept [MPa**k].
