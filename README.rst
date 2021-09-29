@@ -25,11 +25,15 @@ Supported methods in the frequency-domain
     - Dirlik,
     - Zhao Baker,
     - Park,
+    - Jun Park,
     - Jiao Moan,
     - Sakai Okamura,
     - Fu Cebon,
     - modified Fu Cebon,
-    - Low,
+    - Low (2010),
+    - Low (2014),
+    - Lotsberg,
+    - Huang Moan,
     - Gao Moan,
     - Single moment,
     - Bands method
@@ -146,7 +150,7 @@ Time history `x` and sampling period `dt` are given as input. `x` must be of typ
 
 Spectral Methods
 -----------------
-Currently 16 spectral methods are supported. Methods for broadband process are organized into 3 subgroups: 
+Currently 20 spectral methods are supported. Methods for broadband process are organized into 3 subgroups: 
 
     - Narrowband correction factor - methods are based on narrowband approximation, accounting for broadband procces with correction factor.
     - RFC PDF approximation - methods are based on approximation of Rainflow Probability Density Function.

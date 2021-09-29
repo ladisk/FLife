@@ -42,13 +42,9 @@ Park
 ****
 .. autoclass:: FLife.freq_domain.Park
 
-Rice
-****
-.. autoclass:: FLife.freq_domain.Rice
-
-Petrucci-Zuccarello
-*******************
-.. autoclass:: FLife.freq_domain.PetrucciZuccarello
+Jun-Park
+********
+.. autoclass:: FLife.freq_domain.JunPark
 
 Jiao-Moan
 *********
@@ -70,10 +66,24 @@ Modified Fu-Cebon
 .. autoclass:: FLife.freq_domain.ModifiedFuCebon
     :exclude-members: get_PDF
 
-Low
-***
+Low (2010)
+**********
 .. autoclass:: FLife.freq_domain.Low
+
+Low (2014)
+**********
+.. autoclass:: FLife.freq_domain.LowBimodal2014
     :exclude-members: get_PDF
+
+Lotsberg
+********
+.. autoclass:: FLife.freq_domain.Lotsberg
+    :exclude-members: get_PDF   
+
+Huang-Moan
+**********
+.. autoclass:: FLife.freq_domain.HuangMoan
+    :exclude-members: get_PDF 
 
 Gao-Moan
 ********

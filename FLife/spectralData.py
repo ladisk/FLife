@@ -27,8 +27,7 @@ class SpectralData(object):
     - :class:`~FLife.freq_domain.Dirlik`
     - :class:`~FLife.freq_domain.ZhaoBaker`
     - :class:`~FLife.freq_domain.Park`
-    - :class:`~FLife.freq_domain.Rice` - Deprecated
-    - :class:`~FLife.freq_domain.PetrucciZuccarello` - Deprecated
+    - :class:`~FLife.freq_domain.JunPark`
 
     For multimodal fatigue-life estimators, spectral data are calculated a 
     second time, referring to each mode independently: 
@@ -38,6 +37,9 @@ class SpectralData(object):
     - :class:`~FLife.freq_domain.FuCebon`
     - :class:`~FLife.freq_domain.ModifiedFuCebon`
     - :class:`~FLife.freq_domain.Low`
+    - :class:`~FLife.freq_domain.LowBimodal2014`
+    - :class:`~FLife.freq_domain.Lotsberg`
+    - :class:`~FLife.freq_domain.HuangMoan`
     - :class:`~FLife.freq_domain.GaoMoan`
     - :class:`~FLife.freq_domain.SingleMoment`
     - :class:`~FLife.freq_domain.BandsMethod`
