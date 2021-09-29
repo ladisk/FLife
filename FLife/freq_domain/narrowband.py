@@ -4,13 +4,15 @@ from scipy.integrate import quad
 
 class Narrowband(object):
     """Class for fatigue life estimation using frequency domain 
-    method by Miles [1].
+    method by Miles [1] / Bendat and Piersol [2].
    
     References
     ----------
     [1] John W. Miles. On structural fatigue under random loading. Journal
         of the Aeronautical Sciences, 21(11):753{762, 1954.
-    [2] Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
+    [2] Julius S. Bendat and Allen G. Piersol. Measurement and Analysis of Random Data.
+        Wiley, 1966.
+    [3] Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
         Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage
         – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020
 

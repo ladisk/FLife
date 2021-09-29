@@ -52,8 +52,6 @@ class SpectralData(object):
     [1] Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
         Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage
         – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020
-    [2] Stephen O. Rice. Mathematical analysis of random noise. The Bell
-        System Technical Journal, 24(1):46-156, 1945.
 
     Example
     -------
@@ -398,8 +396,7 @@ class SpectralData(object):
         return np.array(mp_list)
 
     def get_peak_PDF(self, s):
-        """Returns peak amplitude PDF(Probability Density Function) as a function of stress s.
-        PDF is provided by Rice [1, 2].
+        """Returns peak amplitude PDF(Probability Density Function) as a function of stress s [1].
 
         :param s:  numpy.ndarray
             Stress vector.
