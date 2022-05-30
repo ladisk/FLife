@@ -63,10 +63,16 @@ class Rainflow(object):
         #set time history if not exsist in spectral_data
         if not hasattr(spectral_data, 'data'):
             rg = kwargs.get('rg', None)
+            
             f = spectral_data.psd[:,0]
             psd = spectral_data.psd[:,1]
-            self.spectral_data._set_time_history(psd=psd,f=f, rg=rg)
-
+            
+            # se parametra T in fs
+            if 'T' and 'fs' in kwargs.keys():             
+                self.spectral_data._set_time_history(f=f, psd=psd, **kwargs)
+            else:
+                raise Exception('Time history is not set; T and fs must be specified.')
+            
     def get_life(self, C, k, algorithm = 'four-point',  Su = False, range = False, **kwargs):
         """Calculate fatigue life with parameters C, k, as defined in [3].
  

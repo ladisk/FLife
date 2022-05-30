@@ -144,19 +144,19 @@ class JiaoMoan(Narrowband):
         else:
             # -- damage intensity
             dNB_H = self.damage_intesity_NB(m0=m0H, nu=v0H, C=C, k=k) 
-            dNB_P = self._damage_intesity_bimodal_LF(m0L=m0L, m0H=m0H, nuP=v0P, C=C, k=k)
+            dNB_P = self._damage_intesity_bimodal_LF(m0_LF=m0L, m0_HF=m0H, nuP=v0P, C=C, k=k)
             d = dNB_H + dNB_P
 
         T = 1 / d
         return T
 
-    def _damage_intesity_bimodal_LF(self, m0L, m0H, nuP, C, k):
+    def _damage_intesity_bimodal_LF(self, m0_LF, m0_HF, nuP, C, k):
         """Calculates damage intensity for low frequency component of bimodal random process,
         with parameters m0, nuP, C, k, as defined in [2].
 
-        :param m0L: [int,float]
+        :param m0_LF: [int,float]
             Zeroth spectral moment of low frequency component [MPa**2].
-        :param m0H: [int,float]
+        :param m0_HF: [int,float]
             Zeroth spectral moment of high frequency component [MPa**2].
         :param nuP: [int,float]
             Frequency of positive slope zero crossing of low frequency component[Hz].
@@ -167,7 +167,7 @@ class JiaoMoan(Narrowband):
         :return d: float
             Estimated damage intensity of low frequency component.
         """
-        pdf_P = pdf_rayleigh_sum(m0L,m0H)
+        pdf_P = pdf_rayleigh_sum(m0_LF,m0_HF)
         S_P = integrate.quad(lambda x:  x**k * pdf_P(x), 0, np.inf)[0]
         d = nuP * S_P / C
         return d

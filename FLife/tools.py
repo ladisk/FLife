@@ -1,3 +1,4 @@
+from matplotlib.pyplot import table
 import numpy as np
 from scipy import stats
 import tkinter as tk
@@ -59,6 +60,62 @@ def pdf_rayleigh_sum(m0L, m0H):
             * (stats.norm.cdf(np.sqrt(m0L_norm/m0H_norm)*x/np.sqrt(m0)) + stats.norm.cdf(np.sqrt(m0H_norm/m0L_norm)*x/np.sqrt(m0)) - 1))
         return pdf
     return pdf
+
+
+def random_gaussian(freq, PSD, T, fs, rg=None, **kwargs):
+    """
+    Stationary Gaussian realization of random process, characterized by PSD.
+    
+    Random process is obtained with IFFT of amplitude spectra with random phase [1]. Area under PSD curve represents variance of random process.
+    
+    :param freq: array
+        Frequency vector
+    :param PSD: array
+        One-sided power spectral density [unit^2].
+    :param T: int,float
+        Length of returned random process [s].
+    :param fs: int,float
+        Sampling frequency [Hz].
+    :param rg: numpy.random._generator.Generator
+        Initialized Generator object
+    :return: t, signal
+        Time and stationary Gaussian realization of random process
+    
+    Notes
+    -----
+    PSD data points are interpolated using numpy.interp() function. Option for 
+    interpolation function will be added in the future.
+    
+    References
+    ----------
+    [1] D. E. Newland. An Introduction to Random Vibrations, Spectral & Wavelet Analysis.
+    Dover Publications, 2005
+    """ 
+    # time and frequency data
+    N = int(T * fs)
+    M = N//2 + 1
+    t = np.arange(0,N) / fs # time vector
+
+    M = N//2 + 1
+    freq_new = np.arange(0, M, 1) / N  * fs # frequency vector
+    PSD_new = np.interp(freq_new, freq, PSD, left=0, right=0)
+    
+    ampl_spectra = np.sqrt(PSD_new * N * fs / 2)  # amplitude spectra modulus
+
+    if rg == None:
+        rg = np.random.default_rng()
+    if isinstance(rg, np.random._generator.Generator):
+        ampl_spectra_random = ampl_spectra * np.exp(
+            1j * rg.uniform(0, 1, len(PSD_new)) * 2 * np.pi
+        )  # amplitude spectra,  random phase
+    else:
+        raise ValueError(
+            '`rg` must be initialized Generator object (numpy.random._generator.Generator)!'
+        )
+
+    signal = np.fft.irfft(ampl_spectra_random, n=N)  # time signal
+    return t, signal
+
 
 class PSDgen(object):
     """

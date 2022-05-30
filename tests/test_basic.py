@@ -23,7 +23,7 @@ def test_data():
         'Narrowband': 1064.200649,
         'Alpha 0.75': 1625.785759,
         'Wirsching Light': 1461.814034,
-        'Gao Moan': 1310.451362,
+        'Gao Moan': 2237.738423,
         'Jiao Moan': 813.490369,
         'Fu Cebon': 1151.170596,
         'Modified Fu Cebon': 846.208325,
