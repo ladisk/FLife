@@ -5,7 +5,7 @@ from scipy.optimize import fsolve
 
 class ZhaoBaker(object):
     """Class for fatigue life estimation using frequency domain 
-    method by Zhao and Baker[1, 2].
+    method by Zhao and Baker[1].
      
     References
     ----------

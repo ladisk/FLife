@@ -154,22 +154,23 @@ class GaoMoan(JiaoMoan):
 
         # -- damage intensity
         dNB_H = self.damage_intesity_NB(m0=m0H, nu=v0H, C=C, k=k) 
-        dNB_P = self._damage_intesity_bimodal_LF(m0L=m0L, m0H=m0H, nuP=v0P, C=C, k=k)
-        dNB_Q = self._damage_intesity_trimodal_LF(m0L=m0L,m0M=m0M, m0H=m0H, nuQ=v0Q, C=C, k=k)
+        dNB_P = self._damage_intesity_bimodal_LF(m0_LF=m0M, m0_HF=m0H, nuP=v0P, C=C, k=k)
+        dNB_Q = self._damage_intesity_trimodal_LF(m0_LF=m0L,m0_MF=m0M, m0_HF=m0H, nu_L=v0Q, C=C, k=k)
 
         d = dNB_H + dNB_P + dNB_Q
         T = 1 / d
         return T
 
-    def _damage_intesity_trimodal_LF(self, m0L, m0M, m0H, nuQ, C, k):
+    def _damage_intesity_trimodal_LF(self, m0_LF, m0_MF, m0_HF, nu_L, C, k):
         """Calculates damage intensity for low frequency component of bimodal random process,
         with parameters m0, nuP, C, k, as defined in [2].
-
-        :param m0L: [int,float]
-            Zeroth spectral moment of low frequency component [MPa**2].
-        :param m0H: [int,float]
-            Zeroth spectral moment of high frequency component [MPa**2].
-        :param nuQ: [int,float]
+        :param m0_LF: [int,float]
+            Zeroth spectral moment of low-frequency component [MPa**2].
+        :param m0_MF: [int,float]
+            Zeroth spectral moment of medium-frequency component [MPa**2].
+        :param m0_HF: [int,float]
+            Zeroth spectral moment of high-frequency component [MPa**2].    
+        :param nu_L: [int,float]
             Frequency of positive slope zero crossing of low frequency component[Hz].
         :param C: [int,float]
             Fatigue strength coefficient [MPa**k].
@@ -178,18 +179,13 @@ class GaoMoan(JiaoMoan):
         :return d: float
             Estimated damage intensity of low frequency component.
         """
-        # -- max stress is 3*standard deviation
-        m0 = m0L + m0M + m0H 
-        smax = 3.0 * np.sqrt(m0)
+        # medium-amplitude cycle pdf
+        pdf_M = pdf_rayleigh_sum(m0_MF, m0_HF)
+        # LF component pdf - rayleigh distributed
+        pdf_LF = lambda s: stats.rayleigh.pdf(s/np.sqrt(m0_LF)) / np.sqrt(m0_LF)
+        # large-amplitude cycle pdf
+        pdf_L = lambda s: np.convolve(pdf_M(s), pdf_LF(s)) # large cycle pdf
 
-        ds = smax/100
-        s = np.arange(0, smax, ds)
-
-        pdf_L = lambda s: stats.rayleigh.pdf(s/np.sqrt(m0L)) / np.sqrt(m0L)
-        pdf_P = pdf_rayleigh_sum(m0L ,m0H)
-        pdf_Q = ds * np.convolve(pdf_P(s), pdf_L(s))
-        s_new = np.arange(0, pdf_Q.size*ds , ds)
-
-        S_Q = integrate.simps(s_new**k * pdf_Q, s_new, ds)
-        d = nuQ * S_Q / C
+        S_L = integrate.quad(lambda s: s**k * pdf_L(s), 0, np.inf)[0] 
+        d = nu_L * S_L / C
         return d

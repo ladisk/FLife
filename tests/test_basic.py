@@ -23,9 +23,7 @@ def test_data():
         'Narrowband': 1064.200649,
         'Alpha 0.75': 1625.785759,
         'Wirsching Light': 1461.814034,
-        'Rice': 1016.033688,
-        'Gao Moan': 1310.451362,
-        'Petrucci Zuccarello': 9.715686,
+        'Gao Moan': 2237.738423,
         'Jiao Moan': 813.490369,
         'Fu Cebon': 1151.170596,
         'Modified Fu Cebon': 846.208325,
@@ -34,7 +32,11 @@ def test_data():
         'Bands method': 1969.738539,
         'Single moment': 1969.738539,
         'Ortiz Chen': 1598.836389,
-        'Park': 1707.807255
+        'Park': 1707.807255,
+        'Jun Park': 1681.742086, 
+        'Low bimodal 2014': 1466.400479,
+        'Lotsberg': 476.014139, 
+        'Huang Moan': 1439.603712
     }
 
     data = lvm_read.read('./data/m1.lvm')[0]
@@ -61,9 +63,7 @@ def test_data():
     nb = FLife.Narrowband(sd)
     a075 = FLife.Alpha075(sd)
     wl = FLife.WirschingLight(sd)
-    rice = FLife.Rice(sd)
     gm = FLife.GaoMoan(sd)
-    pz = FLife.PetrucciZuccarello(sd)
     jm = FLife.JiaoMoan(sd)
     fc = FLife.FuCebon(sd)
     mfc = FLife.ModifiedFuCebon(sd)
@@ -73,53 +73,54 @@ def test_data():
     sm = FLife.SingleMoment(sd)
     oc = FLife.OrtizChen(sd)
     park = FLife.Park(sd)
+    jp = FLife.JunPark(sd)
+    low2014 = FLife.LowBimodal2014(sd)
+    lb = FLife.Lotsberg(sd)
+    hm = FLife.HuangMoan(sd)
 
     # Test PDF's; expected result should be 1
     PDFs = {
-        'Dirlik': quad(dirlik.get_PDF, a=0, b=np.Inf)[0],
-        'Rice': quad(nb.get_PDF, a=0, b=np.Inf)[0],
-        'Rice -inf': quad(rice.get_PDF, a=-np.Inf, b=np.Inf)[0],
+        'Rice': quad(sd.get_peak_PDF, a=-np.Inf, b=np.Inf)[0],
         'Tovo Benasciutti 1': quad(tb.get_PDF, a=0, b=np.Inf, args=('method 1',))[0],
         'Tovo Benasciutti 2': quad(tb.get_PDF, a=0, b=np.Inf, args=('method 2',))[0],
         'Zhao Baker 1': quad(zb.get_PDF, a=0, b=np.Inf, args=('method 1',))[0],
         'Zhao Baker 2': quad(zb.get_PDF, a=0, b=np.Inf, args=('method 2',))[0],
-        'Park': quad(park.get_PDF, a=0, b=np.Inf)[0],
+        'Park': quad(park.get_PDF, a=0, b=np.Inf)[0]
+        #'Jun Park': quad(jp.get_PDF, a=0, b=np.Inf)[0]
     }
     for method, value in PDFs.items():
         np.testing.assert_almost_equal(value, 1., decimal=5, err_msg=f'Method: {method}')
 
     results = {
-        'Rainflow': rf.get_life(C = C, k=k, algorithm='four-point'),
-        'Rainflow-Goodman': rf.get_life(C = C, k = k, Su=Su),
-        'Dirlik': float(dirlik.get_life(C = C, k=k)),
-        'Tovo Benasciutti 1': float(tb.get_life(C = C, k=k, method='method 1')),
-        'Tovo Benasciutti 2': float(tb.get_life(C = C, k=k)),
-        'Zhao Baker 1': zb.get_life(C = C, k=k),
-        'Zhao Baker 2': zb.get_life(C = C, k=k, method='method 2'),
-        'Narrowband': nb.get_life(C = C, k=k),
-        'Alpha 0.75': a075.get_life(C = C, k=k),
-        'Wirsching Light': wl.get_life(C = C, k=k),
-        'Rice': rice.get_life(C = C, k=k),
-        'Gao Moan': gm.get_life(C = C, k=k),
-        'Petrucci Zuccarello': pz.get_life(C = C, k=k, Su=Su),
-        'Jiao Moan': jm.get_life(C = C, k=k),
-        'Fu Cebon': fc.get_life(C = C, k=k),
-        'Modified Fu Cebon': mfc.get_life(C = C, k=k),
-        'Low': low.get_life(C = C, k=int(k)),
-        'Sakai Okamura': so.get_life(C = C, k=k),
-        'Bands method': bm.get_life(C = C, k=k),
-        'Single moment': sm.get_life(C = C, k=k),
-        'Ortiz Chen': oc.get_life(C = C, k=k),
-        'Park': park.get_life(C = C, k=k)
+        'Rainflow': rf.get_life(C=C, k=k, algorithm='four-point'),
+        'Rainflow-Goodman': rf.get_life(C=C, k = k, Su=Su),
+        'Dirlik': float(dirlik.get_life(C=C, k=k)),
+        'Tovo Benasciutti 1': float(tb.get_life(C=C, k=k, method='method 1')),
+        'Tovo Benasciutti 2': float(tb.get_life(C=C, k=k)),
+        'Zhao Baker 1': zb.get_life(C=C, k=k),
+        'Zhao Baker 2': zb.get_life(C=C, k=k, method='method 2'),
+        'Narrowband': nb.get_life(C=C, k=k),
+        'Alpha 0.75': a075.get_life(C=C, k=k),
+        'Wirsching Light': wl.get_life(C=C, k=k),
+        'Gao Moan': gm.get_life(C=C, k=k),
+        'Jiao Moan': jm.get_life(C=C, k=k),
+        'Fu Cebon': fc.get_life(C=C, k=k),
+        'Modified Fu Cebon': mfc.get_life(C=C, k=k),
+        'Low': low.get_life(C=C, k=int(k)),
+        'Sakai Okamura': so.get_life(C=C, k=k),
+        'Bands method': bm.get_life(C=C, k=k),
+        'Single moment': sm.get_life(C=C, k=k),
+        'Ortiz Chen': oc.get_life(C=C, k=k),
+        'Park': park.get_life(C=C, k=k),
+        'Jun Park': jp.get_life(C=C, k=k), 
+        'Low bimodal 2014': low2014.get_life(C=C, k=k), 
+        'Lotsberg': lb.get_life(C=C, k=k), 
+        'Huang Moan': hm.get_life(C=C, k=k)
     }
 
     for method, value in results.items():
-        if method=='Petrucci Zuccarello':
-            compare_to = 'Rainflow-Goodman'
-        else:
-            compare_to = 'Rainflow'
-        err = FLife.tools.relative_error(value, results[compare_to])
-        print(f'{method:>19s}:{value:6.0f} s,{100*err:>4.0f} % to {compare_to}')
+        err = FLife.tools.relative_error(value, results['Rainflow'])
+        print(f'{method:>19s}:{value:6.0f} s,{100*err:>4.0f} % to {"Rainflow"}')
         np.testing.assert_almost_equal(value, results_ref[method], decimal=5, err_msg=f'Method: {method}')
 
     results_via_PDF = {
@@ -129,12 +130,8 @@ def test_data():
         'Zhao Baker 1': zb.get_life(C = C, k=k, integrate_pdf=True),
         'Zhao Baker 2': zb.get_life(C = C, k=k, method='method 2', integrate_pdf=True),
         'Narrowband': nb.get_life(C = C, k=k, integrate_pdf=True),
-        'Alpha 0.75': a075.get_life(C = C, k=k),
-        'Wirsching Light': wl.get_life(C = C, k=k),
-        'Rice': rice.get_life(C = C, k=k),
-        'Gao Moan': gm.get_life(C = C, k=k),
-        'Petrucci Zuccarello': pz.get_life(C = C, k=k, Su=Su),
-        'Park': park.get_life(C = C, k=k),
+        'Park': park.get_life(C = C, k=k, integrate_pdf=True),
+        'Jun Park': jp.get_life(C=C, k=k, integrate_pdf=True) 
     }
 
     for method, value in results_via_PDF.items():

@@ -4,7 +4,7 @@ from scipy.special import gamma
 
 class Park(object):
     """Class for fatigue life estimation using frequency domain 
-    method by Tovo and Benasciutti[1, 2].
+    method by Park et al.[1].
       
     References
     ----------
@@ -62,6 +62,7 @@ class Park(object):
         :param spectral_data:  Instance of class SpectralData
         """     
         self.spectral_data = spectral_data
+        self._set_distribution_parameters() #calculate distribution parameters
 
     def get_PDF(self, s):
         """Returns cycle PDF(Probability Density Function) as a function of stress s.
@@ -72,6 +73,50 @@ class Park(object):
         """
         m0 = self.spectral_data.moments[0]
 
+        def park_pdf(s):
+            #PDF of stress amplitude normalized by standard deviation of process
+            #half-Gaussian
+            gauss_pdf = lambda s: 2/(np.sqrt(2*np.pi)*self.parameters['sigma_g'])* np.exp(-s**2/(2*self.parameters['sigma_g']**2))
+            #Rayleigh
+            rayleigh1_pdf = lambda s: s/self.parameters['sigma_r1']**2 * np.exp(-s**2/(2*self.parameters['sigma_r1']**2))
+            #Rayleigh with unit variance
+            rayleigh2_pdf = lambda s: s * np.exp(-s**2/2)
+
+            pdf_out = self.parameters['C_g']*gauss_pdf(s) + self.parameters['C_r1']*rayleigh1_pdf(s) + self.parameters['C_r2']*rayleigh2_pdf(s)
+            return pdf_out
+
+        return 1/np.sqrt(m0) * park_pdf(s/np.sqrt(m0))
+
+
+    def get_life(self, C, k, integrate_pdf=False):
+        """Calculate fatigue life with parameters C, k, as defined in [2].
+
+        :param C: [int,float]
+            S-N curve intercept [MPa**k].
+        :param k: [int,float]
+            S-N curve inverse slope [/].
+        :return:
+            Estimated fatigue life in seconds.
+        :rtype: float
+        """ 
+        m0 = self.spectral_data.moments[0]
+        m_p = self.spectral_data.m_p
+
+        if integrate_pdf:
+            d = m_p / C * quad(lambda s: s**k*self.get_PDF(s), a=0, b=np.Inf)[0]
+        else:
+            m0 = self.spectral_data.moments[0]
+
+            d = m_p / C * (np.sqrt(2*m0))**k * (self.parameters['C_r1']*self.parameters['sigma_r1']**k * gamma(1 + k/2) \
+                + self.parameters['C_r2']*gamma(1+k/2) + self.parameters['C_g']/(np.sqrt(np.pi)) * self.parameters['sigma_g']**k * gamma((1+k)/2))
+
+        T = 1.0/d
+        return T
+
+
+    def _set_distribution_parameters(self):
+        '''Define PDF parameters; 
+        '''
         #alpha are used for n-th moment of rainflow range distrubution Mrr(n)
         alpha2 = self.spectral_data.alpha2
         alpha0_95 = self.spectral_data.get_bandwidth_estimator(self.spectral_data.PSD_splitting, i=0.95)[0]
@@ -93,35 +138,9 @@ class Park(object):
         V_1 = 1/np.sqrt(np.pi) * gamma(1)/gamma(1.5)
         sigma_g = 1/(V_1*C_g) * (M_rr_1 - C_r1*sigma_r1 - C_r2)
 
-        def park_pdf(s):
-            #PDF of stress amplitude normalized by standard deviation of process
-            #half-Gaussian
-            gauss_pdf = lambda s: 2/(np.sqrt(2*np.pi)*sigma_g)* np.exp(-s**2/(2*sigma_g**2))
-            #Rayleigh
-            rayleigh1_pdf = lambda s: s/sigma_r1**2 * np.exp(-s**2/(2*sigma_r1**2))
-            #Rayleigh with unit variance
-            rayleigh2_pdf = lambda s: s * np.exp(-s**2/2)
-
-            pdf_out = C_g*gauss_pdf(s) + C_r1*rayleigh1_pdf(s) + C_r2*rayleigh2_pdf(s)
-            return pdf_out
-
-        return 1/np.sqrt(m0) * park_pdf(s/np.sqrt(m0))
-
-
-    def get_life(self, C, k):
-        """Calculate fatigue life with parameters C, k, as defined in [2].
-
-        :param C: [int,float]
-            S-N curve intercept [MPa**k].
-        :param k: [int,float]
-            S-N curve inverse slope [/].
-        :return:
-            Estimated fatigue life in seconds.
-        :rtype: float
-        """ 
-        m_p = self.spectral_data.m_p
-
-        d = m_p / C * quad(lambda s: s**k*self.get_PDF(s), a=0, b=np.Inf)[0]
-
-        T = 1.0/d
-        return T
+        self.parameters = {}
+        self.parameters['sigma_r1'] = sigma_r1
+        self.parameters['sigma_g'] = sigma_g
+        self.parameters['C_r1'] = C_r1
+        self.parameters['C_r2'] = C_r2
+        self.parameters['C_g'] = C_g

@@ -1,18 +1,16 @@
 import numpy as np
-from scipy import stats
-from scipy import integrate
-from scipy.special import gamma
 from .narrowband import Narrowband
-from ..tools import pdf_rayleigh_sum
+import warnings
 
-class JiaoMoan(Narrowband):
+
+class LowBimodal2014(Narrowband):
     """Class for fatigue life estimation using frequency domain 
-    method by Jiao and Moan [1].
+    method by Low[1].
     
     References
     ----------
-    [1] Guoyang Jiao and Torgeir Moan. Probabilistic analysis of fatigue due to Gaussian load processes.
-        Probabilistic Engineering Mechanics, 5(2):76-83, 1990
+    [1] Ying Min Low. A simple surrogate model for the rainflow fatigue damage arising 
+        from processes with bimodal spectra. Marine Structures, 38:72-88, 2014
     [2] Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
         Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage
         – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020
@@ -49,12 +47,12 @@ class JiaoMoan(Narrowband):
 
     >>> C = 1.8e+22  # S-N curve intercept [MPa**k]
     >>> k = 7.3 # S-N curve inverse slope [/]
-    >>> jm = FLife.JiaoMoan(sd, PSD_splitting=('userDefinedBands', [80,150]))
-    >>> print(f'Fatigue life: {jm.get_life(C,k):.3e} s.')
+    >>> low2014 = FLife.LowBimodal2014(sd, PSD_splitting=('userDefinedBands', [80,150]))
+    >>> print(f'Fatigue life: {low2014.get_life(C,k):.3e} s.')
 
-    Plot segmentated PSD, used in Jiao-Moan method
+    Plot segmentated PSD, used in LowBimodal2014 method
 
-    >>> lower_band_index, upper_band_index= jm.band_stop_indexes
+    >>> lower_band_index, upper_band_index= low2014.band_stop_indexes
     >>> plt.plot(sd.psd[:,0], sd.psd[:,1])
     >>> plt.vlines(sd.psd[:,0][lower_band_index], 0, np.max(sd.psd[:,1]), 'k', linestyles='dashed', alpha=.5)
     >>> plt.fill_between(sd.psd[:lower_band_index,0], sd.psd[:lower_band_index,1], 'o', label='lower band', alpha=.2, color='blue')
@@ -83,7 +81,7 @@ class JiaoMoan(Narrowband):
         self.PSD_splitting = PSD_splitting
         self.band_stop_indexes = self.spectral_data._get_band_stop_frequency(self.PSD_splitting)
         
-    def get_life(self, C, k, approximation = False):
+    def get_life(self, C, k):
         """Calculate fatigue life with parameters C, k, as defined in [1, 2].
 
         :param C: [int,float]
@@ -96,25 +94,11 @@ class JiaoMoan(Narrowband):
             Estimated fatigue life in seconds.
         :rtype: float
         """
-        if len(self.band_stop_indexes) == 1: # narrow-band
-            T = self._life_NB(C,k)
-        elif len(self.band_stop_indexes) == 2: # bi-modal
-            T = self._life_bimodal(C,k,approximation)
-        else:
-            raise Exception('Specify up to bi-modal random process.')
-        return T
+        # central frequencies
+        v0L, v0H = self.spectral_data.get_nup(self.PSD_splitting)
+        beta = v0H/v0L
 
-    def _life_NB(self, C, k):
-        m0H = self.spectral_data.get_spectral_moments(self.PSD_splitting, moments=[0])[0][0]
-        v0H = self.spectral_data.get_nup(self.PSD_splitting)[0]
-
-        # -- Define expected value of stress range ( int(S^k * p(s)) ) proces H(t), fatigue life
-        dNB_H = self.damage_intesity_NB(m0=m0H, nu=v0H, C=C, k=k) 
-        T = 1/dNB_H
-        return T
-
-    def _life_bimodal(self, C, k, approximation = False):
-        # -- spectral moments for each narrowband
+        # spectral moments
         moments = self.spectral_data.get_spectral_moments(self.PSD_splitting, moments=[0,2])
         m0L, m2L = moments[0] #spectral moments for lower band
         m0H, m2H = moments[1] #spectral moments for upper band
@@ -123,54 +107,28 @@ class JiaoMoan(Narrowband):
         m0 = np.sum(moments[:, 0])
         m0L_norm = m0L/m0
         m0H_norm = m0H/m0
+        
+        #check method validity range
+        if not 3 < beta < np.infty:
+            warnings.warn(f'Correction factor is optimized for zero upcrossing rates ratio 3 <= `beta` < infinity. Actual value is `beta`= {beta}. Results should be evaluated carefully.')
+        if not 3 <= k <= 8:
+            warnings.warn(f'Correction factor is optimized for 3 <= `k` <= 8. Actual value is `k`= {k}. Results should be evaluated carefully.')
 
-        # -- Vanmarcke bandwidth parameter
-        _, epsV_H = self.spectral_data.get_vanmarcke_parameter(self.PSD_splitting)
+        # Correction factor R
+        b1 = (1.111 + 0.7421*k - 0.0724*k**2) * beta**(-1) + (2.403 - 2.483*k) * beta**(-2)
+        b2 = (-10.45 + 2.65*k ) * beta**(-1) + (2.607 + 2.63*k - 0.0133*k**2) * beta**(-2)
+        L = (b1*np.sqrt(m0H_norm) + b2*m0H_norm - (b1+b2)*m0H_norm**(3/2) + m0H_norm**(k/2)) * (beta-1) + 1
+        R = L/(np.sqrt(1 - m0H_norm + beta**2 * m0H_norm))
 
-        # -- positive slope zero crossing frequency
-        v0L, v0H = self.spectral_data.get_nup(self.PSD_splitting)
-        v0P = m0L_norm * v0L* np.sqrt(1 + m0H_norm/m0L_norm * (v0H/v0L*epsV_H)**2)
+        # narrowband damage intensity
+        v0 = 1/(2*np.pi) * np.sqrt((m2L + m2H)/(m0L + m0H))
+        d_NB = self.damage_intesity_NB(m0=m0, nu=v0, C=C, k=k) 
 
-        if approximation:
-            # -- bandwidth correction factor
-            v0 = 1/(2*np.pi) * np.sqrt((m2L + m2H)/(m0L + m0H))
-            rho = v0P/v0 * (m0L_norm**(k/2 + 2) * (1 - np.sqrt(m0H_norm/m0L_norm)) \
-                + np.sqrt(np.pi*m0L_norm*m0H_norm) * (k * gamma(k/2 + 1/2))/(gamma(k/2 +1))) \
-                    + v0H/v0 * m0H_norm**(k/2)
+        # damage intensity
+        d = d_NB * R
+        T = 1/d
 
-            # -- damage intensity
-            d_nb = self.damage_intesity_NB(m0=m0, nu=v0, C=C, k=k) 
-            d = rho * d_nb
-        else:
-            # -- damage intensity
-            dNB_H = self.damage_intesity_NB(m0=m0H, nu=v0H, C=C, k=k) 
-            dNB_P = self._damage_intesity_bimodal_LF(m0_LF=m0L, m0_HF=m0H, nuP=v0P, C=C, k=k)
-            d = dNB_H + dNB_P
-
-        T = 1 / d
         return T
-
-    def _damage_intesity_bimodal_LF(self, m0_LF, m0_HF, nuP, C, k):
-        """Calculates damage intensity for low frequency component of bimodal random process,
-        with parameters m0, nuP, C, k, as defined in [2].
-
-        :param m0_LF: [int,float]
-            Zeroth spectral moment of low frequency component [MPa**2].
-        :param m0_HF: [int,float]
-            Zeroth spectral moment of high frequency component [MPa**2].
-        :param nuP: [int,float]
-            Frequency of positive slope zero crossing of low frequency component[Hz].
-        :param C: [int,float]
-            Fatigue strength coefficient [MPa**k].
-        :param k : [int,float]
-            Fatigue strength exponent [/].
-        :return d: float
-            Estimated damage intensity of low frequency component.
-        """
-        pdf_P = pdf_rayleigh_sum(m0_LF,m0_HF)
-        S_P = integrate.quad(lambda x:  x**k * pdf_P(x), 0, np.inf)[0]
-        d = nuP * S_P / C
-        return d
             
     def get_PDF(self, s):
         raise Exception(f'Function <get_PDF> is not available for class {self.__class__.__name__:s}.')
