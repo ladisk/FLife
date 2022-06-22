@@ -5,5 +5,5 @@ rainflow
 pylint
 pytest
 lvm_read
-matplotlib
+matplotlib>=3.3
 pyExSi
