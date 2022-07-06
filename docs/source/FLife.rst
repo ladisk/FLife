@@ -30,8 +30,8 @@ Supported methods in the frequency-domain
     - Sakai Okamura,
     - Fu Cebon,
     - modified Fu Cebon,
-    - Low (2010),
-    - Low (2014),
+    - Low's bimodal,
+    - Low 2014,
     - Lotsberg,
     - Huang Moan,
     - Gao Moan,
@@ -224,7 +224,7 @@ Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar.
 Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020, `see Elsevier page. <https://www.elsevier.com/books/Vibration%20Fatigue%20by%20Spectral%20Methods/9780128221907?utm_campaign=ELS%20STBK%20AuthorConnect%20Release&utm_campaignPK=1695759095&utm_term=OP66802&utm_content=1695850484&utm_source=93&BID=1212165450>`_
 
 
-|Build Status|
+|Build Status| |zenodo|
 
 .. |Build Status| image:: https://travis-ci.com/ladisk/FLife.svg?branch=master
    :target: https://travis-ci.com/ladisk/FLife
@@ -236,3 +236,6 @@ Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damag
 .. |SpectralMethods_img| image:: ../../FreqMethodsTree.png
     :target: https://github.com/ladisk/FLife/tree/ales/FLife/freq_domain
     :alt: Spectral methods
+
+.. |zenodo| image:: https://zenodo.org/badge/262350081.svg?
+   :target: https://zenodo.org/badge/latestdoi/262350081
