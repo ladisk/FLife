@@ -2,7 +2,6 @@ import numpy as np
 from .narrowband import Narrowband
 import warnings
 
-
 class LowBimodal2014(Narrowband):
     """Class for fatigue life estimation using frequency domain 
     method by Low[1].
@@ -110,9 +109,9 @@ class LowBimodal2014(Narrowband):
         
         #check method validity range
         if not 3 < beta < np.infty:
-            warnings.warn(f'Correction factor is optimized for zero upcrossing rates ratio 3 <= `beta` < infinity. Actual value is `beta`= {beta}. Results should be evaluated carefully.')
+            warnings.warn(f'Correction factor is optimized for zero upcrossing rates ratio 3 <= `beta` < infinity. Actual value is `beta`= {beta:.2f}. Results should be evaluated carefully.')
         if not 3 <= k <= 8:
-            warnings.warn(f'Correction factor is optimized for 3 <= `k` <= 8. Actual value is `k`= {k}. Results should be evaluated carefully.')
+            warnings.warn(f'Correction factor is optimized for 3 <= `k` <= 8. Results should be evaluated carefully.')
 
         # Correction factor R
         b1 = (1.111 + 0.7421*k - 0.0724*k**2) * beta**(-1) + (2.403 - 2.483*k) * beta**(-2)

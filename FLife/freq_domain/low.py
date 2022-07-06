@@ -1,7 +1,9 @@
+from ast import Raise
 import numpy as np
 from scipy import stats
 from scipy import integrate
 from scipy import special
+import warnings
 
 class Low(object):
     """Class for fatigue life estimation using frequency domain 
@@ -99,6 +101,13 @@ class Low(object):
             Estimated fatigue life in seconds.
         :rtype: float
         """
+        #Data type check
+        if not isinstance(k, int):
+            raise Exception('Parameter `k` must be integer. Sufficient engineering precision is up to k=6.')
+        
+        if k > 6:
+            warnings.warn(f'Sufficient engineering precision is up to k=6. Results should be evaluated carefully.')
+        
         # -- spectral moments for each narrowband
         moments = self.spectral_data.get_spectral_moments(self.PSD_splitting, moments=[0])
         m0L = moments[0] #spectral moments for lower band
@@ -106,7 +115,7 @@ class Low(object):
 
         # -- positive slope zero crossing frequency
         v0L, v0H = self.spectral_data.get_nup(self.PSD_splitting)
-        v0Small = v0H - v0L  #freqeuncy of small cycless
+        v0Small = v0H - v0L  #frequency of small cycless
 
         #band's zero crossing frequency ratio
         beta = v0H/v0L
