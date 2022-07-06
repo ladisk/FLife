@@ -259,35 +259,29 @@ class SpectralData(object):
         """   
         # check data: sampling frequency fs and length of time history
         T = kwargs.get('T', None)
-        #kwargs['T'] = T
-        
         fs = kwargs.get('fs', None)
         
-        if isinstance(T, (int, float)) and isinstance(fs, (int, float)):
+        if T is not None and fs is not None:
             f_max_indx = np.where(psd>0)[0][-1]
             f_max = f[f_max_indx]
             
-            # fs is set according to Nyquist criteria; fs >= 2 * f_max
+            # Sampling frequency check
             if fs < 2*f_max:
-                #kwargs['fs'] = 10 * f_max
                 raise Exception('Parameter `fs` should be higher. It should be fs >= 2*fmax.')
                 
             if fs < 10*f_max:
-                #kwargs['fs'] = 10 * f_max
                 warnings.warn(f'Parameter `fs` should be higher. It is suggested to use fs>=10*fmax.')
-                
-    
         
             # get time history
             time, signal = random_gaussian(f, psd, **kwargs) # stationary, normally distributed
 
             #set data
             self.data = signal
-            self.dt = 1.0/kwargs['fs']  # Sampling interval
+            self.dt = 1.0/fs  # Sampling interval
             self.t = T # signal time-history duration
             
         else:
-            warnings.warn('Parameter `input` should be int or float. Time history is not set.')
+            warnings.warn('Parameters `T` and `fs` should both be specified. Time history is not set.')
 
     def _calculate_psd(self, data, fs=1, window='hamming', nperseg=10280, noverlap=None, trim=None):
         """Calculates PSD using welch estimator.
