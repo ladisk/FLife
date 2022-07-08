@@ -3,7 +3,6 @@ from scipy.integrate import quad
 import sys, os
 my_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, my_path + '/../')
-import lvm_read
 import FLife
 
 def test_version():
@@ -39,15 +38,14 @@ def test_data():
         'Huang Moan': 1439.603712
     }
 
-    data = lvm_read.read('./data/m1.lvm')[0]
+    data = np.load(os.path.join('./data/m1.npy'))
 
-    t = data['data'][:,0]
-    x = data['data'][:,1]
+    t= data[::2]
+    x = data[1::2]
 
     rms = 100  
     C = 1.8e+19
     k = 6
-    Su = 446
     x = rms * x / np.std(x) 
 
     # Spectral data
