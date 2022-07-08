@@ -69,7 +69,7 @@ def test_data():
     fc = FLife.FuCebon(sd)
     mfc = FLife.ModifiedFuCebon(sd)
     low_BM = FLife.Low(sd)
-    low_2014 = FLife.LowBimodal2014(sd)
+    low_2014 = FLife.Low2014(sd)
     gm = FLife.GaoMoan(sd)
     lb = FLife.Lotsberg(sd)
     hm = FLife.HuangMoan(sd)

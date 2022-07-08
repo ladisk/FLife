@@ -72,7 +72,7 @@ Low's bimodal
 
 Low 2014
 **********
-.. autoclass:: FLife.freq_domain.LowBimodal2014
+.. autoclass:: FLife.freq_domain.Low2014
     :exclude-members: get_PDF
 
 Lotsberg

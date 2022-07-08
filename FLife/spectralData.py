@@ -37,7 +37,7 @@ class SpectralData(object):
     - :class:`~FLife.freq_domain.FuCebon`
     - :class:`~FLife.freq_domain.ModifiedFuCebon`
     - :class:`~FLife.freq_domain.Low`
-    - :class:`~FLife.freq_domain.LowBimodal2014`
+    - :class:`~FLife.freq_domain.Low2014`
     - :class:`~FLife.freq_domain.GaoMoan`
     - :class:`~FLife.freq_domain.Lotsberg`
     - :class:`~FLife.freq_domain.HuangMoan`

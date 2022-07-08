@@ -2,7 +2,7 @@ import numpy as np
 from .narrowband import Narrowband
 import warnings
 
-class LowBimodal2014(Narrowband):
+class Low2014(Narrowband):
     """Class for fatigue life estimation using frequency domain 
     method by Low[1].
     
