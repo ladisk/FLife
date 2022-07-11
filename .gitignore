@@ -134,6 +134,3 @@ dmypy.json
 #data
 /data/experiment/
 *.pkl
-
-
-proba.ipynb

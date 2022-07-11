@@ -92,17 +92,17 @@ class Lotsberg(Narrowband):
         :rtype: float
         """
         moments = self.spectral_data.get_spectral_moments(self.PSD_splitting, moments=[0])
-        m0L, = moments[0] #spectral moments for lower band
-        m0H, = moments[1] #spectral moments for upper band
+        m0LF, = moments[0] #spectral moments for lower band
+        m0HF, = moments[1] #spectral moments for upper band
 
         # -- positive slope zero crossing frequency
-        v0L, v0H = self.spectral_data.get_nup(self.PSD_splitting)
+        v0LF, v0HF = self.spectral_data.get_nup(self.PSD_splitting)
 
         # -- damage intensity
-        dNB_H = self.damage_intesity_NB(m0=m0H, nu=v0H, C=C, k=k)
-        dNB_L = self.damage_intesity_NB(m0=m0L, nu=v0L, C=C, k=k) 
+        dNB_HF = self.damage_intesity_NB(m0=m0HF, nu=v0HF, C=C, k=k)
+        dNB_LF = self.damage_intesity_NB(m0=m0LF, nu=v0LF, C=C, k=k) 
 
-        d = dNB_H*(1 - v0L/v0H) + v0L*((dNB_H/v0H)**(1/k) + (dNB_L/v0L)**(1/k))**k
+        d = dNB_HF*(1 - v0LF/v0HF) + v0LF*((dNB_HF/v0HF)**(1/k) + (dNB_LF/v0LF)**(1/k))**k
         T = 1/d
         
         return T

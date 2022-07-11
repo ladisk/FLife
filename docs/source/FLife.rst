@@ -30,8 +30,8 @@ Supported methods in the frequency-domain
     - Sakai Okamura,
     - Fu Cebon,
     - modified Fu Cebon,
-    - Low (2010),
-    - Low (2014),
+    - Low's bimodal,
+    - Low 2014,
     - Lotsberg,
     - Huang Moan,
     - Gao Moan,
@@ -93,13 +93,15 @@ This is default argument. User is prompted to enter PSD graphically and/or tabul
 
 |GUI_img| 
 
-If Generator instance is given, stationary Gaussian time-history is generated. Otherwise, time-history is generated subsequently, when Rainflow fatigue-life is calculated.
+Stationary Gaussian time-history is generated, if parameters `T` and `fs` are provided. Otherwise, time-history is generated subsequently, when Rainflow fatigue-life is calculated.
+Optional parameter for time-history is random generator instance `rg` (numpy.random._generator.Generator), which determines phase of random process.
 
 .. code-block:: python
 
     seed = 111
     rg =  np.random.default_rng(seed)
-    sd3 = FLife.SpectralData(input='GUI', rg=rg)
+    # time-history can be generated at SpectralData object instantiation. Sampling frequency `fs` and signal length `T` parameter are needed.
+    sd3 = FLife.SpectralData(input='GUI', T=1, fs=1e5, rg=rg)  
     
     time_history = sd3.data
     # time-history duration and sampling period are dependent on frequency vector length and step
@@ -112,19 +114,21 @@ If Generator instance is given, stationary Gaussian time-history is generated. O
 ***********
 PSD and frequency arrays are given as input. Both arrays must be of type np.ndarray. 
 
-numpy.random._generator.Generator instance `rg` is optional parameter and controls phase of stationary Gaussian time_history.
+Stationary Gaussian time-history is generated, if parameters `T` and `fs` are provided. Otherwise, time-history is generated subsequently, when Rainflow fatigue-life is calculated.
+Optional parameter for time-history is random generator instance `rg` (numpy.random._generator.Generator), which determines phase of random process.
 
 .. code-block:: python
 
     seed = 111
     rg =  np.random.default_rng(seed)
-    freq = np.arange(0,1000, 0.01)
+    freq = np.arange(0,300)
     f_low, f_high = 100, 120
     A = 1 # PSD value
     PSD = np.interp(freq, [f_low, f_high], [A,A], left=0, right=0) # Flat-shaped one-sided PSD
     
     sd4 = FLife.SpectralData(input = (PSD, freq))
-    sd5 = FLife.SpectralData(input = (PSD, freq), rg=rg)
+    # time-history can be generated at SpectralData object instantiation. Sampling frequency `fs` and signal length `T` parameter are needed.
+    sd5 = FLife.SpectralData(input = (PSD, freq), T=1, fs=1e5, rg=rg)
 
     time_history = sd5.data
     # time-history duration and sampling period are dependent on frequency vector length and step
@@ -139,22 +143,31 @@ Time history `x` and sampling period `dt` are given as input. `x` must be of typ
 
 .. code-block:: python
 
-    dt = 1e-4
-    x = np.random.normal(scale=100, size=10000)
-    
-    sd6 = FLife.SpectralData(input=(x, dt))
-    
+    seed = 111
+    rg =  np.random.default_rng(seed)
+    freq = np.arange(0,100)
+    f_low, f_high = 40, 70
+    A = 1 # PSD value
+    PSD = np.interp(freq, [f_low, f_high], [A,A], left=0, right=0) # Flat-shaped one-sided PSD
+
+    time, signal = FLife.tools.random_gaussian(freq=freq, PSD=PSD, T=10, fs=1e3, rg=rg)
+    dt = time[1]
+
+    sd6 = FLife.SpectralData(input=(signal,dt))
+
+    # Get PSD data from spectralData object
     freq = sd6.psd[:,0]
     PSD = sd6.psd[:,1]
     plt.plot(freq, PSD)
 
 Spectral Methods
 -----------------
-Currently 20 spectral methods are supported. Methods for broadband process are organized into 3 subgroups: 
+Currently 20 spectral methods are supported. Methods for broadband process are organized into 4 subgroups: 
 
-    - Narrowband correction factor - methods are based on narrowband approximation, accounting for broadband procces with correction factor.
-    - RFC PDF approximation - methods are based on approximation of Rainflow Probability Density Function.
-    - PSD splitting - methods are based on splitting of PSD of broadband process into N narrowband approximations and accounting their interactions.
+    - Narrowband correction factor; methods are based on narrowband approximation, accounting for broadband procces with correction factor.
+    - RFC PDF approximation; methods are based on approximation of Rainflow Probability Density Function.
+    - Combined fatigue damage - cycle damage combination; methods are based on splitting of PSD of broadband process into N narrowband approximations and accounting the formation of distinct categories of cycles.
+    - Combined fatigue damage - narrowband damage combination; methods are based on splitting of PSD of broadband process into N narrowband approximations and summing narrowband damages by suitable damage conbination rule.
 
 |SpectralMethods_img|
 
@@ -209,8 +222,8 @@ Vibration-fatigue life can be compared to rainflow method. When Rainflow class i
     
     seed = 111
     rg =  np.random.default_rng(seed)
-    rf1 = FLife.Rainflow(sd) # time history is generated and assigned to parameter SpectralData.data
-    rf2 = FLife.Rainflow(sd, rg=rg) # time history is generated and assigned to parameter SpectralData.data, signal phase is defined by random generator
+    rf1 = FLife.Rainflow(sd T=100, fs=1e3) # time history is generated and assigned to parameter SpectralData.data
+    rf2 = FLife.Rainflow(sd, T=100, fs =1e3,  rg=rg) # time history is generated and assigned to parameter SpectralData.data, signal phase is defined by random generator
     rf_life_3pt = rf2.get_life(C, k, algorithm='three-point')
     rf_life_4pt = rf2.get_life(C, k, algorithm='four-point', nr_load_classes=1024) 
     
@@ -224,7 +237,7 @@ Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar.
 Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020, `see Elsevier page. <https://www.elsevier.com/books/Vibration%20Fatigue%20by%20Spectral%20Methods/9780128221907?utm_campaign=ELS%20STBK%20AuthorConnect%20Release&utm_campaignPK=1695759095&utm_term=OP66802&utm_content=1695850484&utm_source=93&BID=1212165450>`_
 
 
-|Build Status|
+|Build Status| |zenodo|
 
 .. |Build Status| image:: https://travis-ci.com/ladisk/FLife.svg?branch=master
    :target: https://travis-ci.com/ladisk/FLife
@@ -236,3 +249,6 @@ Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damag
 .. |SpectralMethods_img| image:: ../../FreqMethodsTree.png
     :target: https://github.com/ladisk/FLife/tree/ales/FLife/freq_domain
     :alt: Spectral methods
+
+.. |zenodo| image:: https://zenodo.org/badge/262350081.svg?
+   :target: https://zenodo.org/badge/latestdoi/262350081

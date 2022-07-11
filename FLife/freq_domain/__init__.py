@@ -15,6 +15,6 @@ from .bands_method import BandsMethod
 from .ortiz_chen import OrtizChen
 from .park import Park
 from .jun_park import JunPark
-from .low_2014 import LowBimodal2014
+from .low_2014 import Low2014
 from .lotsberg import Lotsberg
 from .huang_moan import HuangMoan

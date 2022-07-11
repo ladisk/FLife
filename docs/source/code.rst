@@ -66,13 +66,13 @@ Modified Fu-Cebon
 .. autoclass:: FLife.freq_domain.ModifiedFuCebon
     :exclude-members: get_PDF
 
-Low (2010)
-**********
+Low's bimodal
+*************
 .. autoclass:: FLife.freq_domain.Low
 
-Low (2014)
+Low 2014
 **********
-.. autoclass:: FLife.freq_domain.LowBimodal2014
+.. autoclass:: FLife.freq_domain.Low2014
     :exclude-members: get_PDF
 
 Lotsberg
