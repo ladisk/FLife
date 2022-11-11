@@ -125,7 +125,7 @@ class SpectralData(object):
     >>> print(f'Irregularity factor, higher band:{alpha2_higher_band:.4f}')
     """
 
-    def __init__(self, input=None, window='hanning', nperseg=1280,
+    def __init__(self, input=None, window='hann', nperseg=1280,
                  noverlap=None, psd_trim_length=None, **kwargs):
 
         """Call parent constructor, analyse input and define fatigue life
@@ -138,7 +138,7 @@ class SpectralData(object):
                 sample frequencies or sampling interval, respectively. Alternatively, path to 
                 appropriately formated .txt file can be specified.
         :param window: str or tuple or array_like, optional
-                Desired window to use. Defaults to ‘hanning’.
+                Desired window to use. Defaults to ‘hann’.
         :param nperseg:  int, optional
                 Length of each segment. Defaults to 1280.
         :param noverlap: int, optional
@@ -321,7 +321,7 @@ class SpectralData(object):
         return np.trapz((2*np.pi*f)**i * p, f)
 
 
-    def get_spectral_moments(self, PSD_splitting, moments=[0,1,2,3,4]):
+    def get_spectral_moments(self, PSD_splitting=None, moments=[0,1,2,3,4]):
         """Returns spectral moments, specified by `moments`.
         Depending on parameter `PSD_splitting`, function returns
         an array of shape (M x N), where M is the number of PSD segments
@@ -336,6 +336,8 @@ class SpectralData(object):
         :rtype: numpy.ndarray; 
             An array object of shape (M x N).
         """
+        if PSD_splitting == None:
+            PSD_splitting = self.PSD_splitting 
         band_stop_indexes = self._get_band_stop_frequency(PSD_splitting)
         m_list = list()
 
@@ -347,7 +349,7 @@ class SpectralData(object):
 
         return np.array(m_list)
 
-    def get_bandwidth_estimator(self, PSD_splitting, i): 
+    def get_bandwidth_estimator(self, PSD_splitting=None, i=2): 
         """Calculates bandwidth estimator alpha_i [1]. Takes parameter `PSD_splitting`
         for reference to PSD segmentation.
 
@@ -359,6 +361,9 @@ class SpectralData(object):
             An array object of length N, containing bandwidth estimator for N bands.
         :rtype: numpy.ndarray
         """
+        if PSD_splitting == None:
+            PSD_splitting = self.PSD_splitting 
+
         if not isinstance(i, (int, float)):
             raise TypeError('Parameter `i` must be of type int or float')
         
@@ -370,7 +375,7 @@ class SpectralData(object):
 
         return np.array(alpha_list)
 
-    def get_vanmarcke_parameter(self, PSD_splitting):
+    def get_vanmarcke_parameter(self, PSD_splitting=None):
         """Calculates Vanmarcke bandwidth parameter epsilon_V[1]. Takes parameter 
         `PSD_splitting` for reference to PSD segmentation.
 
@@ -379,6 +384,9 @@ class SpectralData(object):
             An array object of length N, containing vanmarcke's parameter for N bands.
         :rtype: numpy.ndarray
         """
+        if PSD_splitting == None:
+            PSD_splitting = self.PSD_splitting 
+
         alpha = self.get_bandwidth_estimator(PSD_splitting, i=1)
         epsV_list = list()
         for alpha_1 in alpha:
@@ -387,7 +395,7 @@ class SpectralData(object):
 
         return np.array(epsV_list)
 
-    def get_nup(self, PSD_splitting):
+    def get_nup(self, PSD_splitting=None):
         """Calculates nu_p; expected frequency of positive slope zero crossing [1].
         Takes parameter `PSD_splitting` for reference to PSD segmentation.
 
@@ -404,7 +412,7 @@ class SpectralData(object):
 
         return np.array(nup_list)
 
-    def get_mp(self, PSD_splitting):
+    def get_mp(self, PSD_splitting=None):
         """Calculates m_p; expected peak frequency [1]. Takes parameter 
         `PSD_splitting` for reference to PSD segmentation.
 
@@ -439,7 +447,7 @@ class SpectralData(object):
             return px
         return pdf(s)
 
-    def _get_band_stop_frequency(self, PSD_splitting):
+    def _get_band_stop_frequency(self, PSD_splitting=None):
         """Returns stop band frequency indexes of segmentated PSD. Takes parameter 
         `PSD_splitting` for reference to PSD segmentation.
         
@@ -453,6 +461,9 @@ class SpectralData(object):
         :return freq_indx: tuple
             Upper band frequency indexes of segmentated PSD.
         """
+        if PSD_splitting == None:
+            PSD_splitting = self.PSD_splitting 
+
         method_dict = {'equalAreaBands': self._equalAreaBands,
                         'userDefinedBands': self._userDefinedBands
                     }
