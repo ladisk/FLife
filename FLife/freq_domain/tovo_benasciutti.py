@@ -73,16 +73,16 @@ class TovoBenasciutti(Narrowband):
         """     
         Narrowband.__init__(self, spectral_data)
 
-    def _calculate_coefficient(self, method='method 3'):
+    def _calculate_coefficient(self, method='method 2'):
         """Calculate weigthing parameter b for the Tovo-Benasciutti method. Parameter b is 
             defined by Tovo and Benasciutti [1,2].
         
         :param method:  string
             - 'method 1': `b` weighting parameter `b` is defined by Tovo[1].
             - 'method 2': `b` weighting parameter `b` is defined by Tovo and Benasciutti [2].
-                          (This is the improved method)
+                          (This is the 2005 improved method)
             - 'method 3': `b` weighting parameter `b` is defined by Tovo and Benasciutti [3].
-                          (This should be the best method by TB)
+                          (This is the 20056 improved method)
         :return b: float
         """
         if method == 'method 1': 
