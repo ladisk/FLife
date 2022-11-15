@@ -17,7 +17,10 @@ class TovoBenasciutti(Narrowband):
     [3] Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
         Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage
         – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020
-        
+    [4] Denis Benasciutti and Roberto Tovo. Comparison of spectral methods for fatigue 
+        analysis of broad-band Gaussian random processes. Probabilistic Engineering Mechanics,
+        21(4), 287-299, 2006
+
     Example
     -------
     Import modules, define time- and frequency-domain data
@@ -70,7 +73,7 @@ class TovoBenasciutti(Narrowband):
         """     
         Narrowband.__init__(self, spectral_data)
 
-    def _calculate_coefficient(self, method='method 2'):
+    def _calculate_coefficient(self, method='method 3'):
         """Calculate weigthing parameter b for the Tovo-Benasciutti method. Parameter b is 
             defined by Tovo and Benasciutti [1,2].
         
@@ -78,12 +81,16 @@ class TovoBenasciutti(Narrowband):
             - 'method 1': `b` weighting parameter `b` is defined by Tovo[1].
             - 'method 2': `b` weighting parameter `b` is defined by Tovo and Benasciutti [2].
                           (This is the improved method)
+            - 'method 3': `b` weighting parameter `b` is defined by Tovo and Benasciutti [3].
+                          (This should be the best method by TB)
         :return b: float
         """
         if method == 'method 1': 
             b = self._calculate_coefficient_method_1()
         elif method == 'method 2': 
             b = self._calculate_coefficient_method_2()
+        elif method == 'method 3': 
+            b = self._calculate_coefficient_method_3()
         else: 
             raise Exception('Unrecognized Input Error')
         return b
@@ -103,7 +110,7 @@ class TovoBenasciutti(Narrowband):
         return b
 
     def _calculate_coefficient_method_2(self):
-        """Calculate weigthing parameter b for improved Tovo-Benasciutti method. Parameter b is 
+        """Calculate weigthing parameter b for the 2005 improved Tovo-Benasciutti method. Parameter b is 
             defined by Tovo and Benasciutti [2].
         
         :return b: float
@@ -115,6 +122,19 @@ class TovoBenasciutti(Narrowband):
 
         return b
         
+    def _calculate_coefficient_method_3(self):
+        """Calculate weigthing parameter b for the 2006 improved Tovo-Benasciutti method. Parameter b is 
+            defined by Tovo and Benasciutti [3].
+        
+        :return b: float
+        """
+        alpha075 = self.spectral_data.alpha075
+        alpha2 = self.spectral_data.alpha2
+
+        b = (alpha075**2-alpha2**2) / (1-alpha2**2)
+
+        return b
+
     def get_PDF(self, s, method='method 2'):
         """Returns cycle PDF(Probability Density Function) as a function of stress s.
 
