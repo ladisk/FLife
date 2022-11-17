@@ -4,7 +4,7 @@ from .narrowband import Narrowband
 
 class TovoBenasciutti(Narrowband):
     """Class for fatigue life estimation using frequency domain 
-    method by Tovo and Benasciutti[1, 2].
+    method by Tovo and Benasciutti[1, 2, 3].
       
     References
     ----------
@@ -14,12 +14,12 @@ class TovoBenasciutti(Narrowband):
     [2] Denis Benasciutti and Roberto Tovo. Spectral methods for lifetime
         prediction under wide-band stationary random processes. International
         Journal of Fatigue, 27(8):867{877, 2005
-    [3] Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
-        Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage
-        – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020
-    [4] Denis Benasciutti and Roberto Tovo. Comparison of spectral methods for fatigue 
+    [3] Denis Benasciutti and Roberto Tovo. Comparison of spectral methods for fatigue 
         analysis of broad-band Gaussian random processes. Probabilistic Engineering Mechanics,
         21(4), 287-299, 2006
+    [4] Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
+        Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage
+        – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020
 
     Example
     -------
@@ -75,14 +75,14 @@ class TovoBenasciutti(Narrowband):
 
     def _calculate_coefficient(self, method='method 2'):
         """Calculate weigthing parameter b for the Tovo-Benasciutti method. Parameter b is 
-            defined by Tovo and Benasciutti [1,2].
+            defined by Tovo and Benasciutti [1,2,3].
         
         :param method:  string
             - 'method 1': `b` weighting parameter `b` is defined by Tovo[1].
             - 'method 2': `b` weighting parameter `b` is defined by Tovo and Benasciutti [2].
-                          (This is the 2005 improved method)
+                          (This is the 2005 improved method [2])
             - 'method 3': `b` weighting parameter `b` is defined by Tovo and Benasciutti [3].
-                          (This is the 20056 improved method)
+                          (This is the 2006 improved method [3])
         :return b: float
         """
         if method == 'method 1': 
@@ -145,7 +145,8 @@ class TovoBenasciutti(Narrowband):
             - 'method 1': weighting parameter `b` is defined by Tovo[1].
               
             - 'method 2': weighting parameter `b` is defined by Tovo and Benasciutti [2].
-              (This is the improved method)
+
+            - 'method 3': weighting parameter `b` is defined by Tovo and Benasciutti [3].
 
         :return: function pdf(s)
         """
@@ -161,7 +162,7 @@ class TovoBenasciutti(Narrowband):
         return pdf(s)
 
     def get_life(self, C, k, method='method 2', integrate_pdf=False):
-        """Calculate fatigue life with parameters C, k, as defined in [3].
+        """Calculate fatigue life with parameters C, k, as defined in [4].
 
         :param C: [int,float]
             S-N curve intercept [MPa**k].
@@ -171,7 +172,7 @@ class TovoBenasciutti(Narrowband):
         
             - 'method 1': weighting parameter `b` is defined by Tovo[1].
             - 'method 2': weighting parameter `b` is defined by Tovo and Benasciutti [2].
-              (This is the improved method)
+            - 'method 3': weighting parameter `b` is defined by Tovo and Benasciutti [3].
 
         :param integrate_pdf:  boolean
             If true the the fatigue life is estimated by integrating the PDF, 
