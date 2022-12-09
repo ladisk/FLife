@@ -62,7 +62,7 @@ def pdf_rayleigh_sum(m0L, m0H):
     return pdf
 
 
-def random_gaussian(freq, PSD, T, fs, rg=None, **kwargs):
+def random_gaussian(freq, PSD, T, fs, rg=None, random_amplitude=True, **kwargs):
     """
     Stationary Gaussian realization of random process, characterized by PSD.
     
@@ -78,6 +78,9 @@ def random_gaussian(freq, PSD, T, fs, rg=None, **kwargs):
         Sampling frequency [Hz].
     :param rg: numpy.random._generator.Generator
         Initialized Generator object
+    :param random_amplitude: Boolean
+        If true, Rayleigh distributed amplitude is used in addition 
+        to uniformly distributed phase. Defaults to True
     :return: t, signal
         Time and stationary Gaussian realization of random process
     
@@ -92,6 +95,7 @@ def random_gaussian(freq, PSD, T, fs, rg=None, **kwargs):
     Dover Publications, 2005
     """ 
     # time and frequency data
+    var = np.trapz(PSD,freq)
     N = int(T * fs)
     M = N//2 + 1
     t = np.arange(0,N) / fs # time vector
@@ -100,20 +104,27 @@ def random_gaussian(freq, PSD, T, fs, rg=None, **kwargs):
     freq_new = np.arange(0, M, 1) / N  * fs # frequency vector
     PSD_new = np.interp(freq_new, freq, PSD, left=0, right=0)
     
-    ampl_spectra = np.sqrt(PSD_new * N * fs / 2)  # amplitude spectra modulus
-
     if rg == None:
         rg = np.random.default_rng()
+    
     if isinstance(rg, np.random._generator.Generator):
+        
+        phase = rg.uniform(0, 1, len(PSD_new))
+        
+        ampl_spectra = np.sqrt(PSD_new * N * fs / 2)  # amplitude spectra modulus
+        if random_amplitude == True:
+            ampl_spectra = np.array([rg.rayleigh(size=1, scale=x)[0] for x in ampl_spectra]) # Rayleigh distributed amplitudes
+
         ampl_spectra_random = ampl_spectra * np.exp(
-            1j * rg.uniform(0, 1, len(PSD_new)) * 2 * np.pi
-        )  # amplitude spectra,  random phase
+            1j * phase * 2 * np.pi)  # amplitude spectra,  random phase
+
     else:
         raise ValueError(
             '`rg` must be initialized Generator object (numpy.random._generator.Generator)!'
         )
 
     signal = np.fft.irfft(ampl_spectra_random, n=N)  # time signal
+    signal = signal/np.std(signal) * var**.5
     return t, signal
 
 
