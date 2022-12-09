@@ -253,5 +253,5 @@ Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damag
     :target: https://github.com/ladisk/FLife/tree/main/FLife/freq_domain
     :alt: Spectral methods
 
-.. |zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.6816640.svg?
-   :target: https://doi.org/10.5281/zenodo.6816640
+.. |zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.7417587.svg?
+   :target: https://doi.org/10.5281/zenodo.7417587
