@@ -126,7 +126,9 @@ class SpectralData(object):
     """
 
     def __init__(self, input=None, window='hann', nperseg=1280,
-                 noverlap=None, psd_trim_length=None, **kwargs):
+                 noverlap=None, psd_trim_length=None, 
+                 T=None, fs=None, rg=None,
+                 **kwargs):
 
         """Call parent constructor, analyse input and define fatigue life parameters and constants.
         
@@ -146,15 +148,18 @@ class SpectralData(object):
         :param psd_trim_length: int, optional
                 Number of frequency points to be used for PSD.
                 Defaults to None.
-        :param \**T: int, float
+        :param T: int, float, optional
                 Length of time history when random process is defined by `input` parameter 'GUI'
                 or (PSD, frequency vector). If T and fs are provided, time histoy is generated.
-        :param \**fs: int, float
+                Defaults to None.
+        :param fs: int, float, optional
                 Sampling frequency of time history when random process is defined by `input` parameter 
                 'GUI' or (PSD, frequency vector). If T and fs are provided, time histoy is generated.
-        :param \**rg: numpy.random._generator.Generator
+                Defaults to None.
+        :param rg: numpy.random._generator.Generator, optional
                 Random generator controls phase of generated time history, when `input` is 'GUI' or 
                 (PSD, frequency vector).
+                Defaults to None.
 
         Attributes
         ----------
@@ -192,8 +197,8 @@ class SpectralData(object):
             self.psd = PSDgen().get_PSD()
             
             # needed parameters for time-history generation
-            if 'T' and 'fs' in kwargs.keys(): 
-                self._set_time_history(f=self.psd[:,0], psd=self.psd[:,1], **kwargs)
+            if T is not None and fs is not None:
+                self._set_time_history(f=self.psd[:,0], psd=self.psd[:,1], T=T, fs=fs, **kwargs)
                
         # Other options for input are a) time domain signal and b) PSD 
         elif isinstance(input, tuple) and len(input) == 2:
@@ -213,8 +218,8 @@ class SpectralData(object):
                 self.psd = np.column_stack((f, psd))
 
                 # needed parameters for time-history generation
-                if 'T' and 'fs' in kwargs.keys(): 
-                    self._set_time_history(f=f, psd=psd, **kwargs)
+                if T is not None and fs is not None:
+                    self._set_time_history(f=f, psd=psd, T=T, fs=fs, **kwargs)
 
             elif isinstance(input[0], str) and isinstance(input[1], (int, float)):
                 warnings.warn('Path to file option has been deprecated since version 1.2 and will be removed in the future.')
@@ -253,13 +258,9 @@ class SpectralData(object):
     
         return data
 
-    def _set_time_history(self, f, psd, **kwargs):
+    def _set_time_history(self, f, psd, T=None, fs=None, **kwargs):
         """Generates and set time-history of signal on basis of PSD and frequency vector.
         """   
-        # check data: sampling frequency fs and length of time history
-        T = kwargs.get('T', None)
-        fs = kwargs.get('fs', None)
-        
         if T is not None and fs is not None:
             f_max_indx = np.where(psd>0)[0][-1]
             f_max = f[f_max_indx]
@@ -272,7 +273,7 @@ class SpectralData(object):
                 warnings.warn(f'Parameter `fs` should be higher. It is suggested to use fs>=10*fmax.')
         
             # get time history
-            time, signal = random_gaussian(f, psd, **kwargs) # stationary, normally distributed
+            time, signal = random_gaussian(freq=f, PSD=psd, T=T, fs=fs, **kwargs) # stationary, normally distributed
 
             #set data
             self.data = signal
