@@ -74,8 +74,8 @@ class Rainflow(object):
                 raise Exception('Time history is not set; T and fs must be specified.')
             
     def get_life(self, C, k, algorithm = 'four-point',  Su = False, range = False, **kwargs):
-        """Calculate fatigue life with parameters C, k, as defined in [3].
- 
+        """Calculate fatigue life with parameters C, k, as defined in [3]
+        
         :param C: [int,float]
             S-N curve intercept [MPa**k].
         :param k: [int,float]

@@ -128,8 +128,7 @@ class SpectralData(object):
     def __init__(self, input=None, window='hann', nperseg=1280,
                  noverlap=None, psd_trim_length=None, **kwargs):
 
-        """Call parent constructor, analyse input and define fatigue life
-        parameters and constants.
+        """Call parent constructor, analyse input and define fatigue life parameters and constants.
         
         :param input: str, tuple
                 Defaults to 'GUI', where PSD is provided via GUI. If tuple, PSD and frequency
