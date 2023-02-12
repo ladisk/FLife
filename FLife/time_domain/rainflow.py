@@ -73,7 +73,8 @@ class Rainflow(object):
             else:
                 raise Exception('Time history is not set; T and fs must be specified.')
             
-    def get_life(self, C, k, algorithm = 'four-point',  Su = False, range = False, **kwargs):
+    def get_life(self, C, k, algorithm = 'four-point',  Su = False, range = False, 
+                 nr_load_classes=512, **kwargs):
         """Calculate fatigue life with parameters C, k, as defined in [3]
         
         :param C: [int,float]
@@ -89,9 +90,10 @@ class Rainflow(object):
         :param range: bool
             If True, ranges instead of amplitudes are used for fatigue life estimation.
             Defaults to False.
-        :param \**nr_load_classes: int
+        :param nr_load_classes: int
             The number of intervals to divide the min-max range of the dataseries
-            into. Used with algorithm ='four-point'. Defaults to 512.
+            into. Used with algorithm ='four-point'. 
+            Defaults to 512.
         :returns:
             Estimated fatigue life in seconds.
         :rtype: float
@@ -120,19 +122,19 @@ class Rainflow(object):
         
         return T
 
-    def _get_cycles(self, algorithm = 'four-point', **kwargs):
+    def _get_cycles(self, algorithm = 'four-point', nr_load_classes=512, **kwargs):
         """
         :param algorithm: str
             Cycle counting method. Options are `three-point` and `four-point`.
             Defaults to `four-point`.
-        :param **nr_load_classes: int
+        :param nr_load_classes: int
             The number of intervals to divide the min-max range of the dataseries
-            into. Used with algorithm =`four-point`. Defaults to 512.
+            into. Used with algorithm =`four-point`. 
+            Defaults to 512.
         :returns (ranges, means, counts): tuple of numpy.ndarray
             For algorithm = 'four-point', tuple with only two elemensts (ranges, means) is returned.
         """
         if algorithm == 'four-point':
-            nr_load_classes = kwargs.get('nr_load_classes', 512)
             ranges, means = fatpack.find_rainflow_ranges(self.spectral_data.data, k=nr_load_classes, return_means=True)
             return ranges, means
 
