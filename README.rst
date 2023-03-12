@@ -9,7 +9,7 @@ article by Zorman et al. [2] or original source articles as given in the docstri
 of the methods.
 
 The review article [2] results are completely reproducible with ipynb file:
-https://github.com/ladisk/FLife/data/Vibration%20fatigue%20by%20spectral%20methods%20-%20a%20review%20with%20open-source%20support.ipynb
+https://github.com/ladisk/FLife/blob/main/data/Vibration%20fatigue%20by%20spectral%20methods%20-%20a%20review%20with%20open-source%20support.ipynb
 
 
 Installing this package
