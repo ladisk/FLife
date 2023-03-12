@@ -8,6 +8,9 @@ theoretical background on different spectral domain methods, please see the revi
 article by Zorman et al. [2] or original source articles as given in the docstring
 of the methods.
 
+The review article [2] results are completely reproducible with ipynb file:
+https://github.com/ladisk/FLife/blob/70c1ff1e1ee9460bdb5fabbe744fd14b71850581/data/Vibration%20fatigue%20by%20spectral%20methods%20-%20a%20review%20with%20open-source%20support.ipynb
+
 
 Installing this package
 -----------------------
@@ -245,7 +248,7 @@ References:
     2. Aleš Zorman and Janko Slavič and Miha Boltežar. 
        Vibration fatigue by spectral methods—A review with open-source support, 
        Mechanical Systems and Signal Processing, 2023, 
-       `see https://doi.org/10.1016/j.ymssp.2023.110149 <https://doi.org/10.1016/j.ymssp.2023.110149>`
+       `see https://doi.org/10.1016/j.ymssp.2023.110149`
 
 |pytest| |Docs Status| |zenodo|
 
