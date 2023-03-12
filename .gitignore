@@ -13,6 +13,7 @@ distribution.bat
 build/
 develop-eggs/
 dist/
+docs/source/_build/
 downloads/
 eggs/
 .eggs/
