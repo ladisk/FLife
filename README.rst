@@ -5,7 +5,7 @@ Obtaining vibration fatigue life in the spectral domain. For general theoretical
 background on vibration fatigue (structural dynamics, uniaxial/multiaxial fatigue, 
 non-Gaussianity, non-stationarity, etc), please see Slavič et al. [1], for 
 theoretical background on different spectral domain methods, please see the review 
-article by Zorman et al. [2] or original source articles as given in the docstring
+article by Zorman et al. [2] or original articles as given in the docstring
 of the methods.
 
 The review article [2] results are completely reproducible with ipynb file:
