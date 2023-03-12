@@ -10,9 +10,10 @@ class Lotsberg(Narrowband):
     [1] Inge Lotsberg. Background for Revision of DNV-RP-C203 Fatigue Analysis of
         Offshore Steel Structure. 24th International Conference on Offshore Mechanics 
         and Arctic Engineering, Halkidiki, Greece, 2005. ASME, Paper No. OMAE2005–67549.
-    [2] Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
-        Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage
-        – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020
+    [2] Aleš Zorman and Janko Slavič and Miha Boltežar. 
+        Vibration fatigue by spectral methods—A review with open-source support, 
+        Mechanical Systems and Signal Processing, 2023, 
+        https://doi.org/10.1016/j.ymssp.2023.110149
     
     Example
     -------

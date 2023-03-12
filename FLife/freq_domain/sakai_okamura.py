@@ -10,9 +10,10 @@ class SakaiOkamura(Narrowband):
     [1] Shinsuke Sakai, Hiroyuki Okamura. On the distribution of rainflow range for Gaussian 
         random processes with bimodal PSD. JSME International Journal, Series A: Mechanics 
         and Material Engineering, 38(4):440-445, 1995
-    [2] Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
-        Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage
-        – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020
+    [2] Aleš Zorman and Janko Slavič and Miha Boltežar. 
+        Vibration fatigue by spectral methods—A review with open-source support, 
+        Mechanical Systems and Signal Processing, 2023, 
+        https://doi.org/10.1016/j.ymssp.2023.110149
     
     Example
     -------
