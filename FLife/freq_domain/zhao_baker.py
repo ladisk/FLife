@@ -12,9 +12,10 @@ class ZhaoBaker(object):
     [1] Wangwen Zhao and Michael J. Baker. On the probability density function
         of rainflow stress range for stationary Gaussian processes. International
         Journal of Fatigue, 14(2):121-135, 1992
-    [2] Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
-        Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage
-        – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020
+    [2] Aleš Zorman and Janko Slavič and Miha Boltežar. 
+        Vibration fatigue by spectral methods—A review with open-source support, 
+        Mechanical Systems and Signal Processing, 2023, 
+        https://doi.org/10.1016/j.ymssp.2023.110149
     
     Example
     -------

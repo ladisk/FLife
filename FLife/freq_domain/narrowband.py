@@ -12,9 +12,10 @@ class Narrowband(object):
         of the Aeronautical Sciences, 21(11):753{762, 1954.
     [2] Julius S. Bendat and Allen G. Piersol. Measurement and Analysis of Random Data.
         Wiley, 1966.
-    [3] Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
-        Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage
-        – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020
+    [3] Aleš Zorman and Janko Slavič and Miha Boltežar. 
+        Vibration fatigue by spectral methods—A review with open-source support, 
+        Mechanical Systems and Signal Processing, 2023, 
+        https://doi.org/10.1016/j.ymssp.2023.110149
 
     Example
     -------

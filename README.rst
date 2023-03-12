@@ -1,7 +1,15 @@
 FLife - Vibration Fatigue by Spectral Methods
 ---------------------------------------------
 
-Obtaining vibration fatigue life in the spectral domain.
+Obtaining vibration fatigue life in the spectral domain. For general theoretical
+background on vibration fatigue (structural dynamics, uniaxial/multiaxial fatigue, 
+non-Gaussianity, non-stationarity, etc), please see Slavič et al. [1], for 
+theoretical background on different spectral domain methods, please see the review 
+article by Zorman et al. [2] or original source articles as given in the docstring
+of the methods.
+
+The review article [2] results are completely reproducible with ipynb file:
+https://github.com/ladisk/FLife/blob/main/data/Vibration%20fatigue%20by%20spectral%20methods%20-%20a%20review%20with%20open-source%20support.ipynb
 
 
 Installing this package
@@ -232,10 +240,15 @@ Vibration-fatigue life can be compared to rainflow method. When Rainflow class i
     error_tb = FLife.tools.relative_error(life_tb, rf_life_3pt)
 
 
-Reference:
-Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
-Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020, `see Elsevier page. <https://www.elsevier.com/books/Vibration%20Fatigue%20by%20Spectral%20Methods/9780128221907?utm_campaign=ELS%20STBK%20AuthorConnect%20Release&utm_campaignPK=1695759095&utm_term=OP66802&utm_content=1695850484&utm_source=93&BID=1212165450>`_
-
+References:
+    1. Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
+       Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage – Theory and Experiments, 
+       ISBN: 9780128221907, Elsevier, 1st September 2020, 
+       `see Elsevier page. <https://www.elsevier.com/books/Vibration%20Fatigue%20by%20Spectral%20Methods/9780128221907?utm_campaign=ELS%20STBK%20AuthorConnect%20Release&utm_campaignPK=1695759095&utm_term=OP66802&utm_content=1695850484&utm_source=93&BID=1212165450>`_
+    2. Aleš Zorman and Janko Slavič and Miha Boltežar. 
+       Vibration fatigue by spectral methods—A review with open-source support, 
+       Mechanical Systems and Signal Processing, 2023, 
+       `see https://doi.org/10.1016/j.ymssp.2023.110149`
 
 |pytest| |Docs Status| |zenodo|
 

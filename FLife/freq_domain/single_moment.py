@@ -12,9 +12,10 @@ class SingleMoment(Narrowband):
         Journal of Structural Engineering ASCE, 116(4):1149-1164, 1990
     [2] C.E. Larsen, L.D. Lutes. Predicting the Fatigue Life of Offshore Structures by the Single-Moment Spectral Method,
         Probabilistic Engineering Mechanics, 6(2):96-108, 1991 
-    [3] Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
-        Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage
-        – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020
+    [3] Aleš Zorman and Janko Slavič and Miha Boltežar. 
+        Vibration fatigue by spectral methods—A review with open-source support, 
+        Mechanical Systems and Signal Processing, 2023, 
+        https://doi.org/10.1016/j.ymssp.2023.110149
 
     Example
     -------
