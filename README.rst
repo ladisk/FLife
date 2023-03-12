@@ -1,7 +1,10 @@
 FLife - Vibration Fatigue by Spectral Methods
 ---------------------------------------------
 
-Obtaining vibration fatigue life in the spectral domain.
+Obtaining vibration fatigue life in the spectral domain. For theoretical background
+on Vibration fatigue in the spectral domain see :cite:`Slavic2020`, for theoretical
+background of methods included in this package see :cite:`Zorman2023` or 
+particular references given in docstring of particular methods.
 
 
 Installing this package
@@ -231,10 +234,10 @@ Vibration-fatigue life can be compared to rainflow method. When Rainflow class i
     error_dirlik = FLife.tools.relative_error(life_dirlik, rf_life_3pt)
     error_tb = FLife.tools.relative_error(life_tb, rf_life_3pt)
 
+References
+==========
 
-Reference:
-Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
-Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage – Theory and Experiments, ISBN: 9780128221907, Elsevier, 1st September 2020, `see Elsevier page. <https://www.elsevier.com/books/Vibration%20Fatigue%20by%20Spectral%20Methods/9780128221907?utm_campaign=ELS%20STBK%20AuthorConnect%20Release&utm_campaignPK=1695759095&utm_term=OP66802&utm_content=1695850484&utm_source=93&BID=1212165450>`_
+.. bibliography:: references.bib
 
 
 |pytest| |Docs Status| |zenodo|
@@ -255,3 +258,4 @@ Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damag
 
 .. |zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.7417587.svg?
    :target: https://doi.org/10.5281/zenodo.7417587
+
