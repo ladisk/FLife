@@ -11,6 +11,7 @@ of the methods.
 The review article [2] results are completely reproducible with ipynb file:
 https://github.com/ladisk/FLife/blob/main/data/Vibration%20fatigue%20by%20spectral%20methods%20-%20a%20review%20with%20open-source%20support.ipynb
 
+See the `documentation <https://flife.readthedocs.io/en/latest/index.html>`_ for more information.
 
 Installing this package
 -----------------------

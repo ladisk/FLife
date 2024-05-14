@@ -1,0 +1,51 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "FLife"
+version = "1.4.1"
+authors = [{name = "Aleš Zorman, Matjaž Mršnik, Janko Slavič", email = "janko.slavic@fs.uni-lj.si"}]
+maintainers = [{name = "Janko Slavič, Domen Gorjup", email = "janko.slavic@fs.uni-lj.si"}]
+license = "MIT"
+description = "Vibration Fatigue by Spectral Methods."
+readme = "README.rst"
+keywords = ['vibration', 'fatigue', 'spectral methods', 'structural dynamics']
+requires-python = ">=3.8"
+dependencies = [
+    "numpy",
+    "scipy",
+    "fatpack",
+    "rainflow",
+    "pylint",
+    "pytest",
+    "lvm_read",
+    "matplotlib>=3.3",
+    "pyExSi",
+]
+classifiers = [
+    'Development Status :: 5 - Production/Stable',
+    'Intended Audience :: Developers',
+    'Topic :: Scientific/Engineering',
+    'Programming Language :: Python :: 3.8',
+    "License :: OSI Approved :: MIT License",
+]
+
+[project.optional-dependencies]
+dev = [
+    "sphinx",
+    "twine",
+    "wheel",
+    "build",
+    "pytest",
+    "sphinx-rtd-theme",
+    "sphinx-copybutton",
+]
+
+[project.urls]
+homepage = "https://github.com/ladisk/FLife"
+documentation = "https://flife.readthedocs.io/en/latest/index.html"
+source = "https://github.com/ladisk/FLife"
+
+[tool.hatch.build.targets.sdist]
+include = ["FLife/*"]
