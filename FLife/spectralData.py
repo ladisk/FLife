@@ -213,13 +213,34 @@ class SpectralData(object):
                                             trim=psd_trim_length)
             # or PSD
             elif isinstance(input[0], np.ndarray) and isinstance(input[1], np.ndarray):
-                psd = input[0]
-                f = input[1]
-                self.psd = np.column_stack((f, psd))
+                
+                #Multiaxial PSD
+                if input[0].ndim>1:
+                    print('Input PSD is multiaxial. Use FLife.EqStress(spectral_data_object)')
+                    self.multiaxial_psd = (input[0],input[1])
 
-                # needed parameters for time-history generation
-                if T is not None and fs is not None:
-                    self._set_time_history(f=f, psd=psd, T=T, fs=fs, **kwargs)
+                    # Check dimension of multiaxial stress PSD
+                    if self.multiaxial_psd[0].ndim == 3 and (
+                        (self.multiaxial_psd[0].shape[1] == 6 and self.multiaxial_psd[0].shape[2] == 6) or
+                        (self.multiaxial_psd[0].shape[1] == 3 and self.multiaxial_psd[0].shape[2] == 3)
+                    ):
+                        print('Input PSD is correct shape')
+                        if T is not None and fs is not None:
+                            self.t = T
+                            self.fs = fs
+                    else:
+                        raise Exception('Input Error. PSD matrix should be the size of (f, 6, 6) for 3D stress state or (f,3,3) for 2D stress state')
+        
+                    
+                # Uniaxial PSD
+                elif input[0].ndim==1:
+                    print('Input PSD is uniaxial')
+                    psd = input[0]
+                    f = input[1]
+                    self.psd = np.column_stack((f, psd))
+                    # needed parameters for time-history generation
+                    if T is not None and fs is not None:
+                        self._set_time_history(f=f, psd=psd, T=T, fs=fs, **kwargs)
 
             elif isinstance(input[0], str) and isinstance(input[1], (int, float)):
                 warnings.warn('Path to file option has been deprecated since version 1.2 and will be removed in the future.')
@@ -236,7 +257,7 @@ class SpectralData(object):
             raise Exception('Unrecognized Input Error. `input` should be tuple with 2 elements.')
 
         self.PSD_splitting = ('equalAreaBands', 1) 
-        self._calculate_coefficients()
+        #self._calculate_coefficients()
 
     def _readf(self, filename):
         """Read input file and extract values in form of array (float).
