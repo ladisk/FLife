@@ -220,18 +220,24 @@ class SpectralData(object):
                     self.multiaxial_psd = (input[0],input[1])
 
                     # Check dimension of multiaxial stress PSD
-                    if self.multiaxial_psd[0].ndim == 3 and (
-                        (self.multiaxial_psd[0].shape[1] == 6 and self.multiaxial_psd[0].shape[2] == 6) or
-                        (self.multiaxial_psd[0].shape[1] == 3 and self.multiaxial_psd[0].shape[2] == 3)
+                    if self.multiaxial_psd[0].ndim == 3 or self.multiaxial_psd[0].ndim == 4 and (
+                        (self.multiaxial_psd[0].shape[-1] == 6 and self.multiaxial_psd[0].shape[-2] == 6) or
+                        (self.multiaxial_psd[0].shape[-1] == 3 and self.multiaxial_psd[0].shape[-2] == 3)
                     ):
+                        if self.multiaxial_psd[0].ndim == 4:
+                            print('Input PSD is multi-point')
+
                         print('Input PSD is correct shape')
+                        
                         if T is not None and fs is not None:
                             self.t = T
                             self.fs = fs
                     else:
-                        raise Exception('Input Error. PSD matrix should be the size of (f, 6, 6) for 3D stress state or (f,3,3) for 2D stress state')
-        
+                        raise Exception('Input Error. PSD matrix should be the size of (f,6,6) for 3D stress state or (f,3,3) for 2D stress state')
                     
+                    if T is not None and fs is not None:
+                        self._check_fs(f=input[1], psd=input[0], T=T, fs=fs, **kwargs)
+
                 # Uniaxial PSD
                 elif input[0].ndim==1:
                     print('Input PSD is uniaxial')
@@ -256,8 +262,9 @@ class SpectralData(object):
         else:
             raise Exception('Unrecognized Input Error. `input` should be tuple with 2 elements.')
 
-        self.PSD_splitting = ('equalAreaBands', 1) 
-        #self._calculate_coefficients()
+        if hasattr(self,'psd'):
+            self.PSD_splitting = ('equalAreaBands', 1) 
+            self._calculate_coefficients()
 
     def _readf(self, filename):
         """Read input file and extract values in form of array (float).
@@ -278,21 +285,29 @@ class SpectralData(object):
         f.close()
     
         return data
+    
+    def _check_fs(self, f, psd, T=None, fs=None, **kwargs):
+        
+        #if input is multi point, multiaxial
+        if psd.ndim > 3:
+            f_max_indx = np.where(psd>0)[1][-1]
+        else:
+            f_max_indx = np.where(psd>0)[0][-1]
+        f_max = f[f_max_indx]
+                
+        # Sampling frequency check
+        if fs < 2*f_max:
+            raise Exception('Parameter `fs` should be higher. It should be fs >= 2*fmax.')
+                    
+        if fs < 10*f_max:
+            warnings.warn(f'Parameter `fs` should be higher. It is suggested to use fs>=10*fmax.')
 
     def _set_time_history(self, f, psd, T=None, fs=None, **kwargs):
         """Generates and set time-history of signal on basis of PSD and frequency vector.
         """   
         if T is not None and fs is not None:
-            f_max_indx = np.where(psd>0)[0][-1]
-            f_max = f[f_max_indx]
             
-            # Sampling frequency check
-            if fs < 2*f_max:
-                raise Exception('Parameter `fs` should be higher. It should be fs >= 2*fmax.')
-                
-            if fs < 10*f_max:
-                warnings.warn(f'Parameter `fs` should be higher. It is suggested to use fs>=10*fmax.')
-        
+            self._check_fs(f, psd, T, fs, **kwargs)
             # get time history
             time, signal = random_gaussian(freq=f, PSD=psd, T=T, fs=fs, **kwargs) # stationary, normally distributed
 
