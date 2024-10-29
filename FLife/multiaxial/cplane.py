@@ -17,7 +17,7 @@ def compute_lmn_angles(theta, phi, psi):
     return l1, m1, n1, l2, m2, n2, l3, m3, n3
 
 
-def maxvariance_old(multiaxial_psd, df, method, K=None):
+def max_variance_old(multiaxial_psd, df, method, K=None):
     '''Determine critical plane
     based on max variance.
 
@@ -42,12 +42,12 @@ def maxvariance_old(multiaxial_psd, df, method, K=None):
             return -np.abs(np.einsum('i,ij,j', a, mu, a).real)
 
 
-        res = opt.minimize(crit, [0.33,0.33,0.33], method='SLSQP', bounds=[(0,1),(0,1),(0,1)], options={'disp':False})
+        res = opt.minimize(fun=crit, x0=[0.33,0.33,0.33], method='SLSQP', bounds=[(0,1),(0,1),(0,1)], options={'disp':False})
 
     return res['x'] / np.sqrt(np.sum(res['x']**2))
 
 
-def maxvariance(multiaxial_psd, df, method, K=None, search_method='local'):
+def max_variance(multiaxial_psd, df, method, K=None, search_method='local'):
     '''Determine critical plane
     based on max variance.
 

@@ -1,1 +1,1 @@
-from .eq_stress import EqStress
+from .eq_stress import EquivalentStress

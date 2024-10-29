@@ -134,7 +134,7 @@ class SpectralData(object):
         
         :param input: str, tuple
                 Defaults to 'GUI', where PSD is provided via GUI. If tuple, PSD and frequency
-                vector or time history or sampling period is given. First element of tuple is 
+                vector or time history and sampling period is given. First element of tuple is 
                 power spectral density or time history, and second value is array of 
                 sample frequencies or sampling interval, respectively. Alternatively, path to 
                 appropriately formated .txt file can be specified.
