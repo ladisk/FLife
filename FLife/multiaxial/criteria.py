@@ -183,3 +183,65 @@ def _thermoelastic(self,s):
     return s_eq
 
 
+def _liwi(self,s):
+    '''
+    Internal function for calculating equivalent stress at one node.
+    '''
+    s_eq = np.empty((len(s)),dtype=complex)
+
+    for i in range(len(s)):
+        sigma_x, sigma_y, tau_xy = s[i,0], s[i,1], s[i,2]
+
+        # Calculate absolute values and angles
+        sigma_x_abs = np.abs(sigma_x)
+        sigma_y_abs = np.abs(sigma_y)
+        tau_xy_abs = np.abs(tau_xy)
+
+        sigma_x_angle = np.angle(sigma_x)
+        sigma_y_angle = np.angle(sigma_y)
+        tau_xy_angle = np.angle(tau_xy)
+
+        # Define initial parameters
+        A1 = sigma_x_abs
+        phi_1 = sigma_x_angle
+        r = 0
+
+        A2 = np.array([sigma_y_abs, np.sqrt(3) * tau_xy_abs])
+        phi_2 = np.array([sigma_y_angle, tau_xy_angle])
+        theta = np.array([np.arccos(-1/2), np.pi / 2])
+
+        while r < 2:
+            # Calculate intermediate variables in the main loop
+            phi_a = np.angle(A1 + A2[r] * np.e**(1j * (phi_2[r] - phi_1 - theta[r])))
+            phi_c_overline = theta[r] - 0.5 * np.angle(A2[r]**2 + 2 * A1 * A2[r] * np.cos(phi_1 - phi_2[r]) * np.e**(1j * theta[r]) + A1**2 * np.e**(2j * theta[r]))
+
+            if A2[r] >= A1:
+                phi_c = ((phi_c_overline - theta[r] / 2) % (np.pi/2)) + theta[r] / 2
+            elif A2[r] < A1:
+                phi_c = ((phi_c_overline - theta[r] / 2) % (np.pi/2)) + theta[r] / 2 - np.pi / 2
+            else:
+                phi_c = phi_c_overline
+
+            A1 = (0.5 * (A1**2 + A2[r]**2 + 2 * A1 * A2[r] * np.cos(phi_1 - phi_2[r]) * np.cos(theta[r])) + 0.5 * np.abs(A1**2 * np.e**(2j * phi_1) + A2[r]**2 * np.e**(2j * phi_2[r]) + 2 * A1 * A2[r] * np.e**(2j * (phi_1 + phi_2[r]))))**0.5
+                    
+            phi_1 = phi_a + phi_c + phi_1
+            r += 1  # Increment r
+
+        # Calculate phi_B0
+        phi_B0 = 0.5 * np.angle(sigma_x_abs**2 * np.e**(2j * sigma_x_angle) + sigma_y_abs**2 * np.e**(2j * sigma_y_angle) - sigma_x_abs * sigma_y_abs * np.e**(1j * (sigma_x_angle + sigma_y_angle)) + 3 * tau_xy_abs**2 * np.e**(2j * tau_xy_angle))
+
+        if np.abs(np.angle((np.e**(1j * phi_1))/(np.e**(1j * phi_B0)))) < np.abs(np.angle((np.e**(1j * phi_1))/(np.e**(1j * (phi_B0+np.pi))))):
+            phi_vM = phi_B0
+        else:
+            phi_vM = phi_B0 + np.pi
+
+
+        # Calculate delta_UM
+        sigma_vM_abs = (0.5 * np.abs(sigma_x_abs**2 + sigma_y_abs**2 - sigma_x_abs * sigma_y_abs * np.cos(sigma_x_angle - sigma_y_angle) + 3 * tau_xy_abs**2) + 0.5 * np.abs(sigma_x_abs**2 * np.e**(2j * sigma_x_angle) + sigma_y_abs**2 * np.e**(2j * sigma_y_angle) - sigma_x_abs * sigma_y_abs * np.e**(1j*(sigma_x_angle+sigma_y_angle)) + 3 * tau_xy_abs**2 * np.e**(2j * tau_xy_angle)))**0.5
+
+        sigma_vM = sigma_vM_abs * np.e**(1j * phi_vM)
+
+        s_eq[i] = sigma_vM
+    
+    return s_eq
+
