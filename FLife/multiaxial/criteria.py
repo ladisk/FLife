@@ -3,9 +3,9 @@ from . import cplane
 from scipy.optimize import minimize
 
 def _max_normal(self, s, search_method):
-    '''
+    """
     Internal function for calculating equivalent stress at one node.
-    '''
+    """
     
     freq = self.multiaxial_psd[1]
     df = freq[1] - freq[0]
@@ -20,9 +20,9 @@ def _max_normal(self, s, search_method):
 
 
 def _max_shear(self, s, search_method):
-    '''
+    """
     Internal function for calculating equivalent stress at one node.
-    '''
+    """
     
     freq = self.multiaxial_psd[1]
     df = freq[1] - freq[0]
@@ -37,9 +37,9 @@ def _max_shear(self, s, search_method):
 
 
 def _max_normal_and_shear(self, s, s_af, tau_af, search_method='local'):
-    '''
+    """
     Internal function for calculating equivalent stress at one node.
-    '''
+    """
     
     freq = self.multiaxial_psd[1]
     df = freq[1] - freq[0]
@@ -59,9 +59,9 @@ def _max_normal_and_shear(self, s, s_af, tau_af, search_method='local'):
 
 
 def _EVMS(self, s):
-    '''
+    """
     Internal function for calculating equivalent stress at one node.
-    '''
+    """
     
     freq = self.multiaxial_psd[1]
     df = freq[1] - freq[0]
@@ -89,9 +89,9 @@ def _EVMS(self, s):
 
 
 def _cs(self, s, s_af, tau_af):
-    '''
+    """
     Internal function for calculating equivalent stress at one node.
-    '''
+    """
     
     freq = self.multiaxial_psd[1]
     df = freq[1] - freq[0]
@@ -111,9 +111,9 @@ def _cs(self, s, s_af, tau_af):
 
 
 def _multiaxial_rainflow(self, s):
-    '''
+    """
     Internal function for calculating equivalent stress at one node.
-    '''
+    """
     if s.shape[1] == 6 and s.shape[2] == 6:
         raise ValueError('Multiaxial rainflow only works for biaxial stresses: PSD matrix (f,3,3)')
     
@@ -153,9 +153,9 @@ def _multiaxial_rainflow(self, s):
 
 
 def _thermoelastic(self,s):
-    '''
+    """
     Internal function for calculating equivalent stress at one node.
-    '''
+    """
     
     freq = self.multiaxial_psd[1]
     df = freq[1] - freq[0]
@@ -184,9 +184,9 @@ def _thermoelastic(self,s):
 
 
 def _liwi(self,s):
-    '''
+    """
     Internal function for calculating equivalent stress at one node.
-    '''
+    """
     s_eq = np.empty((len(s)),dtype=complex)
 
     for i in range(len(s)):
@@ -242,6 +242,64 @@ def _liwi(self,s):
         sigma_vM = sigma_vM_abs * np.e**(1j * phi_vM)
 
         s_eq[i] = sigma_vM
+    
+    return s_eq
+
+
+def _coin_liwi(self, s, k_a, k_phi):
+    """
+    Internal function for calculating equivalent stress at one node.
+    """
+    s_eq = np.empty((len(s)),dtype=complex)
+
+    for i in range(len(s)):
+
+        sigma_x_f = s[i,0]
+        sigma_y_f = s[i,1]  
+        sigma_z_f = s[i,2]  
+        tau_xy_f = s[i,3]
+        tau_xz_f = s[i,4]   
+        tau_yz_f = s[i,5]   
+
+        S = np.array([[sigma_x_f, tau_xy_f, tau_xz_f],
+                    [tau_xy_f, sigma_y_f, tau_yz_f],
+                    [tau_xz_f, tau_yz_f, sigma_z_f]])
+
+        I_1_underscore = np.trace(S)
+
+        I_1_squared = np.trace(S) * np.conj(np.trace(S))
+
+        I_1_squared_underscore = np.trace(S) * np.trace(S)
+
+        I_2 = 0.5 * (I_1_squared - np.trace(S@np.conj(S)))
+
+        I_2_underscore = 0.5 * (I_1_squared_underscore - np.trace(S @ S))
+
+
+
+        sigma_eq_ka = I_1_squared - k_a**2 * I_2
+
+        sigma_eq_ka_underscore = I_1_squared_underscore - k_a**2 * I_2_underscore
+
+        phi_I1 = np.angle(I_1_underscore)
+
+        phi_eq_ka = np.angle(np.sqrt(sigma_eq_ka_underscore))
+
+
+        # amplitude
+        sigma_coin = np.sqrt(k_phi * sigma_eq_ka + (1 - k_phi) * abs(sigma_eq_ka_underscore))
+
+        #phase angle
+
+        if np.angle(np.exp(1j * phi_I1) / np.exp(1j * phi_eq_ka)) < np.angle(np.exp(1j * phi_I1) / np.exp(1j * phi_eq_ka + np.pi)):
+            phi_coin = phi_eq_ka
+
+        else:
+            phi_coin = phi_eq_ka + np.pi 
+
+        sigma_coin_f = sigma_coin * np.exp(1j * phi_coin)
+
+        s_eq[i] = sigma_coin_f
     
     return s_eq
 

@@ -83,12 +83,12 @@ class EquivalentStress(SpectralData): #equivalentstress
 
 
     # def is_multiaxial_psd_4d(self):
-    #     '''Check if the multiaxial PSD is 4D (i.e., multiple points on the model)'''
+    #     """Check if the multiaxial PSD is 4D (i.e., multiple points on the model)"""
     #     return len(self.multiaxial_psd[0].shape) == 4
 
 
     def loop_over_points(self, criterion, *args, **kwargs):
-        '''Loop the selected criterion over multiple points on the model'''    
+        """Loop the selected criterion over multiple points on the model"""    
         if hasattr(self,'multiaxial_psd'):
             s_eq_multi_point = np.empty((self.multiaxial_psd[0].shape[:2]))
         elif hasattr(self,'multiaxial_amplitude_spectrum'):
@@ -108,7 +108,7 @@ class EquivalentStress(SpectralData): #equivalentstress
             self.eq_psd_multipoint = (abs(s_eq_multi_point**2), self.multiaxial_amplitude_spectrum[1])
 
     def set_eq_stress(self,eq_psd,f):
-        '''Set equivalent stress to the object. Also generate im ehistory if T and fs are provided'''
+        """Set equivalent stress to the object. Also generate im ehistory if T and fs are provided"""
         self.psd = np.column_stack((f, eq_psd))
         # needed parameters for time-history generation
         if hasattr(self,'t') and hasattr(self, 'fs'):
@@ -119,7 +119,7 @@ class EquivalentStress(SpectralData): #equivalentstress
 
 
     def max_normal(self,search_method='local'): #max_normal
-        '''
+        """
         Converts the stress tensor at one node or multiple nodes to equivalent,
         scalar psd stress, using method of maximum normal stress.
         
@@ -129,7 +129,7 @@ class EquivalentStress(SpectralData): #equivalentstress
 
         -Nieslony, Adam and Macha, Ewald (2007);
         Spectral method in multiaxial random fatigue
-        '''
+        """
         # psd is multiple-point
         if self.multipoint: 
             self.loop_over_points(criterion=criteria._max_normal,search_method = 'local')
@@ -141,7 +141,7 @@ class EquivalentStress(SpectralData): #equivalentstress
 
 
     def max_shear(self,search_method='local'):
-        '''
+        """
         Converts the stress tensor at one node or multiple nodes to equivalent,
         scalar psd stress, using method of maximum shear stress.
         
@@ -151,7 +151,7 @@ class EquivalentStress(SpectralData): #equivalentstress
             
         -Nieslony, Adam and Macha, Ewald (2007);
         Spectral method in multiaxial random fatigue
-        '''
+        """
         # psd is multiple-point
         if self.multipoint:
             self.loop_over_points(criterion=criteria._max_shear,search_method = 'local')
@@ -162,7 +162,7 @@ class EquivalentStress(SpectralData): #equivalentstress
             self.set_eq_stress(eq_psd=s_eq, f=self.multiaxial_psd[1])
 
     def max_normal_and_shear(self, s_af, tau_af, search_method='local'):
-        '''
+        """
         Converts the stress tensor at one node or multiple nodes to equivalent,
         scalar psd stress, using method of maximum normal and shear stress.
         
@@ -179,7 +179,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         [1] Matjaz Mrsnik, Janko Slavic and Miha Boltezar
             Multiaxial Vibration Fatigue A Theoretical and Experimental Comparison.
             Mechanical Systems and Signal Processing, 2016
-        '''
+        """
         # psd is multiple-point
         if self.multipoint:
             self.loop_over_points(criterion=criteria._max_normal_and_shear, search_method='local', s_af=s_af, tau_af=tau_af)
@@ -190,14 +190,14 @@ class EquivalentStress(SpectralData): #equivalentstress
             self.set_eq_stress(eq_psd=s_eq, f=self.multiaxial_psd[1])
     
     def EVMS(self):
-        '''
+        """
         Converts the stress tensor at one node or multiple nodes to equivalent,
         scalar psd stress, using ther equivalent von Misses stress in frequency domain (EVMS)
     
         --------
         -Preumont, A., & Piéfort, V. (1994);
         Predicting Random High-Cycle Fatigue Life With Finite Elements.
-        '''
+        """
         # psd is multiple-point
         if self.multipoint:
             self.loop_over_points(criterion=criteria._EVMS)
@@ -208,7 +208,7 @@ class EquivalentStress(SpectralData): #equivalentstress
             self.set_eq_stress(eq_psd=s_eq, f=self.multiaxial_psd[1])
 
     def cs(self, s_af, tau_af):
-        '''Converts the stress tensor at one node to equivalent,
+        """Converts the stress tensor at one node to equivalent,
         scalar psd stress, using the C-S criterion.
         
         :param s_af: float
@@ -220,7 +220,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         -Carpinteri A, Spagnoli A and Vantadori S; 
         Reformulation in the frequency domain of a critical plane-based multiaxial fatigue criterion,
         Int J Fat, 2014
-        '''
+        """
         # psd is multiple-point
         if self.multipoint:
             self.loop_over_points(criterion=criteria._cs, s_af=s_af, tau_af=tau_af)
@@ -231,7 +231,7 @@ class EquivalentStress(SpectralData): #equivalentstress
             self.set_eq_stress(eq_psd=s_eq, f=self.multiaxial_psd[1])
 
     def multiaxial_rainflow(self):
-        '''Converts the stress tensor at one node to equivalent,
+        """Converts the stress tensor at one node to equivalent,
         scalar psd stress, for use in frequency domain multiaxial rainflow.
 
         ONLY WORKS FOR BIAXIAL STRESSES: PSD MATRIX (f,3,3) - single point or (N,f,3,3) - multiple points
@@ -241,7 +241,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         -Pitoiset, Xavier, and André Preumont; 
         Spectral methods for multiaxial random fatigue analysis of metallic structures, 
         International journal of fatigue, 2000
-        '''
+        """
         # psd is multiple-point
         if self.multipoint:
             self.loop_over_points(criterion=criteria._multiaxial_rainflow)
@@ -252,7 +252,7 @@ class EquivalentStress(SpectralData): #equivalentstress
             self.set_eq_stress(eq_psd=s_eq, f=self.multiaxial_psd[1])
 
     def thermoelastic(self):
-        '''Converts the stress tensor at one node to equivalent,
+        """Converts the stress tensor at one node to equivalent,
         scalar psd stress, using the thermoelasticity based criterion, 
         simulating the equivalent stress, detected with the thermal camera
 
@@ -261,7 +261,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         -Šonc J, Zaletelj K and Slavič J;
         Application of thermoelasticity in the frequency-domain multiaxial vibration-fatigue criterion, 
         Mechanical Systems and Signal Processsing, 2025
-        '''
+        """
         # psd is multiple-point
         if self.multipoint:
             self.loop_over_points(criterion=criteria._thermoelastic)
@@ -272,20 +272,20 @@ class EquivalentStress(SpectralData): #equivalentstress
             self.set_eq_stress(eq_psd=s_eq, f=self.multiaxial_psd[1])
 
     def liwi(self):
-        '''Converts the stress tensor at one node to equivalent
-        stress, using the LIWI approach.
+        """Converts the stress tensor at one node to equivalent
+        stress, using the LiWI approach.
 
-        ONLY WORKS WITH BIAXIAL AMPLITUDE SPECTRUM
+        ONLY WORKS WITH BIAXIAL AMPLITUDE SPECTRUM (f,3) - single point or (N,f,3) - multiple points
 
         --------
 
         -Alexander T. Schmidt, Nimish Pandiya,
-        Extension of the static equivalent stress hypotheses to linearly vibrating systems using wave interference – The LiWi approach,
+        Extension of the static equivalent stress hypotheses to linearly vibrating systems using wave interference – The LiWI approach,
         International Journal of Fatigue, 2021,
 
-        '''
+        """
         if not hasattr(self,'multiaxial_amplitude_spectrum'):
-            raise Exception('Input Error. LIWI approach only works with multiaxial amplitude spectrum.')
+            raise Exception('Input Error. LiWI approach only works with multiaxial amplitude spectrum.')
         
         # psd is multiple-point
         if self.multipoint:
@@ -301,6 +301,39 @@ class EquivalentStress(SpectralData): #equivalentstress
             self.set_eq_stress(eq_psd=s_eq_psd, f=self.multiaxial_psd[1])
 
 
+    def coin_liwi(self, k_a, k_phi):
+        """Converts the stress tensor at one node to equivalent
+        stress, using the COIN-LiWI method.
+
+        ONLY WORKS WITH 3D AMPLITUDE SPECTRUM (f,6) - single point or (N,f,6) - multiple points
+
+        --------
+
+        -Alexander T. Schmidt, Jan Kraft,
+        A new equivalent stress approach based on complex invariants: The COIN LiWI method,
+        International Journal of Fatigue, 2023
+        
+        """
+        if not hasattr(self,'multiaxial_amplitude_spectrum'):
+            raise Exception('Input Error. COIN LiWI method only works with multiaxial amplitude spectrum.')
+        
+        # psd is multiple-point
+        if self.multipoint:
+            self.loop_over_points(criterion=criteria._coin_liwi, k_a=k_a, k_phi=k_phi)
+        
+        # psd is single-point
+        else:
+            s_eq_amplitude_spectrum = criteria._coin_liwi(self,s=self.multiaxial_amplitude_spectrum[0], k_a=k_a, k_phi=k_phi)
+
+            for i in range(len(s_eq_amplitude_spectrum)):
+                s_eq_psd = np.dot(s_eq_amplitude_spectrum[i], np.conj(s_eq_amplitude_spectrum[i].T))
+
+            self.set_eq_stress(eq_psd=s_eq_psd, f=self.multiaxial_psd[1])
+
+
+
+
+
 
 
 
@@ -308,14 +341,14 @@ class EquivalentStress(SpectralData): #equivalentstress
 
 
     # def maxnormal_old(self, search_method='local'):
-    #     '''Converts the stress tensor at one node to equivalent,
+    #     Converts the stress tensor at one node to equivalent,
     #     scalar psd stress, using method of maximum normal stress.
         
     #     --------
 
     #     -Nieslony, Adam and Macha, Ewald (2007);
     #     Spectral method in multiaxial random fatigue
-    #     '''
+    #     """
 
     #     s = self.multiaxial_psd[0]
     #     freq = self.multiaxial_psd[1]
