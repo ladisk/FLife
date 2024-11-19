@@ -226,7 +226,6 @@ class SpectralData(object):
                     self.data = self._readf(input[0])
                     self.dt = input[1] # Sampling interval
                     self.t = self.dt * self.data.size # length of signal time-history
-                    self.trim_length = psd_trim_length
                     self.psd = self._calculate_psd(self.data, fs=1.0/self.dt, window=window,
                                                 nperseg=nperseg, noverlap=noverlap,
                                                 trim=psd_trim_length)
@@ -239,14 +238,12 @@ class SpectralData(object):
                 self.data = input['time_history']
                 self.dt = input['dt']
                 self.t = self.dt * self.data.size
-                self.trim_length = psd_trim_length
                 self.psd = self._calculate_psd(self.data, fs=1.0/self.dt, window=window,
                                             nperseg=nperseg, noverlap=noverlap,
                                             trim=psd_trim_length)
             elif 'PSD' in input and 'f' in input:
                 #multiaxial PSD
                 if input['PSD'].ndim>1:
-                    print('Input PSD is multiaxial. Use FLife.EqStress(spectral_data_object)')
                     self.multiaxial_psd = (input['PSD'],input['f'])
 
                     # Check dimension of multiaxial stress PSD
@@ -255,10 +252,7 @@ class SpectralData(object):
                         (self.multiaxial_psd[0].shape[-1] == 3 and self.multiaxial_psd[0].shape[-2] == 3)
                     ):     
                         if self.multiaxial_psd[0].ndim == 4:
-                            print('Input PSD is multi-point')
                             self.multipoint = True
-
-                        #print('Input PSD is correct shape')
 
                         if T is not None and fs is not None:
                             self.t = T
@@ -282,7 +276,6 @@ class SpectralData(object):
             elif 'amplitude_spectrum' in input and 'f' in input:
                 #multiaxial amplitude spectrum
                 if input['amplitude_spectrum'].ndim>1:
-                    print('Input amplitude spectrum is multiaxial. Use FLife.EqStress(spectral_data_object)')
                     self.multiaxial_amplitude_spectrum = (input['amplitude_spectrum'],input['f'])
 
                     # Check dimension of multiaxial amplitude spectrum
@@ -322,59 +315,6 @@ class SpectralData(object):
 
         else:
             raise Exception('Unrecognized Input Error') 
-
-
-
-
-        # # Other options for input are a) time domain signal and b) PSD 
-        # elif isinstance(input, tuple) and len(input) == 2:
-        #     # If input is signal
-        #     if isinstance(input[0], np.ndarray) and isinstance(input[1], (int, float)):
-        #         self.data = input[0]  # time-history
-        #         self.dt = input[1] # Sampling interval
-        #         self.t = self.dt * self.data.size # signal time-history duration
-        #         self.trim_length = psd_trim_length 
-        #         self.psd = self._calculate_psd(self.data, fs=1.0/self.dt, window=window,
-        #                                     nperseg=nperseg, noverlap=noverlap,
-        #                                     trim=psd_trim_length)
-        #     # or PSD
-        #     elif isinstance(input[0], np.ndarray) and isinstance(input[1], np.ndarray):
-                
-        #         #Multiaxial PSD
-        #         if input[0].ndim>1:
-        #             print('Input PSD is multiaxial. Use FLife.EqStress(spectral_data_object)')
-        #             self.multiaxial_psd = (input[0],input[1])
-
-        #             # Check dimension of multiaxial stress PSD
-        #             if self.multiaxial_psd[0].ndim == 3 or self.multiaxial_psd[0].ndim == 4 and (
-        #                 (self.multiaxial_psd[0].shape[-1] == 6 and self.multiaxial_psd[0].shape[-2] == 6) or
-        #                 (self.multiaxial_psd[0].shape[-1] == 3 and self.multiaxial_psd[0].shape[-2] == 3)
-        #             ):
-        #                 if self.multiaxial_psd[0].ndim == 4:
-        #                     print('Input PSD is multi-point')
-
-        #                 print('Input PSD is correct shape')
-                        
-        #                 if T is not None and fs is not None:
-        #                     self.t = T
-        #                     self.fs = fs
-        #             else:
-        #                 raise Exception('Input Error. PSD matrix should be the size of (f,6,6) for 3D stress state or (f,3,3) for 2D stress state')
-                    
-        #             if T is not None and fs is not None:
-        #                 self._check_fs(f=input[1], psd=input[0], T=T, fs=fs, **kwargs)
-
-        #         # Uniaxial PSD
-        #         elif input[0].ndim==1:
-        #             print('Input PSD is uniaxial')
-        #             psd = input[0]
-        #             f = input[1]
-        #             self.psd = np.column_stack((f, psd))
-        #             # needed parameters for time-history generation
-        #             if T is not None and fs is not None:
-        #                 self._set_time_history(f=f, psd=psd, T=T, fs=fs, **kwargs)
-
-            
 
         if hasattr(self,'psd'):
             self.PSD_splitting = ('equalAreaBands', 1) 

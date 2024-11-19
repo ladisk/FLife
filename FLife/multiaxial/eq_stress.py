@@ -16,10 +16,11 @@ class EquivalentStress(SpectralData): #equivalentstress
     - max_shear: Maximum shear stress criterion
     - max_normal_and_shear: Maximum normal and shear stress criterion
     - EVMS: Equivalent von Misses stress criterion
-    - cs: Critical plane-based criterion
-    - multiaxial_rainflow: Frequency-basedu multiaxial rainflow criterion
+    - cs: Carpinteri-Spagnoli criterion
+    - multiaxial_rainflow: Frequency-based multiaxial rainflow criterion
     - thermoelastic: Thermoelasticity-based criterion
-    - liwi: LIWI approach
+    - liwi: LiWI approach
+    - coin_liwi: COIN-LiWI method
 
     """
 
@@ -67,7 +68,7 @@ class EquivalentStress(SpectralData): #equivalentstress
             if T is not None and fs is not None:
                 self.t = T
                 self.fs = fs
-        # Class instance is instantiated with SpectralData(input) and inherited with EqStress(spectral_data). Input is an instance of SpectralData class
+        # Class instance is instantiated with SpectralData(input) and inherited with EquivalentStress(spectral_data). Input is an instance of SpectralData class
         elif isinstance(input, SpectralData):
             self.spectral_data = input
             if hasattr(input,'multiaxial_psd'):
@@ -93,7 +94,6 @@ class EquivalentStress(SpectralData): #equivalentstress
             s_eq_multi_point = np.empty((self.multiaxial_psd[0].shape[:2]))
         elif hasattr(self,'multiaxial_amplitude_spectrum'):
             s_eq_multi_point = np.empty((self.multiaxial_amplitude_spectrum[0].shape[:2]),dtype=complex)
-        print(s_eq_multi_point.shape)
         
         for i in range(len(s_eq_multi_point)):
             if hasattr(self,'multiaxial_psd'):
@@ -306,7 +306,12 @@ class EquivalentStress(SpectralData): #equivalentstress
         stress, using the COIN-LiWI method.
 
         ONLY WORKS WITH 3D AMPLITUDE SPECTRUM (f,6) - single point or (N,f,6) - multiple points
-
+        
+        :param k_a: float
+                Tension shear strength ratio. (from article: 1.70 for aluminum alloy, 1.64 for structural steel, 1.43 for cast iron)
+        :param k_phi: float
+                Phase influence factor (from article: 0.90 for aluminum alloy, 0.85 for structural steel, 1.10 for cast iron)
+        
         --------
 
         -Alexander T. Schmidt, Jan Kraft,
