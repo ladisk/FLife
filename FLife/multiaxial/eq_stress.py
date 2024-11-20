@@ -117,6 +117,13 @@ class EquivalentStress(SpectralData): #equivalentstress
             self.PSD_splitting = ('equalAreaBands', 1) 
             self._calculate_coefficients()
 
+    def select_critical_point(self, point_index):
+        """Manually select a critical point from multipoint equivalent stress
+        
+        :param point_index: int
+                Index of the critical point
+        """
+        self.set_eq_stress(eq_psd=self.eq_psd_multipoint[0][point_index], f=self.eq_psd_multipoint[1])
 
     def max_normal(self,search_method='local'): #max_normal
         """
