@@ -284,7 +284,6 @@ class SpectralData(object):
                         (self.multiaxial_amplitude_spectrum[0].shape[-1] == 3)
                     ):     
                         if self.multiaxial_amplitude_spectrum[0].ndim == 3:
-                            print('Input amplitude spectrum is multi-point')
                             self.multipoint = True
                         
 
