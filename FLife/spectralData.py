@@ -133,11 +133,22 @@ class SpectralData(object):
         """Call parent constructor, analyse input and define fatigue life parameters and constants.
         
         :param input: str, tuple
-                Defaults to 'GUI', where PSD is provided via GUI. If tuple, PSD and frequency
-                vector or time history or sampling period is given. First element of tuple is 
-                power spectral density or time history, and second value is array of 
-                sample frequencies or sampling interval, respectively. Alternatively, path to 
-                appropriately formated .txt file can be specified.
+                Defaults to 'GUI', where PSD is provided via GUI. Another option is dictionary,
+                where input can be provided as psd with keys: 'PSD'(PSD array) and 'f'(frequency vector array),
+                or as time history with keys: 'time_history' and 'dt', or as amplitude spectrum with keys: 'amplitude_spectrum' and 'f'.
+                
+                For uniaxial PSD input, PSD array should be the shape of (f), 
+                for multiaxial PSD input, PSD array should be a matrix with the shape of (f,6,6) for 3D stress state or (f,3,3) for 2D stress state.
+                For multi-point PSD input (whole FEM model), PSD array should be a matrix
+                with the shape of (N,f,6,6) for 3D stress state or (N,f,3,3) for 2D stress state, 
+                where N is the number of points on the model.
+                
+                For uniaxial amplitude spectrum input, amplitude_spectrum array should be the shape of (f), 
+                for multiaxial amplitude spectrum input, amplitude_spectrum array should be a matrix
+                with the shape of (f,6) for 3D stress state or (f,3) for 2D stress state.
+                For multi-point amplitude spectrum input (whole FEM model), amplitude_spectrum array should be a matrix
+                with the shape of (N,f,6) for 3D stress state or (N,f,3) for 2D stress state, 
+
         :param window: str or tuple or array_like, optional
                 Desired window to use. Defaults to ‘hann’.
         :param nperseg:  int, optional
@@ -150,11 +161,11 @@ class SpectralData(object):
                 Defaults to None.
         :param T: int, float, optional
                 Length of time history when random process is defined by `input` parameter 'GUI'
-                or (PSD, frequency vector). If T and fs are provided, time histoy is generated.
+                or by PSD or by amplitude spectrum. If T and fs are provided, time histoy is generated.
                 Defaults to None.
         :param fs: int, float, optional
                 Sampling frequency of time history when random process is defined by `input` parameter 
-                'GUI' or (PSD, frequency vector). If T and fs are provided, time histoy is generated.
+                'GUI' or by PSD or by amplitude spectrum. If T and fs are provided, time histoy is generated.
                 Defaults to None.
         :param rg: numpy.random._generator.Generator, optional
                 Random generator controls phase of generated time history, when `input` is 'GUI' or 
@@ -199,44 +210,114 @@ class SpectralData(object):
             # needed parameters for time-history generation
             if T is not None and fs is not None:
                 self._set_time_history(f=self.psd[:,0], psd=self.psd[:,1], T=T, fs=fs, **kwargs)
-               
-        # Other options for input are a) time domain signal and b) PSD 
+
+
+        # If input is tuple, dictionary is created (backwards compatibility)
         elif isinstance(input, tuple) and len(input) == 2:
-            # If input is signal
+            # If input is time signal
             if isinstance(input[0], np.ndarray) and isinstance(input[1], (int, float)):
-                self.data = input[0]  # time-history
-                self.dt = input[1] # Sampling interval
-                self.t = self.dt * self.data.size # signal time-history duration
-                self.trim_length = psd_trim_length 
-                self.psd = self._calculate_psd(self.data, fs=1.0/self.dt, window=window,
-                                            nperseg=nperseg, noverlap=noverlap,
-                                            trim=psd_trim_length)
+                input = {'time_history': input[0], 'dt': input[1]}
             # or PSD
             elif isinstance(input[0], np.ndarray) and isinstance(input[1], np.ndarray):
-                psd = input[0]
-                f = input[1]
-                self.psd = np.column_stack((f, psd))
-
-                # needed parameters for time-history generation
-                if T is not None and fs is not None:
-                    self._set_time_history(f=f, psd=psd, T=T, fs=fs, **kwargs)
+                input = {'PSD': input[0], 'f': input[1]}
 
             elif isinstance(input[0], str) and isinstance(input[1], (int, float)):
-                warnings.warn('Path to file option has been deprecated since version 1.2 and will be removed in the future.')
-                self.data = self._readf(input[0])
-                self.dt = input[1] # Sampling interval
-                self.t = self.dt * self.data.size # length of signal time-history
-                self.trim_length = psd_trim_length
+                    warnings.warn('Path to file option has been deprecated since version 1.2 and will be removed in the future.')
+                    self.data = self._readf(input[0])
+                    self.dt = input[1] # Sampling interval
+                    self.t = self.dt * self.data.size # length of signal time-history
+                    self.psd = self._calculate_psd(self.data, fs=1.0/self.dt, window=window,
+                                                nperseg=nperseg, noverlap=noverlap,
+                                                trim=psd_trim_length)
+                                                
+                    
+
+        # Input is dictionary a) PSD and frequency vector or b) time history and sampling interval
+        if isinstance(input, dict):
+            if 'time_history' in input and 'dt' in input:
+                self.data = input['time_history']
+                self.dt = input['dt']
+                self.t = self.dt * self.data.size
                 self.psd = self._calculate_psd(self.data, fs=1.0/self.dt, window=window,
                                             nperseg=nperseg, noverlap=noverlap,
                                             trim=psd_trim_length)
-            else:
-                raise Exception('Unrecognized Input Error')
-        else:
-            raise Exception('Unrecognized Input Error. `input` should be tuple with 2 elements.')
+            elif 'PSD' in input and 'f' in input:
+                #multiaxial PSD
+                if input['PSD'].ndim>1:
+                    self.multiaxial_psd = (input['PSD'],input['f'])
 
-        self.PSD_splitting = ('equalAreaBands', 1) 
-        self._calculate_coefficients()
+                    # Check dimension of multiaxial stress PSD
+                    if self.multiaxial_psd[0].ndim == 3 or self.multiaxial_psd[0].ndim == 4 and (
+                        (self.multiaxial_psd[0].shape[-1] == 6 and self.multiaxial_psd[0].shape[-2] == 6) or
+                        (self.multiaxial_psd[0].shape[-1] == 3 and self.multiaxial_psd[0].shape[-2] == 3)
+                    ):     
+                        if self.multiaxial_psd[0].ndim == 4:
+                            self.multipoint = True
+
+                        if T is not None and fs is not None:
+                            self.t = T
+                            self.fs = fs
+                    else:
+                        raise Exception('Input Error. PSD matrix should be the size of (f,6,6) for 3D stress state or (f,3,3) for 2D stress state')
+
+                    if T is not None and fs is not None:
+                        self._check_fs(f=input['f'], psd=input['PSD'], T=T, fs=fs, multipoint=True, **kwargs)
+            
+                # Uniaxial PSD
+                elif input['PSD'].ndim==1:
+                    print('Input PSD is uniaxial')
+                    psd = input['PSD']
+                    f = input['f']
+                    self.psd = np.column_stack((f, psd))
+                    # needed parameters for time-history generation
+                    if T is not None and fs is not None:
+                        self._set_time_history(f=f, psd=psd, T=T, fs=fs, **kwargs)
+            
+            elif 'amplitude_spectrum' in input and 'f' in input:
+                #multiaxial amplitude spectrum
+                if input['amplitude_spectrum'].ndim>1:
+                    self.multiaxial_amplitude_spectrum = (input['amplitude_spectrum'],input['f'])
+
+                    # Check dimension of multiaxial amplitude spectrum
+                    if self.multiaxial_amplitude_spectrum[0].ndim == 2 or self.multiaxial_amplitude_spectrum[0].ndim == 3 and (
+                        (self.multiaxial_amplitude_spectrum[0].shape[-1] == 6) or
+                        (self.multiaxial_amplitude_spectrum[0].shape[-1] == 3)
+                    ):     
+                        if self.multiaxial_amplitude_spectrum[0].ndim == 3:
+                            self.multipoint = True
+                        
+
+                        #print('Input PSD is correct shape')
+
+                        if T is not None and fs is not None:
+                            self.t = T
+                            self.fs = fs
+                    else:
+                        raise Exception('Input Error. PSD matrix should be the size of (f,6,6) for 3D stress state or (f,3,3) for 2D stress state')
+
+                    if T is not None and fs is not None:
+                        self._check_fs(f=input['f'], psd=input['amplitude_spectrum'], T=T, fs=fs, multipoint=True, **kwargs)
+                
+                # Uniaxial amplitude spectrum
+                elif input['amplitude_spectrum'].ndim==1:
+                    print('Input amplitude spectrum is uniaxial')
+                    amplitde_spectrum = input['amplitude_spectrum']
+                    f = input['f']
+                    psd = amplitde_spectrum**2/(f[1]-f[0])
+                    self.psd = np.column_stack((f, psd))
+                    # needed parameters for time-history generation
+                    if T is not None and fs is not None:
+                        self._set_time_history(f=f, psd=psd, T=T, fs=fs, **kwargs)
+
+            else:
+                raise Exception('Unrecognized Input Error. `input` should be dictionary with keys `PSD` and `f` or `time_history` and `dt`.')
+
+        else:
+            raise Exception('Unrecognized Input Error') 
+
+        if hasattr(self,'psd'):
+            self.PSD_splitting = ('equalAreaBands', 1) 
+            self._calculate_coefficients()
 
     def _readf(self, filename):
         """Read input file and extract values in form of array (float).
@@ -257,21 +338,29 @@ class SpectralData(object):
         f.close()
     
         return data
+    
+    def _check_fs(self, f, psd, T=None, fs=None, multipoint=False, **kwargs):
+        
+        #if input is multi point, multiaxial
+        if multipoint:
+            f_max_indx = np.where(psd>0)[1][-1]
+        else:
+            f_max_indx = np.where(psd>0)[0][-1]
+        f_max = f[f_max_indx]
+                
+        # Sampling frequency check
+        if fs < 2*f_max:
+            raise Exception('Parameter `fs` should be higher. It should be fs >= 2*fmax.')
+                    
+        if fs < 10*f_max:
+            warnings.warn(f'Parameter `fs` should be higher. It is suggested to use fs>=10*fmax.')
 
     def _set_time_history(self, f, psd, T=None, fs=None, **kwargs):
         """Generates and set time-history of signal on basis of PSD and frequency vector.
         """   
         if T is not None and fs is not None:
-            f_max_indx = np.where(psd>0)[0][-1]
-            f_max = f[f_max_indx]
             
-            # Sampling frequency check
-            if fs < 2*f_max:
-                raise Exception('Parameter `fs` should be higher. It should be fs >= 2*fmax.')
-                
-            if fs < 10*f_max:
-                warnings.warn(f'Parameter `fs` should be higher. It is suggested to use fs>=10*fmax.')
-        
+            self._check_fs(f, psd, T, fs, multipoint=False, **kwargs)
             # get time history
             time, signal = random_gaussian(freq=f, PSD=psd, T=T, fs=fs, **kwargs) # stationary, normally distributed
 
