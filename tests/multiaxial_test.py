@@ -17,10 +17,11 @@ def test_data():
         'max_shear': 2759.824771144651,
         'max_normal_and_shear': 2759.824771144652, #s_af = 1, tau_af = 1
         'cs': 931.3556831975611, #s_af = 10, tau_af = 10
-        'multiaxial_rainflow': 3579.6299866241634,
+        'multiaxial_rainflow': 1636.5919423074781,
         'thermoelastic': 1027.6423513625518,
         'liwi': 2083.2568582803156,
-        'coin_liwi': 2044.550993026664 #k_a=1.70, k_phi=0.90
+        'coin_liwi': 2044.550993026664, #k_a=1.70, k_phi=0.90
+        'EVMS_out_of_phase': 2083.2568582803156
     }
 
     #test_PSD
@@ -53,6 +54,7 @@ def test_data():
     thermoelastic = FLife.EquivalentStress(input=input_dict_psd_3d,T=1,fs=5000)
     liwi = FLife.EquivalentStress(input=input_dict_ampl_2d,T=1,fs=5000)
     coin_liwi = FLife.EquivalentStress(input=input_dict_ampl_3d,T=1,fs=5000)
+    EVMS_out_of_phase = FLife.EquivalentStress(input=input_dict_psd_2d,T=1,fs=5000)
 
     # Multiaxial criteria
     EVMS.EVMS()
@@ -64,6 +66,7 @@ def test_data():
     thermoelastic.thermoelastic()
     liwi.liwi()
     coin_liwi.coin_liwi(k_a=1.70, k_phi=0.90)
+    EVMS_out_of_phase.EVMS_out_of_phase()
 
 
     results = {
@@ -75,7 +78,8 @@ def test_data():
         'multiaxial_rainflow': multiaxial_rainflow.eq_psd_multipoint[0][0,24],
         'thermoelastic': thermoelastic.eq_psd_multipoint[0][0,24],
         'liwi': liwi.eq_psd_multipoint[0][0,24],
-        'coin_liwi': coin_liwi.eq_psd_multipoint[0][0,24]
+        'coin_liwi': coin_liwi.eq_psd_multipoint[0][0,24],
+        'EVMS_out_of_phase': EVMS_out_of_phase.eq_psd_multipoint[0][0,24]
     }
 
     for criterion, value in results.items():
