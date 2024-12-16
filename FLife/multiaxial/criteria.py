@@ -303,3 +303,23 @@ def _coin_liwi(self, s, k_a, k_phi):
     
     return s_eq
 
+def _EVMS_out_of_phase(self, s):
+    """
+    Internal function for calculating equivalent stress at one node.
+    """
+    s_eq = np.empty((len(s)))
+
+    for i in range(len(s)):
+        sigma_xx_squared = s[i,0,0]
+        sigma_yy_squared = s[i,1,1]
+        tau_xy_squared = s[i,2,2]
+        sigma_xx_sigma_yy = np.sqrt(sigma_xx_squared * sigma_yy_squared)
+
+        phi_yy_phi_xx = np.angle(s[i,0,1])
+        phi_xx_phi_yy = np.angle(s[i,1,0])
+        phi_xy_phi_xx = np.angle(s[i,0,2])
+
+        s_eq[i] = 0.5  * (sigma_xx_squared + sigma_yy_squared - sigma_xx_sigma_yy * np.cos(phi_xx_phi_yy) + 3 * tau_xy_squared) + 0.5 * np.abs(sigma_xx_squared + sigma_yy_squared * np.exp(2j * phi_yy_phi_xx) - sigma_xx_sigma_yy * np.exp(1j * phi_yy_phi_xx) + 3*tau_xy_squared * np.exp(2j * phi_xy_phi_xx))
+
+    return s_eq
+
