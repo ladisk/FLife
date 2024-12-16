@@ -19,6 +19,7 @@ class EquivalentStress(SpectralData): #equivalentstress
     - cs: Carpinteri-Spagnoli criterion
     - multiaxial_rainflow: Frequency-based multiaxial rainflow criterion
     - thermoelastic: Thermoelasticity-based criterion
+    - EVMS_out_of_phase: EVMS adaptation for out-of-phase components
     - liwi: LiWI approach
     - coin_liwi: COIN-LiWI method
 
@@ -343,36 +344,26 @@ class EquivalentStress(SpectralData): #equivalentstress
             self.set_eq_stress(eq_psd=s_eq_psd, f=self.multiaxial_psd[1])
 
 
+    def EVMS_out_of_phase(self):
+        """Converts the stress tensor at one node to equivalent
+        stress, using the phase-sensitive EVMS criterion, adjusted for out-of-phase components.
 
+        ONLY WORKS WITH BIAXIAL PSD (f,3,3) - single point or (N,f,3,3) - multiple points
+               
+        --------
 
-
-
-
-
-
-
-
-    # def maxnormal_old(self, search_method='local'):
-    #     Converts the stress tensor at one node to equivalent,
-    #     scalar psd stress, using method of maximum normal stress.
+        -Bonte, Martijn HA and de Boer, Andries and Liebregts R
+        Determining the von Mises stress power spectral density for frequency domain fatigue analysis including out-of-phase stress components,
+        Journal of Sound and Vibration, 2007
         
-    #     --------
-
-    #     -Nieslony, Adam and Macha, Ewald (2007);
-    #     Spectral method in multiaxial random fatigue
-    #     """
-
-    #     s = self.multiaxial_psd[0]
-    #     freq = self.multiaxial_psd[1]
-    #     df = freq[1] - freq[0]
-
-    #     l1, m1, n1= cplane.maxvariance_old(s,df,method='maxnormal',search_method=search_method)
+        """
         
-    #     a = np.asarray([l1**2, m1**2, n1**2,
-    #                 2*l1*m1, 2*l1*n1, 2*m1*n1])
+        # psd is multiple-point
+        if self.multipoint:
+            self.loop_over_points(criterion=criteria._EVMS_out_of_phase)
         
-    #     s_eq = np.einsum('i,zij,j', a, s, a)
-    #     self.set_eq_stress(s_eq, freq)
+        # psd is single-point
+        else:
+            s_eq_psd = criteria._EVMS_out_of_phase(self,s=self.multiaxial_psd[0])
 
-
-
+            self.set_eq_stress(eq_psd=s_eq_psd, f=self.multiaxial_psd[1])
