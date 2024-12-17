@@ -407,7 +407,7 @@ class SpectralData(object):
 
         f = psd[:, 0]
         p = psd[:, 1]
-        return np.trapz((2*np.pi*f)**i * p, f)
+        return np.trapezoid((2*np.pi*f)**i * p, f)
 
 
     def get_spectral_moments(self, PSD_splitting=None, moments=[0,1,2,3,4]):
