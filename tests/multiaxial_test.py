@@ -16,7 +16,7 @@ def test_data():
         'max_normal': 2759.824771658108,
         'max_shear': 2759.824771144651,
         'max_normal_and_shear': 2759.824771144652, #s_af = 1, tau_af = 1
-        'cs': 931.3556831975611, #s_af = 1, tau_af = 1
+        'cs': 931.3556831975611, #s_af = 10, tau_af = 10
         'multiaxial_rainflow': 1636.5919423074781,
         'thermoelastic': 1027.6423513625518,
         'liwi': 2083.2568582803156,
@@ -33,8 +33,8 @@ def test_data():
     test_amplitude_spectrum_3D = np.load('data/test_multiaxial_amplitude_spectrum_3D.npy')
 
     freq=np.arange(0,240,3)
-    freq[0] = 1e-3
 
+    	
     input_dict_psd_3d = {'PSD': test_PSD[331:335], 'f': freq}
     input_dict_psd_2d = {'PSD': test_PSD_biaxial[331:335], 'f': freq}
 
@@ -61,12 +61,13 @@ def test_data():
     max_normal.max_normal()
     max_shear.max_shear()
     max_normal_and_shear.max_normal_and_shear(s_af=1, tau_af=1)
-    cs.cs(s_af=1, tau_af=1)
+    cs.cs(s_af=10, tau_af=10)
     multiaxial_rainflow.multiaxial_rainflow()
     thermoelastic.thermoelastic()
     liwi.liwi()
     coin_liwi.coin_liwi(k_a=1.70, k_phi=0.90)
     EVMS_out_of_phase.EVMS_out_of_phase()
+
 
     results = {
         'EVMS': EVMS.eq_psd_multipoint[0][0,24],
@@ -84,6 +85,7 @@ def test_data():
     for criterion, value in results.items():
 
         np.testing.assert_almost_equal(value, results_ref[criterion], decimal=5, err_msg=f'Criterion: {criterion}')
+
 
 if __name__ == "__main__":
     test_data()
