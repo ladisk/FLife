@@ -189,7 +189,7 @@ class ZhaoBaker(object):
         if integrate_pdf:
             d = self.spectral_data.m_p / C * \
                 quad(lambda s: s**k*self.get_PDF(s, method=method), 
-                    a=0, b=np.Inf)[0]
+                    a=0, b=np.inf)[0]
         else:
             m0 = self.spectral_data.moments[0]
             m_p = self.spectral_data.m_p
@@ -199,5 +199,5 @@ class ZhaoBaker(object):
             d = (m_p/C) * m0**(0.5*k) * ( w * a**(-k/b) * gamma(1.0+k/b) +\
                     (1.0-w) * 2**(0.5*k) * gamma(1.0+0.5*k) )
     
-        T = float(1.0/d)
+        T = 1.0/d
         return T

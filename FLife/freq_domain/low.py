@@ -148,12 +148,12 @@ class Low(object):
         """Calculates coefficients for binomial series expansion for small cycles damage estimation[1].
         """
         Ik_array = np.zeros(K)
-        Ik_array[0] = np.exp(-eps**2/(2*var))
-        Ik_array[1] = eps * Ik_array[0] + np.sqrt(2*np.pi) * np.sqrt(var) * stats.norm.cdf(-eps/np.sqrt(var))
+        Ik_array[0] = np.exp(-eps**2/(2*var[0]))
+        Ik_array[1] = eps * Ik_array[0] + np.sqrt(2*np.pi) * np.sqrt(var[0]) * stats.norm.cdf(-eps/np.sqrt(var[0]))
         for i in range(K-2):
             term1 = eps**(i+2) * Ik_array[0]
             term2 = (i+2) * var * Ik_array[i]
-            Ik_array[i+2] = term1 + term2
+            Ik_array[i+2] = term1 + term2[0]
         return Ik_array
 
     def _inner_integral_small(self, k, eps, var):

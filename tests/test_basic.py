@@ -125,7 +125,12 @@ def test_data():
             err = FLife.tools.relative_error(value, results['Rainflow-Low bimodal'])
         else:
             err = FLife.tools.relative_error(value, results['Rainflow'])
-        print(f'{method:>19s}:{value:6.0f} s,{100*err:>4.0f} % to {"Rainflow"}')
+        
+        method = str(method)  # Ensure `method` is a string
+        value = float(value.item())  # Ensure `value` is a float
+        err = float(err.item())      # Ensure `err` is a float
+        print(f'{method:>19s}:{value:4f} s,{100*err:>4.0f} % to {"Rainflow"}')
+
         np.testing.assert_almost_equal(value, results_ref[method], decimal=5, err_msg=f'Method: {method}')
 
     results_via_PDF = {

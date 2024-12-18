@@ -109,7 +109,7 @@ class Low2014(Narrowband):
         m0H_norm = m0H/m0
         
         #check method validity range
-        if not 3 < beta < np.infty:
+        if not 3 < beta < np.inf:
             warnings.warn(f'Correction factor is optimized for zero upcrossing rates ratio 3 <= `beta` < infinity. Actual value is `beta`= {beta:.2f}. Results should be evaluated carefully.')
         if not 3 <= k <= 8:
             warnings.warn(f'Correction factor is optimized for 3 <= `k` <= 8. Results should be evaluated carefully.')

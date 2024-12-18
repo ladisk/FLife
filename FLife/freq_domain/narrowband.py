@@ -113,7 +113,7 @@ class Narrowband(object):
         if integrate_pdf:
             d = self.spectral_data.nu / C * \
                 quad(lambda s: s**k*self.get_PDF(s), 
-                     a=0, b=np.Inf)[0]
+                     a=0, b=np.inf)[0]
         else:
             m0 = self.spectral_data.moments[0]
             nu = self.spectral_data.nu

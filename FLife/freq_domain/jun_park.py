@@ -109,7 +109,7 @@ class JunPark(object):
         m_p = self.spectral_data.m_p
 
         if integrate_pdf:
-            d = m_p / C * quad(lambda s: s**k*self.get_PDF(s), a=0, b=np.Inf)[0]
+            d = m_p / C * quad(lambda s: s**k*self.get_PDF(s), a=0, b=np.inf)[0]
         else:
             Qc = self._get_Qc()
             d = Qc * m_p / C * (np.sqrt(2*m0))**k * (self.parameters['D_1']/(np.sqrt(2)**k)* self.parameters['sigma_E']**k * gamma(1+k) \
