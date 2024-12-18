@@ -241,6 +241,128 @@ Vibration-fatigue life can be compared to rainflow method. When Rainflow class i
     error_tb = FLife.tools.relative_error(life_tb, rf_life_3pt)
 
 
+Multiaxial vibration fatigue
+-----------------------------
+
+Multiaxial fatigue life estimation can be performed by using one of the
+available frequency domain multiaxial criteria to convert multiaxial
+stress state into equivalent uniaxial stress state. Resulting equivalent
+uniaxial stress state can be used with all spectral methods, provided by
+FLife.
+
+Supported multiaxial criteria
+-----------------------------
+
+   - Maximum normal stress on critical plane
+   - Maximum shear stress on critical plane
+   - Maximum normal and shear stress on critical plane
+   - EVMS (Equivalent von Misses stress)
+   - Carpinteri-Spagnoli criterion
+   - Frequency-based multiaxial rainflow criterion
+   - Thermoelasticity-based criterion
+   - EVMS adaptation for out-of-phase components
+   - LiWI approach
+   - COIN-LiWI method
+
+Here is a simple example of using EVMS criterion on a multiaxial PSD for
+the whole FEM model.
+
+.. code-block:: python
+
+   import FLife
+   import numpy as np
+
+   # Load multiaxial PSD data
+   test_PSD = np.load('data/test_multiaxial_PSD_3D.npy')
+   freq=np.arange(0,240,3)
+   input_dict = {'PSD': test_PSD, 'f': freq}
+
+   # Create EquivalentStress object
+   eqs = FLife.EquivalentStress(input=input_dict,T=1,fs=5000)
+
+   # Use multiaxial criterion
+   eqs.EVMS()
+
+   # manual critical point selection
+   eqs.select_critical_point(point_index=331)
+
+   # GUI critical point selection
+   #FLife.visualize.set_mesh(eqs,'data/L_shape.vtk')
+   #FLife.visualize.pick_point(eqs)
+
+   # Define material properties
+   C = 1.8e+22  # S-N curve intercept [MPa**k]
+   k = 7.3  # S-N curve inverse slope [/]
+
+   # Calculate fatigue life in seconds
+   rf = FLife.TovoBenasciutti(eqs)
+   fatigue_life = rf.get_life(C=C, k=k)
+   print(f'Fatigue life: {fatigue_life:.2f} s')
+
+Instead of manual point selection, critical point can be selected with
+GUI by right clickling on the model. Heatmap of equivalent stress can be
+shown at a desired frequency, set by the slider on the bottom-right side
+of the GUI.
+
+|GUI Multiaxial|
+
+Some criteria are defined for multiaxial amplitude spectra instead of
+multiaxial PSD. In this case, input must be a multiaxial amplitude
+sprectrum (size (f,6) or (f,3) for single point, and (N,f,6) or (N,f,3)
+for whole FEM model.) After the uniaxial equivalent stress is calculated
+using the chosen criteria, PSD is calculated automatically and can be
+used with all available spectral methods.
+
+Here is a simple example of using one of the criteria defined for the
+amplitude spectrum:
+
+.. code-block:: python
+
+   import FLife
+   import numpy as np
+
+   # Load multiaxial PSD data
+   test_amplitude_spectrum_3D = np.load('data/test_multiaxial_amplitude_spectrum_3D.npy')
+   freq=np.arange(0,240,3)
+   input_dict = {'amplitude_spectrum': test_amplitude_spectrum_3D, 'f': freq}
+
+   # Create EquivalentStress object
+   eqs = FLife.EquivalentStress(input=input_dict,T=1,fs=5000)
+
+   # Use multiaxial criterion
+   eqs.coin_liwi(k_a=1.70, k_phi=0.90)
+
+   # manual critical point selection
+   eqs.select_critical_point(point_index=331)
+
+   # GUI critical point selection
+   #FLife.visualize.set_mesh(eqs,'data/L_shape.vtk')
+   #FLife.visualize.pick_point(eqs)
+
+   # Define material properties
+   C = 1.8e+22  # S-N curve intercept [MPa**k]
+   k = 7.3  # S-N curve inverse slope [/]
+
+   # Calculate fatigue life in seconds
+   rf = FLife.TovoBenasciutti(eqs)
+   fatigue_life = rf.get_life(C=C, k=k)
+   print(f'Fatigue life: {fatigue_life:.2f} s')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 References:
     1. Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
        Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage – Theory and Experiments, 
@@ -262,6 +384,9 @@ References:
 .. |GUI_img| image:: PSDinput.png
     :target: https://github.com/ladisk/FLife
     :alt: GUI - PSD input
+
+.. |GUI Multiaxial| image:: GUI_multiaxial.png
+   :target: https://github.com/ladisk/FLife
     
 .. |SpectralMethods_img| image:: FreqMethodsTree.png
     :target: https://github.com/ladisk/FLife/tree/main/FLife/freq_domain

@@ -12,10 +12,10 @@ class EquivalentStress(SpectralData): #equivalentstress
     If instance of SpectralData is passed as input, the multiaxial PSD is inherited, otherwise it is created from input PSD.
     -----
     The following multiaxial criteria are available for equivalent stress calculation:
-    - max_normal: Maximum normal stress criterion
-    - max_shear: Maximum shear stress criterion
-    - max_normal_and_shear: Maximum normal and shear stress criterion
-    - EVMS: Equivalent von Misses stress criterion
+    - max_normal: Maximum normal stress  on critical plane
+    - max_shear: Maximum shear stress  on critical plane
+    - max_normal_and_shear: Maximum normal and shear stress  on critical plane
+    - EVMS: Equivalent von Misses stress
     - cs: Carpinteri-Spagnoli criterion
     - multiaxial_rainflow: Frequency-based multiaxial rainflow criterion
     - thermoelastic: Thermoelasticity-based criterion
