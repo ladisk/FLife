@@ -62,7 +62,7 @@ def pdf_rayleigh_sum(m0L, m0H):
     return pdf
 
 
-def random_gaussian(freq, PSD, T, fs, rg=None, random_amplitude=True, **kwargs):
+def random_gaussian(freq, PSD, T, fs, rg=None, random_amplitude=False, **kwargs):
     """
     Stationary Gaussian realization of random process, characterized by PSD.
     
@@ -80,7 +80,7 @@ def random_gaussian(freq, PSD, T, fs, rg=None, random_amplitude=True, **kwargs):
         Initialized Generator object
     :param random_amplitude: Boolean
         If true, Rayleigh distributed amplitude is used in addition 
-        to uniformly distributed phase. Defaults to True
+        to uniformly distributed phase. Defaults to False
     :return: t, signal
         Time and stationary Gaussian realization of random process
     
