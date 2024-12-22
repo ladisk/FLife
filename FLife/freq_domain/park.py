@@ -104,7 +104,7 @@ class Park(object):
         m_p = self.spectral_data.m_p
 
         if integrate_pdf:
-            d = m_p / C * quad(lambda s: s**k*self.get_PDF(s), a=0, b=np.Inf)[0]
+            d = m_p / C * quad(lambda s: s**k*self.get_PDF(s), a=0, b=np.inf)[0]
         else:
             m0 = self.spectral_data.moments[0]
 

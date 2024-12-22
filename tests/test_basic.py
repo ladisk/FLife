@@ -79,15 +79,15 @@ def test_data():
 
     # Test PDF's; expected result should be 1
     PDFs = {
-        'Rice': quad(sd.get_peak_PDF, a=-np.Inf, b=np.Inf)[0],
-        'Tovo Benasciutti 1': quad(tb.get_PDF, a=0, b=np.Inf, args=('method 1',))[0],
-        'Tovo Benasciutti 2': quad(tb.get_PDF, a=0, b=np.Inf, args=('method 2',))[0],
-        'Tovo Benasciutti 3': quad(tb.get_PDF, a=0, b=np.Inf, args=('method 3',))[0],
-        'Dirlik':  quad(dk.get_PDF, a=0, b=np.Inf)[0],
-        'Zhao Baker 1': quad(zb.get_PDF, a=0, b=np.Inf, args=('method 1',))[0],
-        'Zhao Baker 2': quad(zb.get_PDF, a=0, b=np.Inf, args=('method 2',))[0],
-        'Park': quad(pk.get_PDF, a=0, b=np.Inf)[0],
-        #'Jun Park': quad(jp.get_PDF, a=0, b=np.Inf)[0] # Correction factor scales the PDF
+        'Rice': quad(sd.get_peak_PDF, a=-np.inf, b=np.inf)[0],
+        'Tovo Benasciutti 1': quad(tb.get_PDF, a=0, b=np.inf, args=('method 1',))[0],
+        'Tovo Benasciutti 2': quad(tb.get_PDF, a=0, b=np.inf, args=('method 2',))[0],
+        'Tovo Benasciutti 3': quad(tb.get_PDF, a=0, b=np.inf, args=('method 3',))[0],
+        'Dirlik':  quad(dk.get_PDF, a=0, b=np.inf)[0],
+        'Zhao Baker 1': quad(zb.get_PDF, a=0, b=np.inf, args=('method 1',))[0],
+        'Zhao Baker 2': quad(zb.get_PDF, a=0, b=np.inf, args=('method 2',))[0],
+        'Park': quad(pk.get_PDF, a=0, b=np.inf)[0],
+        #'Jun Park': quad(jp.get_PDF, a=0, b=np.inf)[0] # Correction factor scales the PDF
     }
     for method, value in PDFs.items():
         np.testing.assert_almost_equal(value, 1., decimal=5, err_msg=f'Method: {method}')
