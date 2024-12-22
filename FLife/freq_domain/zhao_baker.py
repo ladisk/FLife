@@ -193,11 +193,15 @@ class ZhaoBaker(object):
         else:
             m0 = self.spectral_data.moments[0]
             m_p = self.spectral_data.m_p
-
+            
             a, b, w = self._calculate_coefficients(method=method)
                     
             d = (m_p/C) * m0**(0.5*k) * ( w * a**(-k/b) * gamma(1.0+k/b) +\
                     (1.0-w) * 2**(0.5*k) * gamma(1.0+0.5*k) )
     
+        # convert d to scalar if it is array of length 1
+        if type(d) == np.ndarray and len(d) == 1:
+            d = d[0]
+
         T = float(1.0/d)
         return T
