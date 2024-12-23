@@ -1,3 +1,5 @@
+|pytest| |Docs Status| |zenodo|
+
 FLife - Vibration Fatigue by Spectral Methods
 ---------------------------------------------
 
@@ -251,7 +253,6 @@ References:
        Mechanical Systems and Signal Processing, 2023, 
        `see https://doi.org/10.1016/j.ymssp.2023.110149`
 
-|pytest| |Docs Status| |zenodo|
 
 .. |Docs Status| image:: https://readthedocs.org/projects/flife/badge/
    :target: https://flife.readthedocs.io
