@@ -4,14 +4,14 @@ build-backend = "hatchling.build"
 
 [project]
 name = "FLife"
-version = "1.4.1"
+version = "1.4.4"
 authors = [{name = "Aleš Zorman, Matjaž Mršnik, Janko Slavič", email = "janko.slavic@fs.uni-lj.si"}]
 maintainers = [{name = "Janko Slavič, Domen Gorjup", email = "janko.slavic@fs.uni-lj.si"}]
 license = "MIT"
 description = "Vibration Fatigue by Spectral Methods."
 readme = "README.rst"
 keywords = ['vibration', 'fatigue', 'spectral methods', 'structural dynamics']
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
     "numpy",
     "scipy",
@@ -20,14 +20,14 @@ dependencies = [
     "pylint",
     "pytest",
     "lvm_read",
-    "matplotlib>=3.3",
+    "matplotlib",
     "pyExSi",
 ]
 classifiers = [
     'Development Status :: 5 - Production/Stable',
     'Intended Audience :: Developers',
     'Topic :: Scientific/Engineering',
-    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
     "License :: OSI Approved :: MIT License",
 ]
 
