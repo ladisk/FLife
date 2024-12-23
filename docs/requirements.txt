@@ -11,3 +11,5 @@ pytest
 lvm_read
 matplotlib>=3.3
 pyExSi
+sphinx-book-theme
+sphinx-copybutton
