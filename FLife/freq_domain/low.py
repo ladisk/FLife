@@ -111,15 +111,9 @@ class Low(object):
         
         # -- spectral moments for each narrowband
         moments = self.spectral_data.get_spectral_moments(self.PSD_splitting, moments=[0])
-        m0L = moments[0] #spectral moments for lower band
-        m0H = moments[1] #spectral moments for upper band
+        m0L, = moments[0] #spectral moments for lower band
+        m0H, = moments[1] #spectral moments for upper band
         
-        if type(m0L) == np.ndarray and len(m0L) == 1:
-            m0L = m0L[0]
-        # convert m0H to scalar if it is array of length 1
-        if type(m0H) == np.ndarray and len(m0H) == 1:
-            m0H = m0H[0]
-
         # -- positive slope zero crossing frequency
         v0L, v0H = self.spectral_data.get_nup(self.PSD_splitting)
         v0Small = v0H - v0L  #frequency of small cycless
