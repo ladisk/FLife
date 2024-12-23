@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "FLife"
-version = "1.4.3"
+version = "1.4.4"
 authors = [{name = "Aleš Zorman, Matjaž Mršnik, Janko Slavič", email = "janko.slavic@fs.uni-lj.si"}]
 maintainers = [{name = "Janko Slavič, Domen Gorjup", email = "janko.slavic@fs.uni-lj.si"}]
 license = "MIT"

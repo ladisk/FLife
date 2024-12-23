@@ -134,7 +134,12 @@ class BandsMethod(Narrowband):
             modified_PSD.append(PSD_i_modified)
         modified_PSD = np.array(modified_PSD)
 
-        m0_ref = np.trapezoid(modified_PSD, dx=df)
+        if np.__version__>='2.0.0':
+            trapezoid = np.trapezoid
+        else:
+            trapezoid = np.trapz
+            
+        m0_ref = trapezoid(modified_PSD, dx=df)
         return m0_ref
 
     def get_PDF(self, s):

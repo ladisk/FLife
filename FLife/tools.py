@@ -95,7 +95,11 @@ def random_gaussian(freq, PSD, T, fs, rg=None, random_amplitude=False, **kwargs)
     Dover Publications, 2005
     """ 
     # time and frequency data
-    var = np.trapezoid(PSD,freq)
+    if np.__version__>='2.0.0':
+        trapezoid = np.trapezoid
+    else:
+        trapezoid = np.trapz
+    var = trapezoid(PSD,freq)
     N = int(T * fs)
     M = N//2 + 1
     t = np.arange(0,N) / fs # time vector
