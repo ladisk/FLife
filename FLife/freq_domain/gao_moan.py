@@ -185,7 +185,7 @@ class GaoMoan(JiaoMoan):
         # LF component pdf - rayleigh distributed
         pdf_LF = lambda s: stats.rayleigh.pdf(s/np.sqrt(m0_LF)) / np.sqrt(m0_LF)
         # large-amplitude cycle pdf
-        pdf_L = lambda s: np.convolve(pdf_M(s), pdf_LF(s)) # large cycle pdf
+        pdf_L = lambda s: np.convolve(pdf_M(s), pdf_LF(s))[0] # large cycle pdf
 
         S_L = integrate.quad(lambda s: s**k * pdf_L(s), 0, np.inf)[0] 
         d = nu_L * S_L / C
