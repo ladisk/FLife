@@ -135,9 +135,9 @@ class ZhaoBaker(object):
                    3.0 * np.sqrt(np.pi/2.0) * alpha2 * (1.0 - ro)
         
         try:
-            root = fsolve(eq, 0)
+            root = fsolve(eq, 0)[0]
         except:
-            root = fsolve(eq, np.random.rand()*5.0)
+            root = fsolve(eq, np.random.rand()*5.0)[0]
         
         a = root**(-b) 
         w = ( 1.0 - alpha2 ) / ( 1.0 - np.sqrt(2.0/np.pi) * gamma(1.0 + 1.0/b) * a**(-1.0/b) )
@@ -198,10 +198,6 @@ class ZhaoBaker(object):
                     
             d = (m_p/C) * m0**(0.5*k) * ( w * a**(-k/b) * gamma(1.0+k/b) +\
                     (1.0-w) * 2**(0.5*k) * gamma(1.0+0.5*k) )
-    
-        # convert d to scalar if it is array of length 1
-        if type(d) == np.ndarray and len(d) == 1:
-            d = d[0]
 
         T = float(1.0/d)
         return T

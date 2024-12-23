@@ -106,8 +106,8 @@ class JiaoMoan(Narrowband):
         return T
 
     def _life_NB(self, C, k):
-        m0H = self.spectral_data.get_spectral_moments(self.PSD_splitting, moments=[0])[0][0]
-        v0H = self.spectral_data.get_nup(self.PSD_splitting)[0]
+        m0H, = self.spectral_data.get_spectral_moments(self.PSD_splitting, moments=[0])[0][0]
+        v0H, = self.spectral_data.get_nup(self.PSD_splitting)[0]
 
         # -- Define expected value of stress range ( int(S^k * p(s)) ) proces H(t), fatigue life
         dNB_H = self.damage_intesity_NB(m0=m0H, nu=v0H, C=C, k=k) 
