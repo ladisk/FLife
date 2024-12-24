@@ -323,3 +323,36 @@ def _EVMS_out_of_phase(self, s):
 
     return s_eq
 
+def _Nieslony(self, s, s_af, tau_af,coefficient_load_type):
+    """
+    Internal function for calculating equivalent stress at one node.
+    """
+
+    G_p = 1/9*_thermoelastic(self,s)
+    G_EVMS = _EVMS(self,s)
+
+    s_eq = np.empty((len(s)))
+
+    for i in range(len(s)): 
+        a_sigma = np.sqrt(2*np.diagonal(s[i]))
+        #find the index of maximum value of a_sigma
+        k = np.argmax(a_sigma)
+        phi_k = np.angle(s[i,:,k])
+        s_ = a_sigma * np.exp(1j * phi_k)
+        sigma_EMSc = 1/np.sqrt(2) * np.sqrt((s_[0]-s_[1])**2 + (s_[1]-s_[2])**2 + (s_[2]-s_[0])**2 + 6*(s_[3]**2+s_[4]**2+s_[5]**2))
+        sigma_pc = 1/3 * (s_[0]+s_[1]+s_[2])
+        rp_EMS = np.abs(np.cos(np.angle(sigma_EMSc)-np.angle(sigma_pc)))
+
+        if coefficient_load_type == 'tension':
+            A = (-np.sqrt(3) / tau_af) * ((s_af * rp_EMS) - np.sqrt((s_af ** 2) * (rp_EMS ** 2) - (s_af ** 2) + 3 * (tau_af ** 2)))
+            B = (np.sqrt(3) / 3) * (s_af / tau_af)
+
+        elif coefficient_load_type == 'torsion':
+            A = (-np.sqrt(3) / s_af) * ((s_af * rp_EMS) - np.sqrt((s_af ** 2) * (rp_EMS ** 2) - (s_af ** 2) + 3 * (tau_af ** 2)))
+            B = np.sqrt(3) / 3
+        else:
+            raise ValueError('Invalid coefficient_load_type. Please choose either "tension" or "torsion"')
+        
+        s_eq[i] = A**2 * G_p[i] + B**2 * G_EVMS[i] + 2 * A * B * rp_EMS * np.sqrt(G_p[i] * G_EVMS[i])
+    
+    return s_eq

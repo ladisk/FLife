@@ -263,6 +263,7 @@ Supported multiaxial criteria
    - Frequency-based multiaxial rainflow criterion
    - Thermoelasticity-based criterion
    - EVMS adaptation for out-of-phase components
+   - Nieslony criterion, combining EVMS and hydrostatic stresses
    - LiWI approach
    - COIN-LiWI method
 

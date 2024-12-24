@@ -20,6 +20,7 @@ class EquivalentStress(SpectralData): #equivalentstress
     - multiaxial_rainflow: Frequency-based multiaxial rainflow criterion
     - thermoelastic: Thermoelasticity-based criterion
     - EVMS_out_of_phase: EVMS adaptation for out-of-phase components
+    - Nieslony: Nieslony criterion, combining von Mises and hydrostatic stresses
     - liwi: LiWI approach
     - coin_liwi: COIN-LiWI method
 
@@ -367,3 +368,30 @@ class EquivalentStress(SpectralData): #equivalentstress
             s_eq_psd = criteria._EVMS_out_of_phase(self,s=self.multiaxial_psd[0])
 
             self.set_eq_stress(eq_psd=s_eq_psd, f=self.multiaxial_psd[1])
+
+
+    def Nieslony(self, s_af, tau_af, coefficient_load_type='tension'):
+        """Converts the stress tensor at one node to equivalent,
+        scalar psd stress, using the Nieaslony criterion, combining von Mises and hydrostatic stresses.
+
+        :param s_af: float
+            Fully reversed torsion-fatigue limit.
+        :param tau_af: float
+            Fully reversed torsion-fatigue limit.
+        :param coefficient_load_type: str
+            Type of load with which the material fatigue properties were determined. Options are 'tension' for tension-compression load or 'torsion'.
+        --------
+
+        -Adam Niesłony, Michał Böhm, Robert Owsiński, Artur Dziura, Karol Czekaj,
+        Integrating von Mises and hydrostatic stresses in frequency domain multiaxial fatigue criteria for vibration fatigue analysis,
+        Mechanical Systems and Signal Processing, 2025
+
+        """
+        # psd is multiple-point
+        if self.multipoint:
+            self.loop_over_points(criterion=criteria._Nieslony, s_af=s_af, tau_af=tau_af, coefficient_load_type=coefficient_load_type)
+        
+        # psd is single-point
+        else:
+            s_eq = criteria._Nieslony(self,s=self.multiaxial_psd[0], s_af=s_af, tau_af=tau_af, coefficient_load_type=coefficient_load_type)
+            self.set_eq_stress(eq_psd=s_eq, f=self.multiaxial_psd[1])
