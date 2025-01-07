@@ -12,15 +12,16 @@ class EquivalentStress(SpectralData): #equivalentstress
     If instance of SpectralData is passed as input, the multiaxial PSD is inherited, otherwise it is created from input PSD.
     -----
     The following multiaxial criteria are available for equivalent stress calculation:
-    - max_normal: Maximum normal stress  on critical plane
-    - max_shear: Maximum shear stress  on critical plane
-    - max_normal_and_shear: Maximum normal and shear stress  on critical plane
+    - max_normal: Maximum normal stress on critical plane
+    - max_shear: Maximum shear stress on critical plane
+    - max_normal_and_shear: Maximum normal and shear stress on critical plane
     - EVMS: Equivalent von Misses stress
     - cs: Carpinteri-Spagnoli criterion
     - multiaxial_rainflow: Frequency-based multiaxial rainflow criterion
     - thermoelastic: Thermoelasticity-based criterion
     - EVMS_out_of_phase: EVMS adaptation for out-of-phase components
     - Nieslony: Nieslony criterion, combining von Mises and hydrostatic stresses
+    - Lemaitre: Equivalent Lemaitre stress
     - liwi: LiWI approach
     - coin_liwi: COIN-LiWI method
 
@@ -394,4 +395,23 @@ class EquivalentStress(SpectralData): #equivalentstress
         # psd is single-point
         else:
             s_eq = criteria._Nieslony(self,s=self.multiaxial_psd[0], s_af=s_af, tau_af=tau_af, coefficient_load_type=coefficient_load_type)
+            self.set_eq_stress(eq_psd=s_eq, f=self.multiaxial_psd[1])
+
+    def Lemaitre(self, poisson_ratio):
+        """
+        Converts the stress tensor at one node or multiple nodes to equivalent,
+        scalar psd stress, using ther equivalent Lemaitre stress in frequency domain
+    
+        --------
+        -Jingran Ge, Yi Sun, Song Zhou;
+        Fatigue life estimation under multiaxial random loading by means of the equivalent Lemaitre stress and multiaxial S–N curve methods.
+        International Journal of Fatigue, 2015
+        """
+        # psd is multiple-point
+        if self.multipoint:
+            self.loop_over_points(criterion=criteria._Lemaitre, poisson_ratio=poisson_ratio)
+        
+        # psd is single-point
+        else:
+            s_eq = criteria._Lemaitre(self,s=self.multiaxial_psd[0], poisson_ratio=poisson_ratio)
             self.set_eq_stress(eq_psd=s_eq, f=self.multiaxial_psd[1])

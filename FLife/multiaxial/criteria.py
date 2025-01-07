@@ -356,3 +356,32 @@ def _Nieslony(self, s, s_af, tau_af,coefficient_load_type):
         s_eq[i] = A**2 * G_p[i] + B**2 * G_EVMS[i] + 2 * A * B * rp_EMS * np.sqrt(G_p[i] * G_EVMS[i])
     
     return s_eq
+
+def _Lemaitre(self, s, poisson_ratio):
+    """
+    Internal function for calculating equivalent stress at one node.
+    """
+    
+    freq = self.multiaxial_psd[1]
+    df = freq[1] - freq[0]
+
+    Q = np.array([
+        [1,-poisson_ratio,-poisson_ratio,0,0,0],
+        [-poisson_ratio,1,-poisson_ratio,0,0,0],
+        [-poisson_ratio,-poisson_ratio,1,0,0,0],
+        [0,0,0,2*(1+poisson_ratio),0,0],
+        [0,0,0,0,2*(1+poisson_ratio),0],
+        [0,0,0,0,0,2*(1+poisson_ratio)]])
+    
+    Q_2D = np.array([
+        [1,-poisson_ratio,0],
+        [-poisson_ratio,1,0],
+        [0,0,2*(1+poisson_ratio)],])
+
+    if s.shape[1] == 6 and s.shape[2] == 6:
+        s_eq = np.trace(np.einsum('ij,kjl->kil', Q, s),axis1=1,axis2=2)
+    elif s.shape[1] == 3 and s.shape[2] == 3:
+        s_eq = np.trace(np.einsum('ij,kjl->kil', Q_2D, s),axis1=1,axis2=2)
+    else:
+        raise Exception('Input Error. PSD matrix should be the size of (f,6,6) for 3D stress state or (f,3,3) for 2D stress state')
+    return s_eq

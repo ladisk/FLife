@@ -264,6 +264,7 @@ Supported multiaxial criteria
    - Thermoelasticity-based criterion
    - EVMS adaptation for out-of-phase components
    - Nieslony criterion, combining EVMS and hydrostatic stresses
+   - Equivalent Lemaitre stress
    - LiWI approach
    - COIN-LiWI method
 
@@ -304,7 +305,7 @@ the whole FEM model.
 
 Instead of manual point selection, critical point can be selected with
 GUI by right clickling on the model. Heatmap of equivalent stress can be
-shown at a desired frequency, set by the slider on the bottom-right side
+shown at a desired frequency, set by the slider on the bottom-left side
 of the GUI.
 
 |GUI Multiaxial|

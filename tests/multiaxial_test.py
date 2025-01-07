@@ -22,7 +22,8 @@ def test_data():
         'liwi': 2083.2568582803156,
         'coin_liwi': 2044.550993026664, #k_a=1.70, k_phi=0.90
         'EVMS_out_of_phase': 2083.2568582803156,
-        'Nieslony': 1592.0621836751761 #s_af = 1, tau_af = 1
+        'Nieslony': 1592.0621836751761, #s_af = 1, tau_af = 1
+        'Lemaitre': 1942.5082573579468 # poisson_ratio = 0.5
     }
 
     #test_PSD
@@ -57,6 +58,7 @@ def test_data():
     coin_liwi = FLife.EquivalentStress(input=input_dict_ampl_3d,T=1,fs=5000)
     EVMS_out_of_phase = FLife.EquivalentStress(input=input_dict_psd_2d,T=1,fs=5000)
     Nieslony = FLife.EquivalentStress(input=input_dict_psd_3d,T=1,fs=5000)
+    Lemaitre = FLife.EquivalentStress(input=input_dict_psd_3d,T=1,fs=5000)
 
     # Multiaxial criteria
     EVMS.EVMS()
@@ -70,6 +72,7 @@ def test_data():
     coin_liwi.coin_liwi(k_a=1.70, k_phi=0.90)
     EVMS_out_of_phase.EVMS_out_of_phase()
     Nieslony.Nieslony(s_af=1, tau_af=1)
+    Lemaitre.Lemaitre(poisson_ratio=0.3)
 
     results = {
         'EVMS': EVMS.eq_psd_multipoint[0][0,24],
@@ -82,7 +85,8 @@ def test_data():
         'liwi': liwi.eq_psd_multipoint[0][0,24],
         'coin_liwi': coin_liwi.eq_psd_multipoint[0][0,24],
         'EVMS_out_of_phase': EVMS_out_of_phase.eq_psd_multipoint[0][0,24],
-        'Nieslony': Nieslony.eq_psd_multipoint[0][0,24]
+        'Nieslony': Nieslony.eq_psd_multipoint[0][0,24],
+        'Lemaitre': Lemaitre.eq_psd_multipoint[0][0,24]
     }
 
     for criterion, value in results.items():
