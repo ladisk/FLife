@@ -70,7 +70,8 @@ Here is a simple example on how to use the code:
     k = 7.3 # S-N curve inverse slope [/]
 
     # Spectral data
-    sd = FLife.SpectralData(input=(x, dt))
+    input_dict = {'time_history': x, 'dt': dt}
+    sd = FLife.SpectralData(input=input_dict)
 
     # Rainflow reference fatigue life 
     # (do not be confused here, spectral data object also holds the time domain data)
@@ -90,9 +91,8 @@ SpectralData object contains data, required for fatigue-life estimation: power s
 SpectralData is instantiated with `input` parameter:
 
     - `input` = 'GUI' - PSD is provided by user via GUI (graphically and tabulary)
-    - `input` = (PSD, freq) - tuple of PSD and frequency vector is provided.
-    - `input` = (x, dt) - tuple of time history and sampling period is provided.
-
+    - `input` = dictionary with PSD and frequency vector is provided. (keys ``PSD`` and ``f``)
+    - `input` = dictionary with time history and sampling period is provided. (keys ``time_history`` and ``dt``)
 GUI
 ***
 .. code-block:: python
@@ -137,9 +137,11 @@ Optional parameter for time-history is random generator instance `rg` (numpy.ran
     A = 1 # PSD value
     PSD = np.interp(freq, [f_low, f_high], [A,A], left=0, right=0) # Flat-shaped one-sided PSD
     
-    sd4 = FLife.SpectralData(input = (PSD, freq))
+    input_dict = {'PSD': PSD, 'f': freq}
+
+    sd4 = FLife.SpectralData(input = input_dict)
     # time-history can be generated at SpectralData object instantiation. Sampling frequency `fs` and signal length `T` parameter are needed.
-    sd5 = FLife.SpectralData(input = (PSD, freq), T=1, fs=1e5, rg=rg)
+    sd5 = FLife.SpectralData(input = input_dict, T=1, fs=1e5, rg=rg)
 
     time_history = sd5.data
     # time-history duration and sampling period are dependent on frequency vector length and step
@@ -164,7 +166,9 @@ Time history `x` and sampling period `dt` are given as input. `x` must be of typ
     time, signal = FLife.tools.random_gaussian(freq=freq, PSD=PSD, T=10, fs=1e3, rg=rg)
     dt = time[1]
 
-    sd6 = FLife.SpectralData(input=(signal,dt))
+    input_dict = {'time_history': signal, 'dt': dt}
+
+    sd6 = FLife.SpectralData(input=input_dict)
 
     # Get PSD data from spectralData object
     freq = sd6.psd[:,0]

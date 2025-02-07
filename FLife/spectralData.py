@@ -214,6 +214,7 @@ class SpectralData(object):
 
         # If input is tuple, dictionary is created (backwards compatibility)
         elif isinstance(input, tuple) and len(input) == 2:
+            warnings.warn('Tuple input has been deprecated. Use dictionary input instead.')
             # If input is time signal
             if isinstance(input[0], np.ndarray) and isinstance(input[1], (int, float)):
                 input = {'time_history': input[0], 'dt': input[1]}
@@ -265,7 +266,6 @@ class SpectralData(object):
             
                 # Uniaxial PSD
                 elif input['PSD'].ndim==1:
-                    print('Input PSD is uniaxial')
                     psd = input['PSD']
                     f = input['f']
                     self.psd = np.column_stack((f, psd))
@@ -285,9 +285,6 @@ class SpectralData(object):
                     ):     
                         if self.multiaxial_amplitude_spectrum[0].ndim == 3:
                             self.multipoint = True
-                        
-
-                        #print('Input PSD is correct shape')
 
                         if T is not None and fs is not None:
                             self.t = T

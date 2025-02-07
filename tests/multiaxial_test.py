@@ -23,7 +23,7 @@ def test_data():
         'coin_liwi': 2044.550993026664, #k_a=1.70, k_phi=0.90
         'EVMS_out_of_phase': 2083.2568582803156,
         'Nieslony': 1592.0621836751761, #s_af = 1, tau_af = 1
-        'Lemaitre': 1942.5082573579468 # poisson_ratio = 0.5
+        'Lemaitre': 1942.5082573579468 # poisson_ratio = 0.3
     }
 
     #test_PSD
