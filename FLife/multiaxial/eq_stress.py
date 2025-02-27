@@ -10,7 +10,9 @@ class EquivalentStress(SpectralData): #equivalentstress
 
     EquivalentStress inherits from SpectralData class, so all methods from SpectralData are available for fatigue analysis.
     If instance of SpectralData is passed as input, the multiaxial PSD is inherited, otherwise it is created from input PSD.
+    
     -----
+    
     The following multiaxial criteria are available for equivalent stress calculation:
     - max_normal: Maximum normal stress on critical plane
     - max_shear: Maximum shear stress on critical plane
@@ -64,6 +66,7 @@ class EquivalentStress(SpectralData): #equivalentstress
                 Random generator controls phase of generated time history, when `input` is 'GUI' or 
                 (PSD, frequency vector).
                 Defaults to None.
+
         """
         # Class in instantiated with EquivalentStress(input), input is dictionary or tuple (PSD,freq)
         if isinstance(input, dict) or isinstance(input, tuple):
@@ -125,6 +128,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         
         :param point_index: int
                 Index of the critical point
+
         """
         self.set_eq_stress(eq_psd=self.eq_psd_multipoint[0][point_index], f=self.eq_psd_multipoint[1])
 
@@ -135,10 +139,12 @@ class EquivalentStress(SpectralData): #equivalentstress
         
         :param search_method: str, optional, default 'local'
                 Search method for optimization. Options are 'local' or 'global'. Local is prefered, unless the optimization fails.
+        
         --------
 
-        -Nieslony, Adam and Macha, Ewald (2007);
-        Spectral method in multiaxial random fatigue
+        - Nieslony, Adam and Macha, Ewald (2007);
+            Spectral method in multiaxial random fatigue
+
         """
         # psd is multiple-point
         if self.multipoint: 
@@ -157,10 +163,12 @@ class EquivalentStress(SpectralData): #equivalentstress
         
         :param search_method: str, optional, default 'local'
                 Search method for optimization. Options are 'local' or 'global'. Local is prefered, unless the optimization fails.
+        
         --------
             
-        -Nieslony, Adam and Macha, Ewald (2007);
-        Spectral method in multiaxial random fatigue
+        - Nieslony, Adam and Macha, Ewald (2007);
+            Spectral method in multiaxial random fatigue
+
         """
         # psd is multiple-point
         if self.multipoint:
@@ -177,18 +185,21 @@ class EquivalentStress(SpectralData): #equivalentstress
         scalar psd stress, using method of maximum normal and shear stress.
         
         Critical plane is based on max variance of shear stress
+        
         :param s_af: float
-                Fully reversed torsion-fatigue limit. Used for calculating material fatigue coefficient K [1].
+            Fully reversed torsion-fatigue limit. Used for calculating material fatigue coefficient K [1].
         :param tau_af: float
-                Fully reversed torsion-fatigue limit. Used Used for calculating material fatigue coefficient K [1].
+            Fully reversed torsion-fatigue limit. Used Used for calculating material fatigue coefficient K [1].
+        
         --------
             
-        -Nieslony, Adam and Macha, Ewald (2007);
-        Spectral method in multiaxial random fatigue
+        - Nieslony, Adam and Macha, Ewald (2007);
+            Spectral method in multiaxial random fatigue
 
-        [1] Matjaz Mrsnik, Janko Slavic and Miha Boltezar
+        - Matjaz Mrsnik, Janko Slavic and Miha Boltezar
             Multiaxial Vibration Fatigue A Theoretical and Experimental Comparison.
             Mechanical Systems and Signal Processing, 2016
+
         """
         # psd is multiple-point
         if self.multipoint:
@@ -205,8 +216,10 @@ class EquivalentStress(SpectralData): #equivalentstress
         scalar psd stress, using ther equivalent von Misses stress in frequency domain (EVMS)
     
         --------
-        -Preumont, A., & Piéfort, V. (1994);
-        Predicting Random High-Cycle Fatigue Life With Finite Elements.
+
+        - Preumont, A., & Piéfort, V. (1994);
+            Predicting Random High-Cycle Fatigue Life With Finite Elements.
+
         """
         # psd is multiple-point
         if self.multipoint:
@@ -222,14 +235,16 @@ class EquivalentStress(SpectralData): #equivalentstress
         scalar psd stress, using the C-S criterion.
         
         :param s_af: float
-                Fully reversed torsion-fatigue limit.
+            Fully reversed torsion-fatigue limit.
         :param tau_af: float
-                Fully reversed torsion-fatigue limit.
+            Fully reversed torsion-fatigue limit.
+        
         --------
 
-        -Carpinteri A, Spagnoli A and Vantadori S; 
-        Reformulation in the frequency domain of a critical plane-based multiaxial fatigue criterion,
-        Int J Fat, 2014
+        - Carpinteri A, Spagnoli A and Vantadori S; 
+            Reformulation in the frequency domain of a critical plane-based multiaxial fatigue criterion,
+            Int J Fat, 2014
+
         """
         # psd is multiple-point
         if self.multipoint:
@@ -248,9 +263,10 @@ class EquivalentStress(SpectralData): #equivalentstress
     
         --------
 
-        -Pitoiset, Xavier, and André Preumont; 
-        Spectral methods for multiaxial random fatigue analysis of metallic structures, 
-        International journal of fatigue, 2000
+        - Pitoiset, Xavier, and André Preumont; 
+            Spectral methods for multiaxial random fatigue analysis of metallic structures, 
+            International journal of fatigue, 2000
+
         """
         # psd is multiple-point
         if self.multipoint:
@@ -268,9 +284,10 @@ class EquivalentStress(SpectralData): #equivalentstress
 
         --------
 
-        -Šonc J, Zaletelj K and Slavič J;
-        Application of thermoelasticity in the frequency-domain multiaxial vibration-fatigue criterion, 
-        Mechanical Systems and Signal Processsing, 2025
+        - Šonc J, Zaletelj K and Slavič J;
+            Application of thermoelasticity in the frequency-domain multiaxial vibration-fatigue criterion, 
+            Mechanical Systems and Signal Processsing, 2025
+
         """
         # psd is multiple-point
         if self.multipoint:
@@ -289,9 +306,9 @@ class EquivalentStress(SpectralData): #equivalentstress
 
         --------
 
-        -Alexander T. Schmidt, Nimish Pandiya,
-        Extension of the static equivalent stress hypotheses to linearly vibrating systems using wave interference – The LiWI approach,
-        International Journal of Fatigue, 2021,
+        - Alexander T. Schmidt, Nimish Pandiya,
+            Extension of the static equivalent stress hypotheses to linearly vibrating systems using wave interference – The LiWI approach,
+            International Journal of Fatigue, 2021,
 
         """
         if not hasattr(self,'multiaxial_amplitude_spectrum'):
@@ -318,15 +335,15 @@ class EquivalentStress(SpectralData): #equivalentstress
         ONLY WORKS WITH 3D AMPLITUDE SPECTRUM (f,6) - single point or (N,f,6) - multiple points
         
         :param k_a: float
-                Tension shear strength ratio. (from article: 1.70 for aluminum alloy, 1.64 for structural steel, 1.43 for cast iron)
+            Tension shear strength ratio. (from article: 1.70 for aluminum alloy, 1.64 for structural steel, 1.43 for cast iron)
         :param k_phi: float
-                Phase influence factor (from article: 0.90 for aluminum alloy, 0.85 for structural steel, 1.10 for cast iron)
+            Phase influence factor (from article: 0.90 for aluminum alloy, 0.85 for structural steel, 1.10 for cast iron)
         
         --------
 
-        -Alexander T. Schmidt, Jan Kraft,
-        A new equivalent stress approach based on complex invariants: The COIN LiWI method,
-        International Journal of Fatigue, 2023
+        - Alexander T. Schmidt, Jan Kraft,
+            A new equivalent stress approach based on complex invariants: The COIN LiWI method,
+            International Journal of Fatigue, 2023
         
         """
         if not hasattr(self,'multiaxial_amplitude_spectrum'):
@@ -354,9 +371,9 @@ class EquivalentStress(SpectralData): #equivalentstress
                
         --------
 
-        -Bonte, Martijn HA and de Boer, Andries and Liebregts R
-        Determining the von Mises stress power spectral density for frequency domain fatigue analysis including out-of-phase stress components,
-        Journal of Sound and Vibration, 2007
+        - Bonte, Martijn HA and de Boer, Andries and Liebregts R
+            Determining the von Mises stress power spectral density for frequency domain fatigue analysis including out-of-phase stress components,
+            Journal of Sound and Vibration, 2007
         
         """
         
@@ -381,11 +398,12 @@ class EquivalentStress(SpectralData): #equivalentstress
             Fully reversed torsion-fatigue limit.
         :param coefficient_load_type: str
             Type of load with which the material fatigue properties were determined. Options are 'tension' for tension-compression load or 'torsion'.
+        
         --------
 
-        -Adam Niesłony, Michał Böhm, Robert Owsiński, Artur Dziura, Karol Czekaj,
-        Integrating von Mises and hydrostatic stresses in frequency domain multiaxial fatigue criteria for vibration fatigue analysis,
-        Mechanical Systems and Signal Processing, 2025
+        - Adam Niesłony, Michał Böhm, Robert Owsiński, Artur Dziura, Karol Czekaj,
+            Integrating von Mises and hydrostatic stresses in frequency domain multiaxial fatigue criteria for vibration fatigue analysis,
+            Mechanical Systems and Signal Processing, 2025
 
         """
         # psd is multiple-point
@@ -403,9 +421,11 @@ class EquivalentStress(SpectralData): #equivalentstress
         scalar psd stress, using ther equivalent Lemaitre stress in frequency domain
     
         --------
-        -Jingran Ge, Yi Sun, Song Zhou;
-        Fatigue life estimation under multiaxial random loading by means of the equivalent Lemaitre stress and multiaxial S–N curve methods.
-        International Journal of Fatigue, 2015
+
+        - Jingran Ge, Yi Sun, Song Zhou;
+            Fatigue life estimation under multiaxial random loading by means of the equivalent Lemaitre stress and multiaxial S–N curve methods.
+            International Journal of Fatigue, 2015
+            
         """
         # psd is multiple-point
         if self.multipoint:

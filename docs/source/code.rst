@@ -103,3 +103,11 @@ Bands method
 Time-domain fatigue life
 ------------------------
 .. autoclass:: FLife.time_domain.Rainflow
+
+Multiaxial fatigue life
+-----------------------
+.. autoclass:: FLife.multiaxial.EquivalentStress
+
+Visualize
+*********
+.. autofunction:: FLife.visualize.pick_point
