@@ -92,7 +92,7 @@ SpectralData is instantiated with `input` parameter:
     - `input` = 'GUI' - PSD is provided by user via GUI (graphically and tabulary)
     - `input` = dictionary with PSD and frequency vector is provided. (keys ``PSD`` and ``f``)
     - `input` = dictionary with time history and sampling period is provided. (keys ``time_history`` and ``dt``)
-
+ 
 GUI
 ***
 .. code-block:: python
