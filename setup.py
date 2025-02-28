@@ -43,7 +43,7 @@ if __name__ == '__main__':
         license='MIT license',
         url='https://github.com/ladisk/FLife',
         version=version,
-        author='Aleš Zorman, Matjaž Mršnik, Janko Slavič',
+        author='Aleš Zorman, Jaša Šonc, Matjaž Mršnik, Janko Slavič',
         author_email='janko.slavic@fs.uni-lj.si',
         maintainer='Janko Slavič, Domen Gorjup, Aleš Zorman',
         maintainer_email='janko.slavic@fs.uni-lj.si',
