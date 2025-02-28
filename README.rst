@@ -51,7 +51,6 @@ Supported methods in the frequency-domain
 
 Rainflow (time-domain) is supported using the `fatpack` (four-points algorithm) and `rainflow` (three-points algorithm) packages.
 
-
 Simple example
 ---------------
 
@@ -200,7 +199,7 @@ SpectralData instance is prerequisite for spectral method instantiation. For mul
     jm1 = FLife.JiaoMoan(sd)
     jm2 = FLife.JiaoMoan(sd, PSD_splitting=('equalAreaBands', 2)) # same as jm1, PSD is divided in 2 bands with equal area
     jm3 = FLife.JiaoMoan(sd, PSD_splitting=('userDefinedBands', [80,150])) #80 and 150 are bands upper limits [Hz]
-    
+
 PDF
 ***
 Some spectral methods supports PDF stress cycle amplitude via get_PDF(s, \**kwargs) function:
@@ -230,7 +229,6 @@ Vibration-fatigue life is returned by function get_life(C,k,\**kwargs):
 Rainflow
 --------
 Vibration-fatigue life can be compared to rainflow method. When Rainflow class is instantiated, time-history is generated and assigned to SpectralData instance, if not already exist. By providing optional parameter `rg` (numpy.random._generator.Generator instance) phase of stationary Gaussian time history is controlled.
-
     
 .. code-block:: python
 
@@ -246,7 +244,6 @@ Vibration-fatigue life can be compared to rainflow method. When Rainflow class i
     error_nb = FLife.tools.relative_error(life_nb, rf_life_3pt)
     error_dirlik = FLife.tools.relative_error(life_dirlik, rf_life_3pt)
     error_tb = FLife.tools.relative_error(life_tb, rf_life_3pt)
-
 
 Multiaxial vibration fatigue
 -----------------------------
@@ -356,21 +353,6 @@ amplitude spectrum:
    rf = FLife.TovoBenasciutti(eqs)
    fatigue_life = rf.get_life(C=C, k=k)
    print(f'Fatigue life: {fatigue_life:.2f} s')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 References:
     1. Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
