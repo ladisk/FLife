@@ -84,7 +84,8 @@ Here is a simple example on how to use the code:
     print(f'Tovo Benasciutti 2: {tb.get_life(C = C, k=k, method="method 2"):4.0f} s')
 
 SpectralData
--------------
+------------
+
 SpectralData object contains data, required for fatigue-life estimation: power spectral density (PSD), spectral moments, spectral band estimators and others parameters. 
 
 SpectralData is instantiated with `input` parameter:
@@ -92,9 +93,10 @@ SpectralData is instantiated with `input` parameter:
     - `input` = 'GUI' - PSD is provided by user via GUI (graphically and tabulary)
     - `input` = dictionary with PSD and frequency vector is provided. (keys ``PSD`` and ``f``)
     - `input` = dictionary with time history and sampling period is provided. (keys ``time_history`` and ``dt``)
- 
+
 GUI
 ***
+
 .. code-block:: python
 
     sd1 = FLife.SpectralData(input='GUI')
@@ -123,6 +125,7 @@ Optional parameter for time-history is random generator instance `rg` (numpy.ran
 
 (PSD, freq)
 ***********
+
 PSD and frequency arrays are given as input. Both arrays must be of type np.ndarray. 
 
 Stationary Gaussian time-history is generated, if parameters `T` and `fs` are provided. Otherwise, time-history is generated subsequently, when Rainflow fatigue-life is calculated.
@@ -152,6 +155,7 @@ Optional parameter for time-history is random generator instance `rg` (numpy.ran
 
 (x, dt)
 *******
+
 Time history `x` and sampling period `dt` are given as input. `x` must be of type np.ndarray and `dt` of type float, int.
 
 .. code-block:: python
@@ -177,6 +181,7 @@ Time history `x` and sampling period `dt` are given as input. `x` must be of typ
 
 Spectral Methods
 -----------------
+
 Currently 20 spectral methods are supported. Methods for broadband process are organized into 4 subgroups: 
 
     - Narrowband correction factor; methods are based on narrowband approximation, accounting for broadband procces with correction factor.
@@ -202,6 +207,7 @@ SpectralData instance is prerequisite for spectral method instantiation. For mul
 
 PDF
 ***
+
 Some spectral methods supports PDF stress cycle amplitude via get_PDF(s, \**kwargs) function:
 
 .. code-block:: python
@@ -228,6 +234,7 @@ Vibration-fatigue life is returned by function get_life(C,k,\**kwargs):
 
 Rainflow
 --------
+
 Vibration-fatigue life can be compared to rainflow method. When Rainflow class is instantiated, time-history is generated and assigned to SpectralData instance, if not already exist. By providing optional parameter `rg` (numpy.random._generator.Generator instance) phase of stationary Gaussian time history is controlled.
     
 .. code-block:: python
