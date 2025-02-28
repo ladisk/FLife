@@ -380,7 +380,10 @@ References:
        Vibration fatigue by spectral methods—A review with open-source support, 
        Mechanical Systems and Signal Processing, 2023, 
        `see https://doi.org/10.1016/j.ymssp.2023.110149`
-
+    3. Jaša Šonc, Klemen Zaletelj and Janko Slavič.
+       Application of thermoelasticity in the frequency-domain multiaxial vibration-fatigue criterion, 
+       Mechanical Systems and Signal Processsing, 2025
+       `see https://doi.org/10.1016/j.ymssp.2024.112002`
 
 .. |Docs Status| image:: https://readthedocs.org/projects/flife/badge/
    :target: https://flife.readthedocs.io

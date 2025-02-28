@@ -22,12 +22,12 @@ sys.path.insert(0, os.path.abspath('../../'))
 
 project = 'FLife'
 copyright = '2021, Aleš Zorman, Matjaž Mršnik, Janko Slavič'
-author = 'Aleš Zorman, Matjaž Mršnik, Janko Slavič'
+author = 'Aleš Zorman, Jaša Šonc, Matjaž Mršnik, Janko Slavič'
 
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags
-release = '0.1.0'
+release = '2.0.0'
 
 
 # -- General configuration ---------------------------------------------------
