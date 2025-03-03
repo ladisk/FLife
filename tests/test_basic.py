@@ -50,7 +50,8 @@ def test_data():
     x = rms * x / np.std(x) 
 
     # Spectral data
-    sd = FLife.SpectralData(input=(x,t[1]), nperseg=int(0.1/t[1]))
+    input_dict = {'time_history': x, 'dt': t[1]}
+    sd = FLife.SpectralData(input=input_dict, nperseg=int(0.1/t[1]))
 
     # Rainflow reference fatigue life
     rf = FLife.Rainflow(sd)
