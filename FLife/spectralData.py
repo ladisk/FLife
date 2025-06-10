@@ -254,7 +254,9 @@ class SpectralData(object):
                     ):     
                         if self.multiaxial_psd[0].ndim == 4:
                             self.multipoint = True
-
+                        else:
+                            self.multipoint = False
+                            
                         if T is not None and fs is not None:
                             self.t = T
                             self.fs = fs
@@ -285,6 +287,8 @@ class SpectralData(object):
                     ):     
                         if self.multiaxial_amplitude_spectrum[0].ndim == 3:
                             self.multipoint = True
+                        else:
+                            self.multipoint = False
 
                         if T is not None and fs is not None:
                             self.t = T
