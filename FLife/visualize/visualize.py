@@ -70,7 +70,6 @@ def pick_point(self):
 
         # Define a callback function for the point picker
         def point_picker_callback(point):
-            nonlocal freq_index  # Ensure freq_index is accessible
             if point is not None:
                 # Find the index of the picked point in the mesh
                 point_id = self.mesh.find_closest_point(point)
