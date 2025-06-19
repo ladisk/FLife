@@ -203,17 +203,8 @@ class SpectralData(object):
             '\nSampling interval of time signal should be given as second element of tuple `input`.')
             input = (input, kwargs['dt'])
         
-        # Default input is by GUI
-        if input == None or input == 'GUI':
-            self.psd = PSDgen().get_PSD()
-            
-            # needed parameters for time-history generation
-            if T is not None and fs is not None:
-                self._set_time_history(f=self.psd[:,0], psd=self.psd[:,1], T=T, fs=fs, **kwargs)
-
-
         # If input is tuple, dictionary is created (backwards compatibility)
-        elif isinstance(input, tuple) and len(input) == 2:
+        if isinstance(input, tuple) and len(input) == 2:
             warnings.warn('Tuple input has been deprecated. Use dictionary input instead.')
             # If input is time signal
             if isinstance(input[0], np.ndarray) and isinstance(input[1], (int, float)):
@@ -230,11 +221,17 @@ class SpectralData(object):
                     self.psd = self._calculate_psd(self.data, fs=1.0/self.dt, window=window,
                                                 nperseg=nperseg, noverlap=noverlap,
                                                 trim=psd_trim_length)
-                                                
-                    
+                                                                    
+        # Default input is by GUI
+        if input == None or input == 'GUI':
+            self.psd = PSDgen().get_PSD()
+            
+            # needed parameters for time-history generation
+            if T is not None and fs is not None:
+                self._set_time_history(f=self.psd[:,0], psd=self.psd[:,1], T=T, fs=fs, **kwargs)
 
         # Input is dictionary a) PSD and frequency vector or b) time history and sampling interval
-        if isinstance(input, dict):
+        elif isinstance(input, dict):
             if 'time_history' in input and 'dt' in input:
                 self.data = input['time_history']
                 self.dt = input['dt']
