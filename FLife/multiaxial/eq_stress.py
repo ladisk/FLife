@@ -187,7 +187,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         Critical plane is based on max variance of shear stress
         
         :param s_af: float
-            Fully reversed torsion-fatigue limit. Used for calculating material fatigue coefficient K [1].
+            Fully reversed bending-fatigue limit. Used for calculating material fatigue coefficient K [1].
         :param tau_af: float
             Fully reversed torsion-fatigue limit. Used Used for calculating material fatigue coefficient K [1].
         
