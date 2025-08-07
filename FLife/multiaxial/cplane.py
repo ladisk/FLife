@@ -77,7 +77,7 @@ def max_variance(multiaxial_psd, df, method, K=None, search_method='local'):
             return -np.abs(np.einsum('i,ij,j', a, mu, a).real)
 
         if search_method == 'local':
-            res = opt.minimize(crit, [np.pi, np.pi, np.pi], method='L-BFGS-B', bounds=[(0, np.pi), (0, 2*np.pi), (0, 2*np.pi)], options={'disp':False})
+            res = opt.minimize(crit, [np.pi, np.pi, np.pi], method='L-BFGS-B', bounds=[(0, np.pi), (0, 2*np.pi), (0, 2*np.pi)])
         
         elif search_method == 'global':
             res = opt.differential_evolution(crit, bounds=[(0, np.pi), (0, 2*np.pi), (0, 2*np.pi)])
@@ -98,7 +98,7 @@ def max_variance(multiaxial_psd, df, method, K=None, search_method='local'):
             return -np.abs(np.einsum('i,ij,j', a, mu, a).real)
 
         if search_method == 'local':
-            res = opt.minimize(crit, [np.pi, np.pi, np.pi], method='L-BFGS-B', bounds=[(0, np.pi), (0, 2*np.pi), (0, 2*np.pi)], options={'disp': False})
+            res = opt.minimize(crit, [np.pi, np.pi, np.pi], method='L-BFGS-B', bounds=[(0, np.pi), (0, 2*np.pi), (0, 2*np.pi)])
         
         elif search_method == 'global':
             res = opt.differential_evolution(crit, bounds=[(0, np.pi), (0, 2*np.pi), (0, 2*np.pi)])

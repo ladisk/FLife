@@ -7,4 +7,6 @@ pytest
 lvm_read
 matplotlib>=3.3
 pyExSi
-pyvista
+pyvista[all]
+pyvistaqt
+PyQt5

@@ -1,4 +1,5 @@
 import pyvista as pv
+import pyvistaqt as pvqt
 import numpy as np
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -10,6 +11,7 @@ def set_mesh(self,filename):
     :param filename: str
             The filename of the mesh to be visualized and used with pick_point method.
     """
+
     self.mesh = pv.read(filename)
 
 
@@ -23,9 +25,11 @@ def pick_point(self):
     """
     if not hasattr(self, 'mesh'):
         raise AttributeError("Mesh not set. Use set_mesh method to set the mesh.")
+    
     else:
         # Create the plotter object
-        p = pv.Plotter()
+        
+        p = pvqt.BackgroundPlotter()
         f = Figure()
         canvas = FigureCanvas(f)
         ax = f.add_subplot(111)
@@ -117,6 +121,6 @@ def pick_point(self):
         p.add_chart(h_chart)
 
         # Show the plotter
-        p.show(full_screen=True)
+        p.show()
 
 
