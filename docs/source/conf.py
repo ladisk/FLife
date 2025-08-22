@@ -25,9 +25,9 @@ copyright = '2021, Aleš Zorman, Matjaž Mršnik, Janko Slavič'
 author = 'Aleš Zorman, Jaša Šonc, Matjaž Mršnik, Janko Slavič'
 
 # The short X.Y version
-version = ''
+version = '2.0'
 # The full version, including alpha/beta/rc tags
-release = '2.0.0'
+release = '2.0.6'
 
 
 # -- General configuration ---------------------------------------------------

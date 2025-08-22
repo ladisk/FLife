@@ -1,16 +1,24 @@
 [build-system]
-requires = ["hatchling"]
+requires = [
+    "hatchling",
+]
 build-backend = "hatchling.build"
 
 [project]
 name = "FLife"
-version = "2.0.4"
-authors = [{name = "Aleš Zorman, Jaša Šonc, Matjaž Mršnik, Janko Slavič", email = "janko.slavic@fs.uni-lj.si"}]
-maintainers = [{name = "Janko Slavič, Domen Gorjup", email = "janko.slavic@fs.uni-lj.si"}]
+version = "2.0.6"
+maintainers = [
+    { name = "Janko Slavič, Domen Gorjup", email = "janko.slavic@fs.uni-lj.si" },
+]
 license = "MIT"
 description = "Vibration Fatigue by Spectral Methods."
 readme = "README.rst"
-keywords = ['vibration', 'fatigue', 'spectral methods', 'structural dynamics']
+keywords = [
+    "vibration",
+    "fatigue",
+    "spectral methods",
+    "structural dynamics",
+]
 requires-python = ">=3.9"
 dependencies = [
     "numpy",
@@ -23,15 +31,19 @@ dependencies = [
     "matplotlib",
     "pyExSi",
     "pyvista[all]",
-    "pyvistaqt"
+    "pyvistaqt",
 ]
 classifiers = [
-    'Development Status :: 5 - Production/Stable',
-    'Intended Audience :: Developers',
-    'Topic :: Scientific/Engineering',
-    'Programming Language :: Python :: 3.9',
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering",
+    "Programming Language :: Python :: 3.9",
     "License :: OSI Approved :: MIT License",
 ]
+
+[[project.authors]]
+name = "Aleš Zorman, Jaša Šonc, Matjaž Mršnik, Janko Slavič"
+email = "janko.slavic@fs.uni-lj.si"
 
 [project.optional-dependencies]
 dev = [
@@ -50,4 +62,6 @@ documentation = "https://flife.readthedocs.io/en/latest/index.html"
 source = "https://github.com/ladisk/FLife"
 
 [tool.hatch.build.targets.sdist]
-include = ["FLife/*"]
+include = [
+    "FLife/*",
+]
