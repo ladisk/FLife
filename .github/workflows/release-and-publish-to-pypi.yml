@@ -1,28 +1,64 @@
-name: Release and Publish to PyPI
+name: Create a Release on Tag
+
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
+
+permissions:
+  contents: write
+  packages: write
+
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.13'
+    - uses: actions/setup-python@v5
+      with:
+        python-version: 3.11
 
-      - name: Install dependencies
-        run: pip install setuptools wheel twine build
+    - name: Install dependencies
+      run: pip install build tomli tomli-w
 
-      - name: Build package
-        run: python -m build
+    # Optional (run a python script to sync versions with the tag)
+    - name: Extract tag version
+      id: tag
+      run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.4.2
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
+    - name: Set version from tag
+      run: python sync_version.py --set-version ${{ steps.tag.outputs.version }}
+
+    - name: Check if there are changes
+      id: diff
+      run: |
+        if git diff --quiet; then
+          echo "changed=false" >> $GITHUB_OUTPUT
+        else
+          echo "changed=true" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Commit version sync (if needed)
+      if: steps.diff.outputs.changed == 'true'
+      run: |
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
+        git commit -am "sync version to ${{ steps.tag.outputs.version }}"
+        git push origin HEAD:master
+    # ---
+
+    - name: Build distribution
+      run: python -m build
+
+    - name: Create GitHub Release and upload artifacts
+      uses: softprops/action-gh-release@v2
+      with:
+        files: dist/*.whl
+
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@v1.4.2
+      with:
+        user: __token__
+        password: ${{ secrets.PYPI_API_TOKEN }}
