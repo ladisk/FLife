@@ -22,7 +22,8 @@ dependencies = [
     "lvm_read",
     "matplotlib",
     "pyExSi",
-    "pyvista"
+    "pyvista[all]",
+    "pyvistaqt"
 ]
 classifiers = [
     'Development Status :: 5 - Production/Stable',
