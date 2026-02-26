@@ -16,7 +16,7 @@ def test_data():
         'max_normal': 2759.824771658108,
         'max_shear': 2759.824771144651,
         'max_normal_and_shear': 2759.824771144652, #s_af = 1, tau_af = 1
-        'cs': 931.3556831975611, #s_af = 1, tau_af = 1
+        'cs': 1647.0257654919862, #s_af = 1, tau_af = 1
         'multiaxial_rainflow': 1636.5919423074781,
         'thermoelastic': 1027.6423513625518,
         'liwi': 2083.2568582803156,

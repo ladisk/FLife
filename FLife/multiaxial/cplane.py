@@ -77,13 +77,13 @@ def max_variance(multiaxial_psd, df, method, K=None, search_method='local'):
             return -np.abs(np.einsum('i,ij,j', a, mu, a).real)
 
         if search_method == 'local':
-            res = opt.minimize(crit, [np.pi, np.pi, np.pi], method='L-BFGS-B', bounds=[(0, np.pi), (0, 2*np.pi), (0, 2*np.pi)])
-        
+            res = opt.minimize(crit, [np.pi, np.pi, np.pi], method='SLSQP', bounds=[(0, np.pi), (0, 2*np.pi), (0, 2*np.pi)])
+
         elif search_method == 'global':
             res = opt.differential_evolution(crit, bounds=[(0, np.pi), (0, 2*np.pi), (0, 2*np.pi)])
 
         else:
-            raise ValueError('Search method') 
+            raise ValueError('Search method')
 
 
     elif 'maxshear' == method:
@@ -98,8 +98,8 @@ def max_variance(multiaxial_psd, df, method, K=None, search_method='local'):
             return -np.abs(np.einsum('i,ij,j', a, mu, a).real)
 
         if search_method == 'local':
-            res = opt.minimize(crit, [np.pi, np.pi, np.pi], method='L-BFGS-B', bounds=[(0, np.pi), (0, 2*np.pi), (0, 2*np.pi)])
-        
+            res = opt.minimize(crit, [np.pi, np.pi, np.pi], method='SLSQP', bounds=[(0, np.pi), (0, 2*np.pi), (0, 2*np.pi)])
+
         elif search_method == 'global':
             res = opt.differential_evolution(crit, bounds=[(0, np.pi), (0, 2*np.pi), (0, 2*np.pi)])
 
@@ -121,8 +121,8 @@ def max_variance(multiaxial_psd, df, method, K=None, search_method='local'):
             return -np.abs(np.einsum('i,ij,j', a, mu, a).real)
 
         if search_method == 'local':
-            res = opt.minimize(crit, [np.pi/3, np.pi/3, np.pi/3], method='L-BFGS-B', bounds=[(0, np.pi), (0, 2*np.pi), (0, 2*np.pi)], options={'disp': False})
-        
+            res = opt.minimize(crit, [np.pi/3, np.pi/3, np.pi/3], method='SLSQP', bounds=[(0, np.pi), (0, 2*np.pi), (0, 2*np.pi)])
+
         elif search_method == 'global':
             res = opt.differential_evolution(crit, bounds=[(0, np.pi), (0, 2*np.pi), (0, 2*np.pi)])
 
@@ -135,51 +135,60 @@ def max_variance(multiaxial_psd, df, method, K=None, search_method='local'):
 
 
 # Carpinteri-Spagnoli
+#
+# 6x6 Voigt stress transformation matrices derived from first principles.
+# Stress vector ordering: {sigma_x, sigma_y, sigma_z, tau_xy, tau_xz, tau_yz}
+#
+# Direction cosine matrix convention (passive/coordinate transform):
+#   Q_z(a) = [[c, s, 0], [-s, c, 0], [0, 0, 1]]
+#   Q_x(a) = [[1, 0, 0], [0, c, s], [0, -s, c]]
+# where c = cos(a), s = sin(a).
+#
+# The C-S algorithm uses ZXZ Euler angles (phi, theta, psi):
+#   C_phi  = Tz(phi)   -- rotation about Z
+#   C_theta = Tx(theta) -- rotation about X (line of nodes)
+#   C_psi  = Tz(psi)   -- rotation about Z' (leaves sigma_z invariant)
+# Plus two more rotations for the critical plane:
+#   C_delta = Tx(delta) -- rotation about X' (2-hat axis)
+#   C_chi   = Tz(chi)   -- rotation about Z (w-axis, leaves sigma_w invariant)
 
-def C1rot(cpsi, spsi):
-    '''Rotation matrix for angle psi.'''
-    return np.array([[1, 0, 0, 0, 0, 0],
-                     [0, cpsi**2, spsi**2, 2*cpsi*spsi, 0, 0],
-                     [0, spsi**2, cpsi**2, -2*cpsi*spsi, 0, 0],
-                     [0, -2*cpsi*spsi, 2*cpsi*spsi, cpsi**2-spsi**2, 0, 0],
-                     [0, 0, 0, 0, cpsi, -spsi],
-                     [0, 0, 0, 0, spsi, -cpsi]])
+def Tz(c, s):
+    '''6x6 stress transformation for rotation about Z-axis.
+    Leaves sigma_z (index 2) invariant.
 
-def C2rot(cth, sth):
-    '''Rotation matrix for angle theta.'''
-    return np.array([[cth**2, 0, sth**2, 0, 2*cth*sth, 0],
-                     [0, 1, 0, 0, 0, 0],
-                     [sth**2, 0, cth**2, 0, -2*cth*sth, 0],
-                     [0, 0, 0, cth, 0, -sth],
-                     [-cth*sth, 0, sth*sth, 0, cth**2-sth**2, 0],
-                     [0, 0, 0, sth, 0, cth]])
+    Parameters
+    ----------
+    c : float
+        cos(angle)
+    s : float
+        sin(angle)
+    '''
+    return np.array([
+        [ c**2,  s**2, 0,  2*c*s,      0,  0],
+        [ s**2,  c**2, 0, -2*c*s,      0,  0],
+        [ 0,     0,    1,  0,           0,  0],
+        [-c*s,   c*s,  0,  c**2-s**2,  0,  0],
+        [ 0,     0,    0,  0,           c,  s],
+        [ 0,     0,    0,  0,          -s,  c]])
 
-def C3rot(cphi, sphi):
-    '''Rotation matrix for angle phi.'''
-    return np.array([[1, 0, 0, 0, 0, 0],
-                     [0, cphi**2, sphi**2, 2*cphi*sphi, 0, 0],
-                     [0, sphi**2, cphi**2, -2*cphi*sphi, 0, 0],
-                     [0, -2*cphi*sphi, 2*cphi*sphi, cphi**2-sphi**2, 0, 0],
-                     [0, 0, 0, 0, cphi, -sphi],
-                     [0, 0, 0, 0, sphi, cphi]])
+def Tx(c, s):
+    '''6x6 stress transformation for rotation about X-axis.
+    Leaves sigma_x (index 0) invariant.
 
-def C4rot(cgam, sgam):
-    '''Rotation matrix for angle gamma.'''
-    return np.array([[cgam**2, sgam**2, 0, 0, 0, 2*cgam*sgam],
-                     [sgam**2, cgam**2, 0, 0, 0, -2*cgam*sgam],
-                     [0, 0, 1, 0, 0, 0],
-                     [0, 0, 0, cgam, sgam, 0],
-                     [0, 0, 0, -sgam, cgam, 0],
-                     [-cgam*sgam, cgam*sgam, 0, 0, 0, cgam**2-sgam**2]])
-
-def C5rot(cdel, sdel):
-    '''Rotation matrix for angle delta.'''
-    return np.array([[1, 0, 0, 0, 0, 0],
-                     [0, cdel**2, sdel**2, -2*cdel*sdel, 0, 0],
-                     [0, sdel**2, cdel**2, 2*cdel*sdel, 0, 0],
-                     [0, cdel*sdel, -cdel*sdel, 0, 0, 0],
-                     [0, 0, 0, 0, cdel, sdel],
-                     [0, 0, 0, 0, -sdel, cdel]])
+    Parameters
+    ----------
+    c : float
+        cos(angle)
+    s : float
+        sin(angle)
+    '''
+    return np.array([
+        [1,  0,     0,    0,    0,     0        ],
+        [0,  c**2,  s**2, 0,    0,     2*c*s    ],
+        [0,  s**2,  c**2, 0,    0,    -2*c*s    ],
+        [0,  0,     0,    c,    s,     0        ],
+        [0,  0,     0,   -s,    c,     0        ],
+        [0, -c*s,   c*s,  0,    0,     c**2-s**2]])
 
 
 def spectral_moment(f, multiaxial_psd, n):
@@ -200,79 +209,82 @@ def spectral_moment(f, multiaxial_psd, n):
 
 
 def csrandom(multiaxial_psd, df, s_af, tau_af):
-    '''Determine critical plane with
-    the C-S random criterion.
-    
+    '''Determine critical plane with the C-S random criterion.
+
+    Uses ZXZ Euler angles with 6x6 Voigt stress transformations derived
+    from first principles. The 5-angle sequence is:
+        phi (about Z), theta (about X), psi (about Z'),
+        delta (about X', material angle), chi (about Z/w-axis).
+
+    After transformation, sigma_w = S[2,2] and tau_vw = S[5,5].
+
     See also
     --------
-    Carpinteri A, Spagnoli A and Vantadori S, Reformulation in the frequency domain of a critical
-    plane-based multiaxial fatigue criterion, Int J Fat, 2014
+    Carpinteri A, Spagnoli A and Vantadori S, Reformulation in the frequency
+    domain of a critical plane-based multiaxial fatigue criterion,
+    Int J Fat, 2014
     '''
-
-    f = np.arange(0, multiaxial_psd.shape[0]*df, df)
+    f = np.arange(0, multiaxial_psd.shape[0] * df, df)
     l0 = spectral_moment(f, multiaxial_psd, 0)
-    N1 = np.sqrt(spectral_moment(f, multiaxial_psd, 2) / l0) / (2*np.pi)
-    
-    # -- S33 first; extreme according to Davenport.
-    # .. Varying angles 0 < phi < 2pi and 0 < theta < pi
+    m2 = spectral_moment(f, multiaxial_psd, 2)
+
+    # Step 2: Find 1-hat direction (phi, theta).
+    # Maximize Davenport expected extreme of sigma_z at [2,2].
+    # C = Tx(theta) @ Tz(phi)  (psi=0 => Tz(psi) = I)
     def s33crit(inp):
-        """Optimisation criterion (searching
-        for maximum)."""
         phi, th = inp
-        C = np.dot(C2rot(np.cos(th), np.sin(th)), C3rot(np.cos(phi), np.sin(phi)))
-        l0_ = np.dot(np.dot(C, l0), C.transpose())
-        N1_ = np.dot(np.dot(C, N1), C.transpose())
-        
-        return -(np.sqrt(l0_[2,2]) * np.sqrt(2*np.log(N1_[2,2]))
-                 + 0.5772/np.sqrt(2*np.log(N1_[2,2])))
-        
-    res = opt.minimize(s33crit, [0.33,0.33], method='SLSQP', bounds=[(0,2*np.pi),(0,np.pi)], options={'disp':False})
+        C = Tx(np.cos(th), np.sin(th)) @ Tz(np.cos(phi), np.sin(phi))
+        l0_ = C @ l0 @ C.T
+        m2_ = C @ m2 @ C.T
+        k0 = l0_[2, 2]
+        k2 = m2_[2, 2]
+        if k0 <= 0 or k2 <= 0:
+            return 0.0
+        N1 = np.sqrt(k2 / k0) / (2 * np.pi)
+        if N1 <= 1:
+            return 0.0
+        return -(np.sqrt(k0) * (np.sqrt(2 * np.log(N1))
+                 + 0.5772 / np.sqrt(2 * np.log(N1))))
 
-    #res = opt.differential_evolution(s33crit, bounds=[(0,2*np.pi),(0,np.pi)])
-
-    
-
-
+    res = opt.minimize(s33crit, [0.33, 0.33], method='SLSQP',
+                       bounds=[(0, 2*np.pi), (0, np.pi)])
     phi, th = res['x']
-    
-    # -- Tau_yz second; maximum variance.
+
+    # Step 3: Find 3-hat direction (psi).
+    # Maximize variance of tau_yz at [5,5].
+    # Tz(psi) leaves sigma_z invariant, so normal stress is preserved.
     def taucrit(psi):
-        '''Optimisation criterion (searching for
-        maximum variance (mu).'''
-        C = np.dot(
-                   np.dot(C1rot(np.cos(psi), np.sin(psi)), C2rot(np.cos(th), np.sin(th))),
-                   C3rot(np.cos(phi), np.sin(phi)))
-        
-        return -np.dot(np.dot(C, l0), C.transpose())[-1, -1]
-        
-    
-    res = opt.minimize_scalar(taucrit, 0.33, method='bounded', bounds=(0,2*np.pi), options={'disp':False})
-    #res = opt.differential_evolution(taucrit, bounds=(0,2*np.pi))
+        C = (Tz(np.cos(psi), np.sin(psi))
+             @ Tx(np.cos(th), np.sin(th))
+             @ Tz(np.cos(phi), np.sin(phi)))
+        return -(C @ l0 @ C.T)[5, 5]
+
+    res = opt.minimize_scalar(taucrit, 0.33, method='bounded',
+                              bounds=(0, 2*np.pi))
     psi = res['x'].real
-    
 
-    delta = 3*np.pi*(1-(tau_af)**2/(s_af)**2)/8
+    # Step 4: Off-angle delta (Eq. 19).
+    delta = 3 * np.pi * (1 - (tau_af / s_af)**2) / 8
 
-    # -- Maximize shear variance
-    C = np.dot(
-               np.dot(C1rot(np.cos(psi), np.sin(psi)), C2rot(np.cos(th), np.sin(th))),
-               C3rot(np.cos(phi), np.sin(phi)))
-    def tau2crit(gam):
-        '''Optimisation criterion (searching for
-        maximum variance).'''
-        CC = np.dot(
-                    np.dot(C4rot(np.cos(gam), np.sin(gam)), C5rot(np.cos(delta), np.sin(delta))), C)
-        
-        return -np.dot(np.dot(CC, l0), C.transpose())[-1, -1]
-    
-    res = opt.minimize_scalar(tau2crit, 0.33, method='bounded', bounds=(0, 2*np.pi), options={'disp':False})
-    #res = opt.differential_evolution(tau2crit, bounds=(0,2*np.pi))
-    gam = res['x'].real
-    
-    CC = np.dot(
-            np.dot(C4rot(np.cos(gam), np.sin(gam)), C5rot(np.cos(delta), np.sin(delta))), C)
-    
+    # Build 3-angle rotation (phi, theta, psi).
+    C = (Tz(np.cos(psi), np.sin(psi))
+         @ Tx(np.cos(th), np.sin(th))
+         @ Tz(np.cos(phi), np.sin(phi)))
+
+    # Step 5: Find chi — maximize variance of tau_vw at [5,5].
+    # CC = Tz(chi) @ Tx(delta) @ C
+    # Tz(chi) leaves sigma_w invariant after delta tilt.
+    def tau2crit(chi):
+        CC = (Tz(np.cos(chi), np.sin(chi))
+              @ Tx(np.cos(delta), np.sin(delta))
+              @ C)
+        return -(CC @ l0 @ CC.T)[5, 5]
+
+    res = opt.minimize_scalar(tau2crit, 0.33, method='bounded',
+                              bounds=(0, 2*np.pi))
+    chi = res['x'].real
+
+    CC = (Tz(np.cos(chi), np.sin(chi))
+          @ Tx(np.cos(delta), np.sin(delta))
+          @ C)
     return CC
-
-
-
