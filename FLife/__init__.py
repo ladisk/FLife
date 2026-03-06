@@ -1,4 +1,4 @@
-__version__ = "2.0.6"
+__version__ = "2.1.0"
 from .spectralData import SpectralData
 from .freq_domain import *
 from .time_domain import *
