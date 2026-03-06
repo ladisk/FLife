@@ -137,7 +137,7 @@ def _multiaxial_rainflow(self, s):
             Q = np.outer(c, c)
             return -np.trace(Q@s[i])
         
-        result = minimize(fun=Psi_m, x0=initial_guess, constraints=[cons], method='trust-constr')
+        result = minimize(fun=Psi_m, x0=initial_guess, constraints=[cons], method='SLSQP')
 
 
         if not result.success:
