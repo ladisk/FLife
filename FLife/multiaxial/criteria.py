@@ -135,7 +135,9 @@ def _multiaxial_rainflow(self, s):
     for i in range(len(s)):
         def Psi_m(c):
             Q = np.outer(c, c)
-            return -np.trace(Q@s[i])
+            # s[i] is Hermitian, so the quadratic form is real; take the real
+            # part so the optimiser never sees a complex objective.
+            return -np.real(np.trace(Q@s[i]))
         
         result = minimize(fun=Psi_m, x0=initial_guess, constraints=[cons], method='SLSQP')
 
@@ -143,7 +145,7 @@ def _multiaxial_rainflow(self, s):
         if not result.success:
             print("Optimization failed:", result.message)
 
-            s_eq[i] -Psi_m(initial_guess)  
+            s_eq[i] = -Psi_m(initial_guess)
         # Extract the optimized c values
         else:    
             c_opt = result.x
@@ -310,9 +312,9 @@ def _EVMS_out_of_phase(self, s):
     s_eq = np.empty((len(s)))
 
     for i in range(len(s)):
-        sigma_xx_squared = s[i,0,0]
-        sigma_yy_squared = s[i,1,1]
-        tau_xy_squared = s[i,2,2]
+        sigma_xx_squared = np.real(s[i,0,0])
+        sigma_yy_squared = np.real(s[i,1,1])
+        tau_xy_squared = np.real(s[i,2,2])
         sigma_xx_sigma_yy = np.sqrt(sigma_xx_squared * sigma_yy_squared)
 
         phi_yy_phi_xx = np.angle(s[i,0,1])
@@ -353,7 +355,7 @@ def _Nieslony(self, s, s_af, tau_af,coefficient_load_type):
         else:
             raise ValueError('Invalid coefficient_load_type. Please choose either "tension" or "torsion"')
         
-        s_eq[i] = A**2 * G_p[i] + B**2 * G_EVMS[i] + 2 * A * B * rp_EMS * np.sqrt(G_p[i] * G_EVMS[i])
+        s_eq[i] = np.real(A**2 * G_p[i] + B**2 * G_EVMS[i] + 2 * A * B * rp_EMS * np.sqrt(G_p[i] * G_EVMS[i]))
     
     return s_eq
 

@@ -256,8 +256,8 @@ def csrandom(multiaxial_psd, df, s_af, tau_af):
         C = Tx(np.cos(th), np.sin(th)) @ Tz(np.cos(phi), np.sin(phi))
         l0_ = C @ l0 @ C.T
         m2_ = C @ m2 @ C.T
-        k0 = l0_[2, 2]
-        k2 = m2_[2, 2]
+        k0 = np.real(l0_[2, 2])
+        k2 = np.real(m2_[2, 2])
         if k0 <= 0 or k2 <= 0:
             return 0.0
         N1 = np.sqrt(k2 / k0) / (2 * np.pi)
@@ -277,7 +277,7 @@ def csrandom(multiaxial_psd, df, s_af, tau_af):
         C = (Tz(np.cos(psi), np.sin(psi))
              @ Tx(np.cos(th), np.sin(th))
              @ Tz(np.cos(phi), np.sin(phi)))
-        return -(C @ l0 @ C.T)[5, 5]
+        return -np.real((C @ l0 @ C.T)[5, 5])
 
     res = opt.minimize_scalar(taucrit, 0.33, method='bounded',
                               bounds=(0, 2*np.pi))
@@ -298,7 +298,7 @@ def csrandom(multiaxial_psd, df, s_af, tau_af):
         CC = (Tz(np.cos(chi), np.sin(chi))
               @ Tx(np.cos(delta), np.sin(delta))
               @ C)
-        return -(CC @ l0 @ CC.T)[5, 5]
+        return -np.real((CC @ l0 @ CC.T)[5, 5])
 
     res = opt.minimize_scalar(tau2crit, 0.33, method='bounded',
                               bounds=(0, 2*np.pi))
