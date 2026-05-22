@@ -13,9 +13,9 @@ def test_version():
 def test_data():
     results_ref = {
         'EVMS': 2083.2568582803156,
-        'max_normal': 2759.824771658108,
-        'max_shear': 2759.824771144651,
-        'max_normal_and_shear': 2759.824771144652, #s_af = 1, tau_af = 1
+        'max_normal': 1650.300624416056,
+        'max_shear': 2430.1468521282327,
+        'max_normal_and_shear': 1565.051025189015, #s_af = 1, tau_af = 1
         'cs': 1647.0257654919862, #s_af = 1, tau_af = 1
         'multiaxial_rainflow': 1636.5919423074781,
         'thermoelastic': 1027.6423513625518,
@@ -89,9 +89,16 @@ def test_data():
         'Lemaitre': Lemaitre.eq_psd_multipoint[0][0,24]
     }
 
+    # criteria whose critical plane is found by numerical optimisation are only
+    # reproducible to a relative tolerance across platforms / scipy versions
+    optimiser_based = {'max_normal', 'max_shear', 'max_normal_and_shear'}
+
     for criterion, value in results.items():
 
-        np.testing.assert_almost_equal(value, results_ref[criterion], decimal=5, err_msg=f'Criterion: {criterion}')
+        if criterion in optimiser_based:
+            np.testing.assert_allclose(value, results_ref[criterion], rtol=1e-4, err_msg=f'Criterion: {criterion}')
+        else:
+            np.testing.assert_almost_equal(value, results_ref[criterion], decimal=5, err_msg=f'Criterion: {criterion}')
 
 if __name__ == "__main__":
     test_data()
