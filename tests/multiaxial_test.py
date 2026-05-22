@@ -27,12 +27,13 @@ def test_data():
     }
 
     #test_PSD
-    test_PSD = np.load('data/test_multiaxial_PSD_3D.npy')
-    test_PSD_biaxial = np.load('data/test_multiaxial_PSD_2D.npy')
+    data_dir = os.path.join(my_path, '..', 'data')
+    test_PSD = np.load(os.path.join(data_dir, 'test_multiaxial_PSD_3D.npy'))
+    test_PSD_biaxial = np.load(os.path.join(data_dir, 'test_multiaxial_PSD_2D.npy'))
 
     #Amplitude spectrum inputs
-    test_amplitude_spectrum_2D = np.load('data/test_multiaxial_amplitude_spectrum_2D.npy')
-    test_amplitude_spectrum_3D = np.load('data/test_multiaxial_amplitude_spectrum_3D.npy')
+    test_amplitude_spectrum_2D = np.load(os.path.join(data_dir, 'test_multiaxial_amplitude_spectrum_2D.npy'))
+    test_amplitude_spectrum_3D = np.load(os.path.join(data_dir, 'test_multiaxial_amplitude_spectrum_3D.npy'))
 
     freq=np.arange(0,240,3)
     freq[0] = 1e-3

@@ -39,7 +39,7 @@ def test_data():
         'Huang Moan': 1439.603712
     }
 
-    data = np.load(os.path.join('./data/m1.npy'))
+    data = np.load(os.path.join(my_path, '..', 'data', 'm1.npy'))
 
     t= data[::2]
     x = data[1::2]
