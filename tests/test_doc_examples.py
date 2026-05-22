@@ -1,11 +1,12 @@
 """
-Run the Python examples embedded in README.rst, so that documentation
-examples cannot silently break on upgrades (issue #9).
+Run the Python examples embedded in the README and the documentation, so that
+they cannot silently break on upgrades (issue #9).
 
-Every ``.. code-block:: python`` in README.rst is extracted and executed in
-order, sharing a single namespace (later snippets build on earlier ones, just
-as a reader would run them top to bottom). Blocks that require the interactive
-GUI cannot run on a headless CI and are skipped.
+Every ``.. code-block:: python`` in each documentation file is extracted and
+executed in order, sharing a single namespace per file (later snippets build on
+earlier ones, just as a reader would run them top to bottom). Blocks that
+require the interactive GUI cannot run on a headless CI and are skipped, but are
+still syntax-checked.
 
 The test only checks that the examples *run*; it does not assert numerical
 results (the first example uses an unseeded random signal).
@@ -20,10 +21,15 @@ import matplotlib.pyplot as plt
 import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-README = os.path.join(ROOT, "README.rst")
 
-# A block that contains any of these needs the interactive GUI / a display and
-# is skipped on a headless test runner.
+# Documentation files that contain runnable examples.
+DOC_FILES = [
+    "README.rst",
+    os.path.join("docs", "source", "FLife.rst"),
+]
+
+# A block containing any of these needs the interactive GUI / a display and is
+# skipped on a headless test runner (but still syntax-checked).
 _GUI_MARKERS = ("'GUI'", '"GUI"', "SpectralData()", "pick_point", "set_mesh")
 
 
@@ -63,9 +69,11 @@ def _testable(code):
     return not any(marker in code for marker in _GUI_MARKERS)
 
 
-def test_readme_examples():
-    blocks = _python_blocks(README)
-    assert blocks, "no '.. code-block:: python' blocks found in README.rst"
+@pytest.mark.parametrize("doc", DOC_FILES)
+def test_doc_examples(doc):
+    path = os.path.join(ROOT, doc)
+    blocks = _python_blocks(path)
+    assert blocks, f"no '.. code-block:: python' blocks found in {doc}"
 
     ns = {}
     plt.show = lambda *a, **k: None      # never block on a figure
@@ -75,10 +83,10 @@ def test_readme_examples():
         for lineno, code in blocks:
             # Syntax-check every block, including interactive ones we cannot run.
             try:
-                compiled = compile(code, f"README.rst:{lineno}", "exec")
+                compiled = compile(code, f"{doc}:{lineno}", "exec")
             except SyntaxError as exc:
                 raise AssertionError(
-                    f"README example starting at line {lineno} has a syntax error: "
+                    f"{doc} example starting at line {lineno} has a syntax error: "
                     f"{exc}\n--- block ---\n{code}\n-------------"
                 ) from exc
             # Only execute the non-interactive (non-GUI) blocks.
@@ -88,7 +96,7 @@ def test_readme_examples():
                 exec(compiled, ns)
             except Exception as exc:     # noqa: BLE001 - report which block broke
                 raise AssertionError(
-                    f"README example starting at line {lineno} failed: "
+                    f"{doc} example starting at line {lineno} failed: "
                     f"{type(exc).__name__}: {exc}\n--- block ---\n{code}\n-------------"
                 ) from exc
             finally:
@@ -98,5 +106,6 @@ def test_readme_examples():
 
 
 if __name__ == "__main__":
-    test_readme_examples()
-    print("README examples ran OK")
+    for _doc in DOC_FILES:
+        test_doc_examples(_doc)
+    print("Documentation examples ran OK")
