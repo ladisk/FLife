@@ -2,19 +2,54 @@ import numpy as np
 import scipy.optimize as opt
 
 def compute_lmn_angles(theta, phi, psi):
-    l1 = np.cos(psi) * np.cos(phi) - np.cos(theta) * np.cos(psi) * np.sin(phi)
-    m1 = np.sin(psi) * np.cos(phi) + np.cos(theta) * np.cos(psi) * np.sin(phi)
-    n1 = np.sin(theta) * np.sin(phi)
-    
-    l2 = -np.cos(psi) * np.cos(phi) - np.cos(theta) * np.sin(psi) * np.cos(phi)
-    m2 = -np.sin(psi) * np.cos(phi) + np.cos(theta) * np.cos(psi) * np.cos(phi)
-    n2 = np.sin(theta) * np.cos(phi)
-    
-    l3 = np.sin(theta) * np.sin(psi)
-    m3 = -np.sin(theta) * np.cos(psi)
-    n3 = np.cos(theta)
-    
+    """Direction cosines of a proper ZXZ-Euler rotation (theta, phi, psi).
+
+    Returns the three rows (l_i, m_i, n_i) of an orthonormal direction-cosine
+    matrix, so that (l1,m1,n1), (l2,m2,n2) and (l3,m3,n3) form a right-handed
+    orthonormal triad for any input angles.
+    """
+    cph, sph = np.cos(phi), np.sin(phi)
+    cth, sth = np.cos(theta), np.sin(theta)
+    cps, sps = np.cos(psi), np.sin(psi)
+
+    l1 = cps * cph - cth * sph * sps
+    m1 = cps * sph + cth * cph * sps
+    n1 = sps * sth
+
+    l2 = -sps * cph - cth * sph * cps
+    m2 = -sps * sph + cth * cph * cps
+    n2 = cps * sth
+
+    l3 = sth * sph
+    m3 = -sth * cph
+    n3 = cth
+
     return l1, m1, n1, l2, m2, n2, l3, m3, n3
+
+
+def _maximize(crit, x0, bounds, search_method, n_starts=16):
+    """Maximize -crit over the plane orientation.
+
+    'local' uses a deterministic multi-start SLSQP (the default start x0 plus
+    seeded random starts) so the search is not trapped at a stationary start
+    point; 'global' uses differential evolution. Results are reproducible.
+    """
+    if search_method == 'global':
+        return opt.differential_evolution(crit, bounds=bounds, seed=0)
+    elif search_method == 'local':
+        rng = np.random.default_rng(0)
+        lo = np.array([b[0] for b in bounds])
+        hi = np.array([b[1] for b in bounds])
+        starts = [np.asarray(x0, dtype=float)]
+        starts += [rng.uniform(lo, hi) for _ in range(n_starts - 1)]
+        best = None
+        for s0 in starts:
+            res = opt.minimize(crit, s0, method='SLSQP', bounds=bounds)
+            if best is None or res.fun < best.fun:
+                best = res
+        return best
+    else:
+        raise ValueError('Search method')
 
 
 def max_variance_old(multiaxial_psd, df, method, K=None):
@@ -62,8 +97,8 @@ def max_variance(multiaxial_psd, df, method, K=None, search_method='local'):
         of equivalent stress based on the maximum shear and normal stresses.
     '''
     mu = np.sum(multiaxial_psd, axis=0) * df
+    bounds = [(0, np.pi), (0, 2*np.pi), (0, 2*np.pi)]
 
-    
     if 'maxnormal' == method:
 
         def crit(v):
@@ -76,14 +111,7 @@ def max_variance(multiaxial_psd, df, method, K=None, search_method='local'):
 
             return -np.abs(np.einsum('i,ij,j', a, mu, a).real)
 
-        if search_method == 'local':
-            res = opt.minimize(crit, [np.pi, np.pi, np.pi], method='SLSQP', bounds=[(0, np.pi), (0, 2*np.pi), (0, 2*np.pi)])
-
-        elif search_method == 'global':
-            res = opt.differential_evolution(crit, bounds=[(0, np.pi), (0, 2*np.pi), (0, 2*np.pi)])
-
-        else:
-            raise ValueError('Search method')
+        res = _maximize(crit, [np.pi, np.pi, np.pi], bounds, search_method)
 
 
     elif 'maxshear' == method:
@@ -97,11 +125,7 @@ def max_variance(multiaxial_psd, df, method, K=None, search_method='local'):
 
             return -np.abs(np.einsum('i,ij,j', a, mu, a).real)
 
-        if search_method == 'local':
-            res = opt.minimize(crit, [np.pi, np.pi, np.pi], method='SLSQP', bounds=[(0, np.pi), (0, 2*np.pi), (0, 2*np.pi)])
-
-        elif search_method == 'global':
-            res = opt.differential_evolution(crit, bounds=[(0, np.pi), (0, 2*np.pi), (0, 2*np.pi)])
+        res = _maximize(crit, [np.pi, np.pi, np.pi], bounds, search_method)
 
     elif 'maxnormalshear' == method:
         if K is None:
@@ -120,11 +144,7 @@ def max_variance(multiaxial_psd, df, method, K=None, search_method='local'):
 
             return -np.abs(np.einsum('i,ij,j', a, mu, a).real)
 
-        if search_method == 'local':
-            res = opt.minimize(crit, [np.pi/3, np.pi/3, np.pi/3], method='SLSQP', bounds=[(0, np.pi), (0, 2*np.pi), (0, 2*np.pi)])
-
-        elif search_method == 'global':
-            res = opt.differential_evolution(crit, bounds=[(0, np.pi), (0, 2*np.pi), (0, 2*np.pi)])
+        res = _maximize(crit, [np.pi/3, np.pi/3, np.pi/3], bounds, search_method)
 
     else:
         raise ValueError('Critical plane method')
@@ -236,8 +256,8 @@ def csrandom(multiaxial_psd, df, s_af, tau_af):
         C = Tx(np.cos(th), np.sin(th)) @ Tz(np.cos(phi), np.sin(phi))
         l0_ = C @ l0 @ C.T
         m2_ = C @ m2 @ C.T
-        k0 = l0_[2, 2]
-        k2 = m2_[2, 2]
+        k0 = np.real(l0_[2, 2])
+        k2 = np.real(m2_[2, 2])
         if k0 <= 0 or k2 <= 0:
             return 0.0
         N1 = np.sqrt(k2 / k0) / (2 * np.pi)
@@ -257,7 +277,7 @@ def csrandom(multiaxial_psd, df, s_af, tau_af):
         C = (Tz(np.cos(psi), np.sin(psi))
              @ Tx(np.cos(th), np.sin(th))
              @ Tz(np.cos(phi), np.sin(phi)))
-        return -(C @ l0 @ C.T)[5, 5]
+        return -np.real((C @ l0 @ C.T)[5, 5])
 
     res = opt.minimize_scalar(taucrit, 0.33, method='bounded',
                               bounds=(0, 2*np.pi))
@@ -278,7 +298,7 @@ def csrandom(multiaxial_psd, df, s_af, tau_af):
         CC = (Tz(np.cos(chi), np.sin(chi))
               @ Tx(np.cos(delta), np.sin(delta))
               @ C)
-        return -(CC @ l0 @ CC.T)[5, 5]
+        return -np.real((CC @ l0 @ CC.T)[5, 5])
 
     res = opt.minimize_scalar(tau2crit, 0.33, method='bounded',
                               bounds=(0, 2*np.pi))
