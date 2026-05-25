@@ -16,7 +16,7 @@ def test_data():
         'max_normal': 1650.300624416056,
         'max_shear': 2430.1468521282327,
         'max_normal_and_shear': 1565.051025189015, #s_af = 1, tau_af = 1
-        'cs': 1647.0257654919862, #s_af = 1, tau_af = 1
+        'cs': 1647.0269200556531, #s_af = 1, tau_af = 1 (optimiser-based)
         'multiaxial_rainflow': 1636.5919423074781,
         'thermoelastic': 1027.6423513625518,
         'liwi': 2083.2568582803156,
@@ -91,7 +91,7 @@ def test_data():
 
     # criteria whose critical plane is found by numerical optimisation are only
     # reproducible to a relative tolerance across platforms / scipy versions
-    optimiser_based = {'max_normal', 'max_shear', 'max_normal_and_shear'}
+    optimiser_based = {'max_normal', 'max_shear', 'max_normal_and_shear', 'cs'}
 
     for criterion, value in results.items():
 

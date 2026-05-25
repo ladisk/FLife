@@ -248,6 +248,18 @@ def csrandom(multiaxial_psd, df, s_af, tau_af):
     l0 = spectral_moment(f, multiaxial_psd, 0)
     m2 = spectral_moment(f, multiaxial_psd, 2)
 
+    # Normalise the moments before the plane search. The critical plane depends
+    # only on the relative stress distribution, but SLSQP uses absolute
+    # tolerances, so an objective that scales with the PSD magnitude converges to
+    # a slightly different plane at different load levels. Scaling l0 and m2 by a
+    # common factor keeps the objective O(1) and leaves both the plane and the
+    # moment ratio in N1 unchanged. The equivalent stress is computed later in
+    # _cs from the unscaled stress.
+    scale = np.real(np.trace(l0))
+    if scale > 0:
+        l0 = l0 / scale
+        m2 = m2 / scale
+
     # Step 2: Find 1-hat direction (phi, theta).
     # Maximize Davenport expected extreme of sigma_z at [2,2].
     # C = Tx(theta) @ Tz(phi)  (psi=0 => Tz(psi) = I)
