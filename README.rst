@@ -60,6 +60,7 @@ Here is a simple example on how to use the code:
 
     import FLife
     import numpy as np
+    import matplotlib.pyplot as plt
 
 
     dt = 1e-4
@@ -243,7 +244,7 @@ Vibration-fatigue life can be compared to rainflow method. When Rainflow class i
     
     seed = 111
     rg =  np.random.default_rng(seed)
-    rf1 = FLife.Rainflow(sd T=100, fs=1e3) # time history is generated and assigned to parameter SpectralData.data
+    rf1 = FLife.Rainflow(sd, T=100, fs=1e3) # time history is generated and assigned to parameter SpectralData.data
     rf2 = FLife.Rainflow(sd, T=100, fs =1e3,  rg=rg) # time history is generated and assigned to parameter SpectralData.data, signal phase is defined by random generator
     rf_life_3pt = rf2.get_life(C, k, algorithm='three-point')
     rf_life_4pt = rf2.get_life(C, k, algorithm='four-point', nr_load_classes=1024) 
