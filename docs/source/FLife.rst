@@ -244,7 +244,10 @@ Multiaxial fatigue life estimation can be performed by using one of the
 available frequency domain multiaxial criteria to convert multiaxial
 stress state into equivalent uniaxial stress state. Resulting equivalent
 uniaxial stress state can be used with all spectral methods, provided by
-FLife.
+FLife. For a review of the multiaxial criteria implemented here, please see
+Jaša Šonc and Janko Slavič, Review of Multiaxial Vibration Fatigue Spectral
+Methods—With Open-Source Support, Applied Nonlinear Dynamics and Vibrations,
+2026, `see https://www.sciltp.com/journals/andv/articles/2606004129`.
 
 Supported multiaxial criteria
 -----------------------------

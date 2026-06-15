@@ -27,6 +27,11 @@ class EquivalentStress(SpectralData): #equivalentstress
     - liwi: LiWI approach
     - coin_liwi: COIN-LiWI method
 
+    For a review of the implemented multiaxial criteria, see:
+    Jaša Šonc and Janko Slavič, Review of Multiaxial Vibration Fatigue Spectral
+    Methods—With Open-Source Support, Applied Nonlinear Dynamics and Vibrations,
+    2026. https://www.sciltp.com/journals/andv/articles/2606004129
+
     """
 
     def __init__(self, input=None, window='hann', nperseg=1280,

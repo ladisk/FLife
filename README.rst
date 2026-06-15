@@ -4,11 +4,12 @@ FLife - Vibration Fatigue by Spectral Methods
 ---------------------------------------------
 
 Obtaining vibration fatigue life in the spectral domain. For general theoretical
-background on vibration fatigue (structural dynamics, uniaxial/multiaxial fatigue, 
-non-Gaussianity, non-stationarity, etc), please see Slavič et al. [1], for 
-theoretical background on different spectral domain methods, please see the review 
-article by Zorman et al. [2] or original articles as given in the docstring
-of the methods.
+background on vibration fatigue (structural dynamics, uniaxial/multiaxial fatigue,
+non-Gaussianity, non-stationarity, etc), please see Slavič et al. [1], for
+theoretical background on different spectral domain methods, please see the review
+article by Zorman et al. [2]. For the multiaxial spectral methods, please see the
+review article by Šonc and Slavič [4]. See also the original articles as given in
+the docstring of the methods.
 
 The review article [2] results are completely reproducible with ipynb file:
 https://github.com/ladisk/FLife/blob/main/data/Vibration%20fatigue%20by%20spectral%20methods%20-%20a%20review%20with%20open-source%20support.ipynb
@@ -260,7 +261,8 @@ Multiaxial fatigue life estimation can be performed by using one of the
 available frequency domain multiaxial criteria to convert multiaxial
 stress state into equivalent uniaxial stress state. Resulting equivalent
 uniaxial stress state can be used with all spectral methods, provided by
-FLife.
+FLife. For a review of the multiaxial criteria implemented here, please
+see Šonc and Slavič [4].
 
 Supported multiaxial criteria
 -----------------------------
@@ -372,9 +374,13 @@ References:
        Mechanical Systems and Signal Processing, 2023, 
        `see https://doi.org/10.1016/j.ymssp.2023.110149`
     3. Jaša Šonc, Klemen Zaletelj and Janko Slavič.
-       Application of thermoelasticity in the frequency-domain multiaxial vibration-fatigue criterion, 
+       Application of thermoelasticity in the frequency-domain multiaxial vibration-fatigue criterion,
        Mechanical Systems and Signal Processsing, 2025
        `see https://doi.org/10.1016/j.ymssp.2024.112002`
+    4. Jaša Šonc and Janko Slavič.
+       Review of Multiaxial Vibration Fatigue Spectral Methods—With Open-Source Support,
+       Applied Nonlinear Dynamics and Vibrations, 2026,
+       `see https://www.sciltp.com/journals/andv/articles/2606004129`
 
 .. |Docs Status| image:: https://readthedocs.org/projects/flife/badge/
    :target: https://flife.readthedocs.io
