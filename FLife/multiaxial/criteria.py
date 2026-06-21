@@ -6,6 +6,7 @@ def _max_normal(self, s, search_method):
     """
     Internal function for calculating equivalent stress at one node.
     """
+    s = cplane._plane_stress_to_voigt_3d(s)
     
     freq = self.multiaxial_psd[1]
     df = freq[1] - freq[0]
@@ -23,6 +24,7 @@ def _max_shear(self, s, search_method):
     """
     Internal function for calculating equivalent stress at one node.
     """
+    s = cplane._plane_stress_to_voigt_3d(s)
     
     freq = self.multiaxial_psd[1]
     df = freq[1] - freq[0]
@@ -40,6 +42,7 @@ def _max_normal_and_shear(self, s, s_af, tau_af, search_method='local'):
     """
     Internal function for calculating equivalent stress at one node.
     """
+    s = cplane._plane_stress_to_voigt_3d(s)
     
     freq = self.multiaxial_psd[1]
     df = freq[1] - freq[0]
@@ -92,6 +95,7 @@ def _cs(self, s, s_af, tau_af):
     """
     Internal function for calculating equivalent stress at one node.
     """
+    s = cplane._plane_stress_to_voigt_3d(s)
     
     freq = self.multiaxial_psd[1]
     df = freq[1] - freq[0]
@@ -329,6 +333,7 @@ def _Nieslony(self, s, s_af, tau_af,coefficient_load_type):
     """
     Internal function for calculating equivalent stress at one node.
     """
+    s = cplane._plane_stress_to_voigt_3d(s)
 
     G_p = 1/9*_thermoelastic(self,s)
     G_EVMS = _EVMS(self,s)

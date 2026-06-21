@@ -1,6 +1,27 @@
 import numpy as np
 import scipy.optimize as opt
 
+def _plane_stress_to_voigt_3d(multiaxial_psd):
+    """Promote plane-stress PSD [sx, sy, txy] to 3D Voigt [sx, sy, sz, txy, txz, tyz].
+
+    The critical-plane implementation operates on 6x6 Voigt stress transforms.
+    For documented 2D PSD input, treat the out-of-plane terms as zero and embed
+    the in-plane terms at Voigt indices [0, 1, 3].
+    """
+    if multiaxial_psd.shape[-2:] == (6, 6):
+        return multiaxial_psd
+    if multiaxial_psd.shape[-2:] != (3, 3):
+        raise ValueError('Input Error. PSD matrix should be the size of (f,6,6) for 3D stress state or (f,3,3) for 2D stress state')
+
+    psd_3d = np.zeros(multiaxial_psd.shape[:-2] + (6, 6), dtype=multiaxial_psd.dtype)
+    plane_stress_indices = [0, 1, 3]
+
+    for row_2d, row_3d in enumerate(plane_stress_indices):
+        for col_2d, col_3d in enumerate(plane_stress_indices):
+            psd_3d[..., row_3d, col_3d] = multiaxial_psd[..., row_2d, col_2d]
+
+    return psd_3d
+
 def compute_lmn_angles(theta, phi, psi):
     """Direction cosines of a proper ZXZ-Euler rotation (theta, phi, psi).
 
@@ -96,6 +117,7 @@ def max_variance(multiaxial_psd, df, method, K=None, search_method='local'):
         under multiaxial random loadings–prediction by variance
         of equivalent stress based on the maximum shear and normal stresses.
     '''
+    multiaxial_psd = _plane_stress_to_voigt_3d(multiaxial_psd)
     mu = np.sum(multiaxial_psd, axis=0) * df
     bounds = [(0, np.pi), (0, 2*np.pi), (0, 2*np.pi)]
 
@@ -244,6 +266,7 @@ def csrandom(multiaxial_psd, df, s_af, tau_af):
     domain of a critical plane-based multiaxial fatigue criterion,
     Int J Fat, 2014
     '''
+    multiaxial_psd = _plane_stress_to_voigt_3d(multiaxial_psd)
     f = np.arange(0, multiaxial_psd.shape[0] * df, df)
     l0 = spectral_moment(f, multiaxial_psd, 0)
     m2 = spectral_moment(f, multiaxial_psd, 2)
