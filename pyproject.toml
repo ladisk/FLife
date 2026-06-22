@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "FLife"
-version = "2.2.1"
+version = "2.2.2"
 license = "MIT"
 description = "Vibration Fatigue by Spectral Methods."
 readme = "README.rst"
@@ -39,11 +39,27 @@ classifiers = [
 ]
 
 [[project.maintainers]]
-name = "Janko Slavič, Jaša Šonc"
-email = "janko.slavic@fs.uni-lj.si, jasa.sonc@fs.uni-lj.si"
+name = "Janko Slavič"
+email = "janko.slavic@fs.uni-lj.si"
+
+[[project.maintainers]]
+name = "Jaša Šonc"
+email = "jasa.sonc@fs.uni-lj.si"
 
 [[project.authors]]
-name = "Aleš Zorman, Jaša Šonc, Matjaž Mršnik, Janko Slavič"
+name = "Aleš Zorman"
+email = "ales.zorman@fs.uni-lj.si"
+
+[[project.authors]]
+name = "Jaša Šonc"
+email = "jasa.sonc@fs.uni-lj.si"
+
+[[project.authors]]
+name = "Matjaž Mršnik"
+email = "matjaz.mrsnik@fs.uni-lj.si"
+
+[[project.authors]]
+name = "Janko Slavič"
 email = "janko.slavic@fs.uni-lj.si"
 
 [project.optional-dependencies]
