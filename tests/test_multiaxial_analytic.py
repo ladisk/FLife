@@ -68,6 +68,8 @@ def random_state(seed, plane=False):
 
 def eq_psd(S, criterion, f=F, **kwargs):
     es = FLife.EquivalentStress(input={'PSD': S, 'f': f})
+    if criterion == 'cs':
+        kwargs.setdefault('T', 1.)
     getattr(es, criterion)(**kwargs)
     return es.eq_psd_multipoint[0] if es.multipoint else es.psd[:, 1]
 
@@ -83,14 +85,18 @@ PSD_CRITERIA = {
     'max_normal': {},
     'max_shear': {},
     'max_normal_and_shear': {'s_af': S_AF, 'tau_af': TAU_AF},
+    'cs': {'s_af': S_AF, 'tau_af': TAU_AF},
     'thermoelastic': {},
     'Nieslony': {'s_af': S_AF, 'tau_af': TAU_AF},
     'Lemaitre': {'poisson_ratio': 0.3},
 }
+DELTA = 3 * np.pi / 8 * (1 - (TAU_AF / S_AF)**2)
 UNIAXIAL_FACTOR = {
     'EVMS': 1., 'max_normal': 1., 'max_shear': 1., 'thermoelastic': 1., 'Nieslony': 1., 'Lemaitre': 1.,
     # the plane of max variance of the equivalent stress is not at 45 deg
     'max_normal_and_shear': ((np.sqrt(1 + K**2) + K) / (1 + K))**2,
+    # normal and shear stress on the plane tilted by delta, Eq. 22 as printed
+    'cs': np.cos(DELTA)**4 + S_AF / TAU_AF * np.sin(DELTA)**2 * np.cos(DELTA)**2,
 }
 SHEAR_FACTOR = {
     'EVMS': 3., 'max_normal': 1., 'max_shear': 4., 'thermoelastic': 0., 'Lemaitre': 2 * 1.3,
@@ -163,7 +169,7 @@ def test_rotation_invariance_plane_stress(criterion):
         np.testing.assert_allclose(eq_psd(S, criterion, **kwargs), ref, rtol=1e-7, atol=1e-9 * ref.max())
 
 
-@pytest.mark.parametrize('criterion', ['max_normal', 'max_shear', 'max_normal_and_shear'])
+@pytest.mark.parametrize('criterion', ['max_normal', 'max_shear', 'max_normal_and_shear', 'cs'])
 def test_scale_invariance(criterion):
     S = psd_from_sources(random_state(3), [P1, P2])
     ref = eq_psd(S, criterion, **PSD_CRITERIA[criterion])
@@ -245,5 +251,73 @@ def test_multipoint_respects_search_method(monkeypatch):
     es = FLife.EquivalentStress(input={'PSD': S, 'f': F})
     es.max_normal(search_method='global')
     assert calls == ['global']
+
+
+# --- Carpinteri-Spagnoli ----------------------------------------------------------------
+
+def test_cs_delta_limited_as_in_authors_code():
+    # tau_af/s_af < 1/sqrt(3): delta = pi/4 (C_S_Spettrale.m:382-393)
+    for R in ROTATIONS[:3]:
+        S = psd_from_sources([R @ UNIAXIAL @ R.T], [P])
+        np.testing.assert_allclose(ratio(eq_psd(S, 'cs', s_af=300., tau_af=150.)), 0.25 + 2 * 0.25, rtol=1e-8)
+
+
+def test_cs_number_of_cycles():
+    """N1 = nu0*T with nu0 = sqrt(m2/m0) in Hz (Marques et al. 2020, Eq. 1 and 6)."""
+    f = np.arange(0, 300, 0.5)
+    px = np.exp(-0.5 * ((f - 20) / 1.)**2)
+    py = np.exp(-0.5 * ((f - 200) / 1.)**2)
+    px, py = px / px.sum(), 0.5 * py / py.sum()          # var_x = 1, var_y = 0.5 (per unit df)
+    S = np.zeros((len(f), 6, 6))
+    S[:, 0, 0], S[:, 1, 1] = px, py
+
+    def davenport(var, nu0, T):
+        x = np.sqrt(2 * np.log(nu0 * T))
+        return np.sqrt(var) * (x + 0.5772 / x)
+
+    for T in [1., 0.2]:
+        # with delta = 0 the equivalent PSD is the normal stress PSD along 1-hat
+        s_eq = eq_psd(S, 'cs', f=f, s_af=1., tau_af=1., T=T)
+        x_wins = davenport(1., 20., T) > davenport(0.5, 200., T)
+        np.testing.assert_allclose(s_eq, px if x_wins else py, atol=1e-10)
+    assert davenport(1., 20., 1.) > davenport(0.5, 200., 1.)
+    assert davenport(1., 20., 0.2) < davenport(0.5, 200., 0.2)
+
+
+def test_cs_frequency_vector():
+    # np.arange(0, N*df, df) used to give N+1 points for some (N, df)
+    f = np.arange(24) * 0.1
+    S = psd_from_sources([UNIAXIAL], [np.ones(len(F))])[:24]
+    s_eq = eq_psd(S, 'cs', f=f, s_af=1., tau_af=1.)
+    np.testing.assert_allclose(s_eq, 1.)
+    assert cplane.csrandom(S, 0.1, 1., 1.).shape == (6, 6)
+
+
+@pytest.mark.xfail(strict=True, reason='C-S: the sign of 3-hat (tilt direction) and 3-hat itself under '
+                   'proportional loading are not defined by the source; the frame convention of '
+                   'C_S_Spettrale.m is kept, so results depend on the reference frame. Maintainer decision.')
+@pytest.mark.parametrize('case', ['general', 'pure shear'])
+def test_cs_frame_independence(case):
+    if case == 'general':
+        tensors, psds = random_state(1), [P1, P2]
+    else:
+        tensors, psds = [SHEAR], [P]
+    ref = eq_psd(psd_from_sources(tensors, psds), 'cs', s_af=S_AF, tau_af=TAU_AF)
+    for R in ROTATIONS[:4]:
+        S = psd_from_sources([R @ T @ R.T for T in tensors], psds)
+        np.testing.assert_allclose(eq_psd(S, 'cs', s_af=S_AF, tau_af=TAU_AF), ref, rtol=1e-6)
+
+
+# --- amplitude-spectrum criteria --------------------------------------------------------
+
+def test_cs_requires_observation_time():
+    S = psd_from_sources([UNIAXIAL], [P])
+    es = FLife.EquivalentStress(input={'PSD': S, 'f': F})
+    with pytest.raises(ValueError, match='observation time'):
+        es.cs(s_af=1., tau_af=1.)
+    es = FLife.EquivalentStress(input={'PSD': S, 'f': F}, T=2., fs=1000.)
+    es.cs(s_af=1., tau_af=1.)
+    ref = eq_psd(S, 'cs', s_af=1., tau_af=1., T=2.)
+    np.testing.assert_allclose(es.psd[:, 1], ref)
 
 

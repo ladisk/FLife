@@ -91,26 +91,28 @@ def _EVMS(self, s):
     return _quadratic_criterion(s, Q, Q_2D)
 
 
-def _cs(self, s, s_af, tau_af):
+def _cs(self, s, s_af, tau_af, T=None):
     """
-    Internal function for calculating equivalent stress at one node.
+    Internal function for calculating equivalent stress at one node or at all nodes.
+
+    T is the time span for the number of cycles in the Davenport peak factor:
+    the given value, else the T given to EquivalentStress or SpectralData.
     """
     s = cplane._plane_stress_to_voigt_3d(s)
-    
-    freq = self.multiaxial_psd[1]
-    df = freq[1] - freq[0]
+    if T is None:
+        T = getattr(self, 't', None)
+    if T is None:
+        raise ValueError('C-S criterion needs the observation time T: pass `T` to `cs`, or `T` and `fs` to EquivalentStress.')
 
-    # .. Find critical plane.
-    C = cplane.csrandom(multiaxial_psd=s, df=df, s_af=s_af, tau_af=tau_af)
-    
-    # .. Transform stress.
-    s = np.einsum('ij,zjk,lk->zil', C, s, C)
-    
+    # .. Find critical plane: rows (u, v, w), w is the plane normal.
+    frames = cplane.cs_planes(s, self._freq(), s_af=s_af, tau_af=tau_af, T=T)
+    v, w = frames[..., 1, :], frames[..., 2, :]
+
     # .. Calculate equivalent PSD.
-    sww = s[:, 2, 2]
-    suw = s[:, -1, -1,]
+    sww = _psd_along(cplane._normal_vector(w), s)
+    svw = _psd_along(cplane._shear_vector(v, w), s)
 
-    s_eq = sww.real + suw.real * (s_af/tau_af)
+    s_eq = sww + svw * (s_af/tau_af)
     return s_eq
 
 
