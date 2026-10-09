@@ -16,7 +16,7 @@ def test_data():
         'EVMS': 2083.2568582803156,
         'max_normal': 1650.300624416056,
         'max_shear': 2430.1468521282327,
-        'max_normal_and_shear': 1565.051025189015, #s_af = 1, tau_af = 1
+        'max_normal_and_shear': 2587.451584100599, #s_af = 1, tau_af = 1; plane of max equivalent-stress variance (was 1565.051025189015)
         'cs': 1647.0269200556531, #s_af = 1, tau_af = 1 (optimiser-based)
         'multiaxial_rainflow': 1636.5919423074781,
         'thermoelastic': 1027.6423513625518,

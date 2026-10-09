@@ -97,6 +97,14 @@ class EquivalentStress(SpectralData): #equivalentstress
     #     return len(self.multiaxial_psd[0].shape) == 4
 
 
+    def _freq(self):
+        """Frequency vector of the multiaxial input."""
+        if hasattr(self, 'multiaxial_psd'):
+            return self.multiaxial_psd[1]
+        if hasattr(self, 'multiaxial_amplitude_spectrum'):
+            return self.multiaxial_amplitude_spectrum[1]
+        raise Exception('Input Error. Multiaxial PSD or amplitude spectrum is required.')
+
     def loop_over_points(self, criterion, *args, **kwargs):
         """Loop the selected criterion over multiple points on the model"""    
         if hasattr(self,'multiaxial_psd'):
@@ -115,6 +123,12 @@ class EquivalentStress(SpectralData): #equivalentstress
         elif hasattr(self,'multiaxial_amplitude_spectrum'):
             #calculate psd from amplitude spectrum at each point at each frequency
             self.eq_psd_multipoint = (abs(s_eq_multi_point**2), self.multiaxial_amplitude_spectrum[1])
+
+    def _all_points(self, criterion, *args, **kwargs):
+        """Apply a criterion that accepts all points at once (N, f, ...) and set `eq_psd_multipoint`."""
+        psd, f = self.multiaxial_psd
+        s_eq_multi_point = criterion(self, s=psd, *args, **kwargs)
+        self.eq_psd_multipoint = (np.real(s_eq_multi_point), f) #(multipoint psd, freq)
 
     def set_eq_stress(self,eq_psd,f):
         """Set equivalent stress to the object. Also generate im ehistory if T and fs are provided"""
@@ -141,7 +155,9 @@ class EquivalentStress(SpectralData): #equivalentstress
         scalar psd stress, using method of maximum normal stress.
         
         :param search_method: str, optional, default 'local'
-                Search method for optimization. Options are 'local' or 'global'. Local is prefered, unless the optimization fails.
+                Critical plane search. 'local': grid over plane normals plus a local
+                refinement, for all points at once. 'global': additionally runs
+                differential evolution at each point and keeps the better plane (slow).
         
         --------
 
@@ -151,12 +167,13 @@ class EquivalentStress(SpectralData): #equivalentstress
         """
         # psd is multiple-point
         if self.multipoint: 
-            self.loop_over_points(criterion=criteria._max_normal,search_method = 'local')
+            self._all_points(criterion=criteria._max_normal, search_method=search_method)
         
         # psd in single-point
         else: 
-            s_eq = criteria._max_normal(self,s=self.multiaxial_psd[0],search_method=search_method)
-            self.set_eq_stress(eq_psd=s_eq, f=self.multiaxial_psd[1])
+            psd, f = self.multiaxial_psd
+            s_eq = criteria._max_normal(self,s=psd, search_method=search_method)
+            self.set_eq_stress(eq_psd=s_eq, f=f)
 
 
     def max_shear(self,search_method='local'):
@@ -165,7 +182,9 @@ class EquivalentStress(SpectralData): #equivalentstress
         scalar psd stress, using method of maximum shear stress.
         
         :param search_method: str, optional, default 'local'
-                Search method for optimization. Options are 'local' or 'global'. Local is prefered, unless the optimization fails.
+                Critical plane search. 'local': grid over plane normals plus a local
+                refinement, for all points at once. 'global': additionally runs
+                differential evolution at each point and keeps the better plane (slow).
         
         --------
             
@@ -175,24 +194,30 @@ class EquivalentStress(SpectralData): #equivalentstress
         """
         # psd is multiple-point
         if self.multipoint:
-            self.loop_over_points(criterion=criteria._max_shear,search_method = 'local')
+            self._all_points(criterion=criteria._max_shear, search_method=search_method)
         
         # psd is single-point
         else:
-            s_eq = criteria._max_shear(self,s=self.multiaxial_psd[0],search_method=search_method)
-            self.set_eq_stress(eq_psd=s_eq, f=self.multiaxial_psd[1])
+            psd, f = self.multiaxial_psd
+            s_eq = criteria._max_shear(self,s=psd, search_method=search_method)
+            self.set_eq_stress(eq_psd=s_eq, f=f)
 
     def max_normal_and_shear(self, s_af, tau_af, search_method='local'):
         """
         Converts the stress tensor at one node or multiple nodes to equivalent,
         scalar psd stress, using method of maximum normal and shear stress.
         
-        Critical plane is based on max variance of shear stress
+        The critical plane maximises the variance of the equivalent stress
+        (Bedkowski and Macha). For uniaxial stress this plane is not at 45 deg,
+        so the equivalent PSD is ((sqrt(1+K^2) + K) / (1+K))^2 times the input,
+        with K = 2*tau_af/s_af - 1.
         
         :param s_af: float
             Fully reversed bending-fatigue limit. Used for calculating material fatigue coefficient K [1].
         :param tau_af: float
             Fully reversed torsion-fatigue limit. Used Used for calculating material fatigue coefficient K [1].
+        :param search_method: str, optional, default 'local'
+                Critical plane search, see `max_normal`.
         
         --------
             
@@ -206,12 +231,13 @@ class EquivalentStress(SpectralData): #equivalentstress
         """
         # psd is multiple-point
         if self.multipoint:
-            self.loop_over_points(criterion=criteria._max_normal_and_shear, search_method='local', s_af=s_af, tau_af=tau_af)
+            self._all_points(criterion=criteria._max_normal_and_shear, search_method=search_method, s_af=s_af, tau_af=tau_af)
         
         # psd is single-point
         else:
-            s_eq = criteria._max_normal_and_shear(self,s=self.multiaxial_psd[0], s_af=s_af, tau_af=tau_af, search_method=search_method)
-            self.set_eq_stress(eq_psd=s_eq, f=self.multiaxial_psd[1])
+            psd, f = self.multiaxial_psd
+            s_eq = criteria._max_normal_and_shear(self,s=psd, s_af=s_af, tau_af=tau_af, search_method=search_method)
+            self.set_eq_stress(eq_psd=s_eq, f=f)
     
     def EVMS(self):
         """
@@ -226,12 +252,13 @@ class EquivalentStress(SpectralData): #equivalentstress
         """
         # psd is multiple-point
         if self.multipoint:
-            self.loop_over_points(criterion=criteria._EVMS)
+            self._all_points(criterion=criteria._EVMS)
         
         # psd is single-point
         else:
-            s_eq = criteria._EVMS(self,s=self.multiaxial_psd[0])
-            self.set_eq_stress(eq_psd=s_eq, f=self.multiaxial_psd[1])
+            psd, f = self.multiaxial_psd
+            s_eq = criteria._EVMS(self,s=psd)
+            self.set_eq_stress(eq_psd=s_eq, f=f)
 
     def cs(self, s_af, tau_af):
         """Converts the stress tensor at one node to equivalent,
@@ -294,12 +321,13 @@ class EquivalentStress(SpectralData): #equivalentstress
         """
         # psd is multiple-point
         if self.multipoint:
-            self.loop_over_points(criterion=criteria._thermoelastic)
+            self._all_points(criterion=criteria._thermoelastic)
         
         # psd is single-point
         else:
-            s_eq = criteria._thermoelastic(self,s=self.multiaxial_psd[0])
-            self.set_eq_stress(eq_psd=s_eq, f=self.multiaxial_psd[1])
+            psd, f = self.multiaxial_psd
+            s_eq = criteria._thermoelastic(self,s=psd)
+            self.set_eq_stress(eq_psd=s_eq, f=f)
 
     def liwi(self):
         """Converts the stress tensor at one node to equivalent
@@ -370,7 +398,8 @@ class EquivalentStress(SpectralData): #equivalentstress
         """Converts the stress tensor at one node to equivalent
         stress, using the phase-sensitive EVMS criterion, adjusted for out-of-phase components.
 
-        ONLY WORKS WITH BIAXIAL PSD (f,3,3) - single point or (N,f,3,3) - multiple points
+        ONLY WORKS WITH BIAXIAL PSD (f,3,3) - single point or (N,f,3,3) - multiple points.
+        A 3D PSD (f,6,6) raises ValueError.
                
         --------
 
@@ -382,13 +411,14 @@ class EquivalentStress(SpectralData): #equivalentstress
         
         # psd is multiple-point
         if self.multipoint:
-            self.loop_over_points(criterion=criteria._EVMS_out_of_phase)
+            self._all_points(criterion=criteria._EVMS_out_of_phase)
         
         # psd is single-point
         else:
-            s_eq_psd = criteria._EVMS_out_of_phase(self,s=self.multiaxial_psd[0])
+            psd, f = self.multiaxial_psd
+            s_eq_psd = criteria._EVMS_out_of_phase(self,s=psd)
 
-            self.set_eq_stress(eq_psd=s_eq_psd, f=self.multiaxial_psd[1])
+            self.set_eq_stress(eq_psd=s_eq_psd, f=f)
 
 
     def Nieslony(self, s_af, tau_af, coefficient_load_type='tension'):
@@ -411,12 +441,13 @@ class EquivalentStress(SpectralData): #equivalentstress
         """
         # psd is multiple-point
         if self.multipoint:
-            self.loop_over_points(criterion=criteria._Nieslony, s_af=s_af, tau_af=tau_af, coefficient_load_type=coefficient_load_type)
+            self._all_points(criterion=criteria._Nieslony, s_af=s_af, tau_af=tau_af, coefficient_load_type=coefficient_load_type)
         
         # psd is single-point
         else:
-            s_eq = criteria._Nieslony(self,s=self.multiaxial_psd[0], s_af=s_af, tau_af=tau_af, coefficient_load_type=coefficient_load_type)
-            self.set_eq_stress(eq_psd=s_eq, f=self.multiaxial_psd[1])
+            psd, f = self.multiaxial_psd
+            s_eq = criteria._Nieslony(self,s=psd, s_af=s_af, tau_af=tau_af, coefficient_load_type=coefficient_load_type)
+            self.set_eq_stress(eq_psd=s_eq, f=f)
 
     def Lemaitre(self, poisson_ratio):
         """
@@ -432,9 +463,10 @@ class EquivalentStress(SpectralData): #equivalentstress
         """
         # psd is multiple-point
         if self.multipoint:
-            self.loop_over_points(criterion=criteria._Lemaitre, poisson_ratio=poisson_ratio)
+            self._all_points(criterion=criteria._Lemaitre, poisson_ratio=poisson_ratio)
         
         # psd is single-point
         else:
-            s_eq = criteria._Lemaitre(self,s=self.multiaxial_psd[0], poisson_ratio=poisson_ratio)
-            self.set_eq_stress(eq_psd=s_eq, f=self.multiaxial_psd[1])
+            psd, f = self.multiaxial_psd
+            s_eq = criteria._Lemaitre(self,s=psd, poisson_ratio=poisson_ratio)
+            self.set_eq_stress(eq_psd=s_eq, f=f)
