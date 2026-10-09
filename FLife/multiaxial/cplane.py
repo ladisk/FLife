@@ -488,13 +488,13 @@ def max_variance(multiaxial_psd, df, method, K=None, search_method='local'):
 #   Q_x(a) = [[1, 0, 0], [0, c, s], [0, -s, c]]
 # where c = cos(a), s = sin(a).
 #
-# The C-S algorithm uses ZXZ Euler angles (phi, theta, psi):
-#   C_phi  = Tz(phi)   -- rotation about Z
-#   C_theta = Tx(theta) -- rotation about X (line of nodes)
-#   C_psi  = Tz(psi)   -- rotation about Z' (leaves sigma_z invariant)
-# Plus two more rotations for the critical plane:
-#   C_delta = Tx(delta) -- rotation about X' (2-hat axis)
-#   C_chi   = Tz(chi)   -- rotation about Z (w-axis, leaves sigma_w invariant)
+# The C-S frame is the ZXZ rotation Tz(chi) Tx(delta) Tz(psi) Tx(theta) Tz(phi):
+#   phi, theta -- direction of the 1-hat axis (w)
+#   psi        -- rotation about w (shear direction v)
+#   delta      -- material off-angle about the u axis (Eq. 19)
+#   chi        -- rotation about the tilted w (shear direction on the critical plane)
+# cs_planes finds the same frame by working on the axis vectors directly, which
+# avoids the Euler-angle singularities. voigt_transform builds the 6x6 matrix.
 
 def Tz(c, s):
     '''6x6 stress transformation for rotation about Z-axis.
@@ -552,15 +552,132 @@ def spectral_moment(f, multiaxial_psd, n):
     return np.einsum('i,i...->...', f**n, multiaxial_psd) * df
 
 
-def csrandom(multiaxial_psd, df, s_af, tau_af):
+def voigt_transform(Q):
+    '''6x6 Voigt stress transformation for direction cosines Q (..., 3, 3).
+
+    sigma' = Q sigma Q^T in Voigt form {sigma_x, sigma_y, sigma_z, tau_xy, tau_xz, tau_yz}.
+    Tz and Tx are special cases.
+    '''
+    Q = np.asarray(Q)
+    T = np.empty(Q.shape[:-2] + (6, 6))
+    for I, (i, j) in enumerate(_VOIGT_PAIRS):
+        for J, (k, l) in enumerate(_VOIGT_PAIRS):
+            T[..., I, J] = Q[..., i, k] * Q[..., j, l]
+            if k != l:
+                T[..., I, J] += Q[..., i, l] * Q[..., j, k]
+    return T
+
+
+def _davenport_extreme(k0, k2, T):
+    """Davenport expected maximum sqrt(k0) * (sqrt(2 ln N1) + 0.5772 / sqrt(2 ln N1)).
+
+    N1 = nu0 * T with nu0 = sqrt(k2 / k0) the mean up-crossing rate (moments in
+    Hz). As before, the value is 0 where N1 <= 1 (the formula is undefined there).
+    """
+    with np.errstate(divide='ignore', invalid='ignore'):
+        N1 = np.sqrt(np.where(k0 > 0, k2 / k0, 0.)) * T
+        x = np.sqrt(2 * np.log(np.where(N1 > 1, N1, np.e)))
+        value = np.sqrt(np.maximum(k0, 0.)) * (x + 0.5772 / x)
+    return np.where((N1 > 1) & (k2 > 0), value, 0.)
+
+
+def _cs_delta(s_af, tau_af):
+    """Off-angle delta, Eq. 19; limited to [0, pi/4] as in the authors' code (C_S_Spettrale.m:382-393)."""
+    r = tau_af / s_af
+    if r < 1 / np.sqrt(3):
+        return np.pi / 4
+    elif r > 1:
+        return 0.
+    return 3 * np.pi * (1 - r**2) / 8
+
+
+def _matlab_sign(x, y, z):
+    """+1 where the vector comes first in the authors' grid order, else -1.
+
+    In C_S_Spettrale.m the first strict maximum wins, so of two equivalent
+    directions the one with the smaller angle (phi or theta) is kept.
+    """
+    first = np.where(y != 0, y > 0, np.where(x != 0, x > 0, z >= 0))
+    return np.where(first, 1., -1.)
+
+
+def cs_planes(multiaxial_psd, f, s_af, tau_af, T=1.):
+    '''Critical-plane frames of the C-S random criterion, for one or many nodes.
+
+    :param multiaxial_psd: array (f, 6, 6), (f, 3, 3), (N, f, 6, 6) or (N, f, 3, 3)
+    :param f: frequency vector in Hz
+    :param T: observation time in s, for the number of cycles N1 = nu0 * T
+    :returns: direction cosines (3, 3) or (N, 3, 3), rows (u, v, w); w is the
+        normal of the critical plane and v the shear direction (tau_vw).
+
+    The steps follow the authors' MATLAB code C_S_Spettrale.m (Carpinteri,
+    Spagnoli, Vantadori) and Marques et al. (2020), Sec. 2:
+        1. 1-hat maximises the Davenport expected maximum of the normal stress,
+           sqrt(lambda0) (sqrt(2 ln N1) + 0.5772 / sqrt(2 ln N1)), with
+           N1 = nu0 T and nu0 = sqrt(lambda2 / lambda0) / (2 pi), lambda_m in
+           rad/s (= sqrt(m2 / m0) with moments in Hz). The authors scan a 10 deg
+           grid; here a finer grid plus a local refinement is used.
+        2. 3-hat _|_ 1-hat maximises the variance of the shear stress on the
+           plane 1-hat (closed form instead of the 10 deg scan).
+        3. w = cos(delta) 1-hat + sin(delta) 3-hat (Eq. 19 for delta).
+        4. v _|_ w maximises the variance of tau_vw (closed form).
+    Where two directions are equivalent (n and -n), the one the authors' scan
+    meets first is kept, so the frame convention matches C_S_Spettrale.m.
+    '''
+    multiaxial_psd = _plane_stress_to_voigt_3d(np.asarray(multiaxial_psd))
+    single = multiaxial_psd.ndim == 3
+    psd = multiaxial_psd.reshape((-1,) + multiaxial_psd.shape[-3:])
+    f = np.asarray(f, dtype=float)
+    m0 = np.real(spectral_moment(f, np.moveaxis(psd, 1, 0), 0))
+    m2 = np.real(spectral_moment(f, np.moveaxis(psd, 1, 0), 2))
+    m0, m2 = _normalise(m0, m2)
+    op = _traction_operator(m0)
+
+    def objective(n, idx):
+        a = _normal_vector(n)
+        return _davenport_extreme(_quadratic_form(a, m0[idx]), _quadratic_form(a, m2[idx]), T)
+
+    # 1. 1-hat, as (sin g cos p, sin g sin p, cos g) with 0 <= p <= 2 pi, 0 <= g <= pi
+    n1, _ = _sphere_search(objective, len(psd))
+    n1 = n1 * _matlab_sign(n1[:, 0], n1[:, 1], n1[:, 2])[:, None]
+    phi = np.arctan2(n1[:, 1], n1[:, 0])
+    phi = np.where(np.hypot(n1[:, 0], n1[:, 1]) > 0, phi, 0.)
+    a_v = np.stack([-np.sin(phi), np.cos(phi), np.zeros_like(phi)], axis=-1)   # C_S_Spettrale.m:253-257
+    a_u = np.cross(n1, a_v)                                                      # C_S_Spettrale.m:265-269
+
+    # 2. 3-hat = cos(theta) a_u + sin(theta) a_v, 0 <= theta <= pi (C_S_Spettrale.m:320-360)
+    M = _traction_covariance(op, n1[:, None])[:, 0]
+    zero = np.zeros(len(n1))
+    _, x1, x2 = _max_on_circle(_quad3(M, a_u, a_u), _quad3(M, a_u, a_v), _quad3(M, a_v, a_v),
+                               zero, zero, newton_steps=0)
+    sign = _matlab_sign(zero, x2, x1)
+    n3 = sign[:, None] * (x1[:, None] * a_u + x2[:, None] * a_v)
+    n2 = np.cross(n1, n3)                                                        # C_S_Spettrale.m:369-373
+
+    # 3. critical plane normal (C_S_Spettrale.m:382-411)
+    delta = _cs_delta(s_af, tau_af)
+    w = np.cos(delta) * n1 + np.sin(delta) * n3
+
+    # 4. shear direction on the critical plane (C_S_Spettrale.m:473-525)
+    k = np.cross(w, n2)
+    M = _traction_covariance(op, w[:, None])[:, 0]
+    _, x1, x2 = _max_on_circle(_quad3(M, n2, n2), _quad3(M, n2, k), _quad3(M, k, k),
+                               zero, zero, newton_steps=0)
+    v = x1[:, None] * n2 + x2[:, None] * k
+
+    frames = np.stack([np.cross(v, w), v, w], axis=-2)
+    return frames[0] if single else frames
+
+
+def csrandom(multiaxial_psd, df, s_af, tau_af, f=None, T=1.):
     '''Determine critical plane with the C-S random criterion.
 
-    Uses ZXZ Euler angles with 6x6 Voigt stress transformations derived
-    from first principles. The 5-angle sequence is:
-        phi (about Z), theta (about X), psi (about Z'),
-        delta (about X', material angle), chi (about Z/w-axis).
+    Returns the 6x6 Voigt transformation CC to the critical-plane frame:
+    after transformation, sigma_w = S[2,2] and tau_vw = S[5,5]. See
+    `cs_planes` for the steps.
 
-    After transformation, sigma_w = S[2,2] and tau_vw = S[5,5].
+    :param f: frequency vector in Hz; defaults to arange(len) * df
+    :param T: time span in s for the number of cycles N1 = nu0 * T
 
     See also
     --------
@@ -568,80 +685,7 @@ def csrandom(multiaxial_psd, df, s_af, tau_af):
     domain of a critical plane-based multiaxial fatigue criterion,
     Int J Fat, 2014
     '''
-    multiaxial_psd = _plane_stress_to_voigt_3d(multiaxial_psd)
-    f = np.arange(0, multiaxial_psd.shape[0] * df, df)
-    l0 = spectral_moment(f, multiaxial_psd, 0)
-    m2 = spectral_moment(f, multiaxial_psd, 2)
-
-    # Normalise the moments before the plane search. The critical plane depends
-    # only on the relative stress distribution, but SLSQP uses absolute
-    # tolerances, so an objective that scales with the PSD magnitude converges to
-    # a slightly different plane at different load levels. Scaling l0 and m2 by a
-    # common factor keeps the objective O(1) and leaves both the plane and the
-    # moment ratio in N1 unchanged. The equivalent stress is computed later in
-    # _cs from the unscaled stress.
-    scale = np.real(np.trace(l0))
-    if scale > 0:
-        l0 = l0 / scale
-        m2 = m2 / scale
-
-    # Step 2: Find 1-hat direction (phi, theta).
-    # Maximize Davenport expected extreme of sigma_z at [2,2].
-    # C = Tx(theta) @ Tz(phi)  (psi=0 => Tz(psi) = I)
-    def s33crit(inp):
-        phi, th = inp
-        C = Tx(np.cos(th), np.sin(th)) @ Tz(np.cos(phi), np.sin(phi))
-        l0_ = C @ l0 @ C.T
-        m2_ = C @ m2 @ C.T
-        k0 = np.real(l0_[2, 2])
-        k2 = np.real(m2_[2, 2])
-        if k0 <= 0 or k2 <= 0:
-            return 0.0
-        N1 = np.sqrt(k2 / k0) / (2 * np.pi)
-        if N1 <= 1:
-            return 0.0
-        return -(np.sqrt(k0) * (np.sqrt(2 * np.log(N1))
-                 + 0.5772 / np.sqrt(2 * np.log(N1))))
-
-    res = opt.minimize(s33crit, [0.33, 0.33], method='SLSQP',
-                       bounds=[(0, 2*np.pi), (0, np.pi)])
-    phi, th = res['x']
-
-    # Step 3: Find 3-hat direction (psi).
-    # Maximize variance of tau_yz at [5,5].
-    # Tz(psi) leaves sigma_z invariant, so normal stress is preserved.
-    def taucrit(psi):
-        C = (Tz(np.cos(psi), np.sin(psi))
-             @ Tx(np.cos(th), np.sin(th))
-             @ Tz(np.cos(phi), np.sin(phi)))
-        return -np.real((C @ l0 @ C.T)[5, 5])
-
-    res = opt.minimize_scalar(taucrit, 0.33, method='bounded',
-                              bounds=(0, 2*np.pi))
-    psi = res['x'].real
-
-    # Step 4: Off-angle delta (Eq. 19).
-    delta = 3 * np.pi * (1 - (tau_af / s_af)**2) / 8
-
-    # Build 3-angle rotation (phi, theta, psi).
-    C = (Tz(np.cos(psi), np.sin(psi))
-         @ Tx(np.cos(th), np.sin(th))
-         @ Tz(np.cos(phi), np.sin(phi)))
-
-    # Step 5: Find chi — maximize variance of tau_vw at [5,5].
-    # CC = Tz(chi) @ Tx(delta) @ C
-    # Tz(chi) leaves sigma_w invariant after delta tilt.
-    def tau2crit(chi):
-        CC = (Tz(np.cos(chi), np.sin(chi))
-              @ Tx(np.cos(delta), np.sin(delta))
-              @ C)
-        return -np.real((CC @ l0 @ CC.T)[5, 5])
-
-    res = opt.minimize_scalar(tau2crit, 0.33, method='bounded',
-                              bounds=(0, 2*np.pi))
-    chi = res['x'].real
-
-    CC = (Tz(np.cos(chi), np.sin(chi))
-          @ Tx(np.cos(delta), np.sin(delta))
-          @ C)
-    return CC
+    multiaxial_psd = np.asarray(multiaxial_psd)
+    if f is None:
+        f = np.arange(multiaxial_psd.shape[-3]) * df
+    return voigt_transform(cs_planes(multiaxial_psd, f, s_af, tau_af, T=T))
