@@ -180,13 +180,8 @@ class PSDgen(object):
         )
         if not filepath:
             return
-        # If data points exist
-        try:
-            PSD = self.get_PSD()
-            # Save to txt
-            np.savetxt(filepath, PSD, fmt=['%d','%d'])
-        except:
-            pass
+        PSD = self.get_PSD()
+        np.savetxt(filepath, PSD, fmt='%.10g')
         self.root.title(f"FLife: PSD input - {filepath}")
 
     def confirm_deltaf(self):
@@ -197,36 +192,35 @@ class PSDgen(object):
         if len(self.data_entries) == 0:
             self.dfreq = float(self.ent_deltaF.get())
             self.ent_deltaF.delete(0, tk.END)
-            self.ent_deltaF.insert(0, f'{self.dfreq:.1f}')
+            self.ent_deltaF.insert(0, f'{self.dfreq:g}')
             self.freq = np.arange(0, self.freq_max, self.dfreq)
         else:
             self.ent_deltaF.config(background="RED")
             self.root.update()
             time.sleep(0.1)
             self.ent_deltaF.delete(0, tk.END)
-            self.ent_deltaF.insert(0, f'{self.dfreq:.1f}')
+            self.ent_deltaF.insert(0, f'{self.dfreq:g}')
             self.ent_deltaF.config(background="WHITE")            
 
     def get_PSD(self):
         """
         Return PSD, defined by linear interpolation of entered data points.
         """
-        # If data points exist
-        try:
-            # Unpack data points
-            list_freq, list_psd, list_lbl_nmbr, list_ent_freq, list_ent_PSD = self._list_unpack_data_entries()
-            freq_data = np.array(list_freq)
-            psd_data =  np.array(list_psd)
-            # Interpolate data to frequency vector, from first to last frequency in data points
-            freq_min_index = np.where(self.freq == freq_data[0])[0][0]
-            freq_max_index = np.where(self.freq == freq_data[-1])[0][0]
-            psd_values = np.interp(self.freq[freq_min_index:freq_max_index], freq_data, psd_data)
-            PSD = np.column_stack([self.freq[freq_min_index:freq_max_index], psd_values])
-        except:
+        if len(self.data_entries) == 0:
             # Return zero valued PSD
             psd_values = np.zeros_like(self.freq)
-            PSD = np.column_stack([self.freq, psd_values])
-        return PSD
+            return np.column_stack([self.freq, psd_values])
+
+        # Unpack data points
+        list_freq, list_psd, list_lbl_nmbr, list_ent_freq, list_ent_PSD = self._list_unpack_data_entries()
+        freq_data = np.array(list_freq)
+        psd_data =  np.array(list_psd)
+        # Interpolate data to frequency vector, from first to last frequency in data points (both included)
+        freq_min_index = np.abs(self.freq - freq_data[0]).argmin()
+        freq_max_index = np.abs(self.freq - freq_data[-1]).argmin()
+        freq = self.freq[freq_min_index:freq_max_index+1]
+        psd_values = np.interp(freq, freq_data, psd_data)
+        return np.column_stack([freq, psd_values])
 
     def on_closing(self):
         self.root.destroy()
@@ -283,9 +277,9 @@ class PSDgen(object):
         x_lim = self.ax.get_xlim()
         y_lim = self.ax.get_ylim()
             
-        try: # if at least one data point exist, unpack data_entries
+        if self.data_entries: # if at least one data point exist, unpack data_entries
             list_freq, list_psd, list_lbl_nmbr, list_ent_freq, list_ent_PSD = self._list_unpack_data_entries() 
-        except: # no data
+        else: # no data
             list_freq, list_psd = [], []
 
         # Plot
@@ -321,41 +315,40 @@ class PSDgen(object):
         """
         Select data point (freqeuncy, value) from graph.
         """
-        try:  #if mouse is over graph
-            y_data = float(event.ydata)
-            x_data = float(event.xdata)
+        if event.xdata is None or event.ydata is None: # mouse is not over graph
+            return
+        y_data = float(event.ydata)
+        x_data = float(event.xdata)
 
-            if event.button == 1 and self.shift_is_held and not self.D_is_held:
-                self.add_data_from_graph(x_data,y_data)
-                self.refresh_PSD_table()
-                self.plot_PSD()
-            elif event.button == 1 and self.shift_is_held and self.D_is_held:
+        if event.button == 1 and self.shift_is_held and not self.D_is_held:
+            self.add_data_from_graph(x_data,y_data)
+            self.refresh_PSD_table()
+            self.plot_PSD()
+        elif event.button == 1 and self.shift_is_held and self.D_is_held:
+            if self.data_entries:
                 self.remove_data(x_data)
-                self.refresh_PSD_table()
-                self.plot_PSD()
-            elif event.button == 3 and self.shift_is_held:
-                self._button_press_data = event  # save data point to be translated
-        except:
-            pass
+            self.refresh_PSD_table()
+            self.plot_PSD()
+        elif event.button == 3 and self.shift_is_held:
+            self._button_press_data = event  # save data point to be translated
 
     def move_data_point(self, event):
         """
         Moves selected data point to another location on graph. Frequency and PSD value are updated, accordingly.
         Function is triggered by release of RIGHT mouse button.
         """
-        try:  #if mouse is over Figure object
-            y_data = float(event.ydata)
-            x_data = float(event.xdata)
-            
-            if event.button == 3 and self.shift_is_held and self._button_press_data:
-                self._drag_data_point(x_data, y_data, flag = False) #False flag disables moving_data_point() 
-                self._button_press_data = False
-                # replot PSD
-                self.plot_PSD()
-                # refresh Table
-                self.refresh_PSD_table()
-        except:
-            pass
+        if event.xdata is None or event.ydata is None: # mouse is not over graph
+            return
+        y_data = float(event.ydata)
+        x_data = float(event.xdata)
+        
+        if event.button == 3 and self.shift_is_held and self._button_press_data and self.data_entries:
+            self._drag_data_point(x_data, y_data, flag = False) #False flag disables moving_data_point() 
+            self._button_press_data = False
+            # replot PSD
+            self.plot_PSD()
+            # refresh Table
+            self.refresh_PSD_table()
 
     def _drag_event_handle(self, event):
         """
@@ -378,22 +371,21 @@ class PSDgen(object):
             self.fig.canvas.mpl_connect('motion_notify_event', self._drag_event_handle)
             pass
         else:
-            try:  #if mouse is over Figure object
-                y_data = float(event.ydata)
-                x_data = float(event.xdata)
+            if event.xdata is None or event.ydata is None: # mouse is not over graph
+                return
+            y_data = float(event.ydata)
+            x_data = float(event.xdata)
 
-                if event.button == 3 and self.shift_is_held and self._button_press_data:
-                    self._data_point_drag = True
-                    self._drag_data_point(x_data, y_data, flag = event)
-                    self.root.update()
-                    # set flag
-                    self._data_point_drag = False
-                    # replot PSD
-                    self.plot_PSD()
-                    # refresh Table
-                    self.refresh_PSD_table()
-            except:
-                pass
+            if event.button == 3 and self.shift_is_held and self._button_press_data and self.data_entries:
+                self._data_point_drag = True
+                self._drag_data_point(x_data, y_data, flag = event)
+                self.root.update()
+                # set flag
+                self._data_point_drag = False
+                # replot PSD
+                self.plot_PSD()
+                # refresh Table
+                self.refresh_PSD_table()
 
     def _drag_data_point(self, x_data, y_data, flag):
         """
@@ -432,7 +424,7 @@ class PSDgen(object):
             if freq_sel == self.data_entries[key][0]:
                 for_deletion = key
                 
-        if for_deletion !=  None:
+        if for_deletion is not None:
             deleted = self.data_entries.pop(for_deletion)
             # remove data point from table
             lbl_nmbr = deleted[2]
@@ -467,9 +459,9 @@ class PSDgen(object):
             #sort to closest frequency
             zoomed_frequencies = sorted(zoomed_frequencies, key=lambda x: x[1])
 
-            try:
+            if zoomed_frequencies:
                 freq = zoomed_frequencies[0][0]
-            except:
+            else:
                 freq = freq_sel
             return freq
 
@@ -500,18 +492,19 @@ class PSDgen(object):
             self.data_entries[index] = [freq, PSD, lbl_nmb, ent_freq, ent_PSD] 
         
         try:
-            if float(self.new_entry[3].get()) >= 0 and float(self.new_entry[4].get()) >= 0: # if new data point is given
-                # read entered data point and add to data entries
-                new_ent_freq = self.new_entry[3]
-                new_ent_PSD = self.new_entry[4]
-                freq_new = float(new_ent_freq.get())
-                PSD_new = float(new_ent_PSD.get())
-                self._add_data(freq_new, PSD_new)
-                # Clear new entry text
-                new_ent_freq.delete(0, 'end')
-                new_ent_PSD.delete(0, 'end')
-        except:
-            pass
+            new_point = float(self.new_entry[3].get()) >= 0 and float(self.new_entry[4].get()) >= 0
+        except ValueError: # empty or invalid new entry
+            new_point = False
+        if new_point: # if new data point is given
+            # read entered data point and add to data entries
+            new_ent_freq = self.new_entry[3]
+            new_ent_PSD = self.new_entry[4]
+            freq_new = float(new_ent_freq.get())
+            PSD_new = float(new_ent_PSD.get())
+            self._add_data(freq_new, PSD_new)
+            # Clear new entry text
+            new_ent_freq.delete(0, 'end')
+            new_ent_PSD.delete(0, 'end')
 
         # Refresh Table
         self.refresh_PSD_table()
@@ -528,9 +521,9 @@ class PSDgen(object):
         """
         Read input data and adds to dict self.data_entries
         """
-        try: # if at least one data point exist, unpack data_entries
+        if self.data_entries: # if at least one data point exist, unpack data_entries
             list_freq, list_psd, list_lbl_nmbr, list_ent_freq, list_ent_PSD = self._list_unpack_data_entries() 
-        except: # else create empyt lists
+        else: # else create empyt lists
             list_freq, list_psd, list_lbl_nmbr, list_ent_freq, list_ent_PSD = [list() for u in range(5)] 
 
         # Get selected frequency 
@@ -581,16 +574,16 @@ class PSDgen(object):
     def refresh_PSD_table(self):
         """Updates PSD table, based on self.data_entries
         """
-        try:
+        row_indx = 0
+        if self.data_entries:
             # Unpack data_entries
             data_entries = self._unpack_data_entries()
 
             #update widgets
-            for row_indx, entry_data in enumerate(data_entries):
-                row_indx += 1 #zero-th row is used for column description
+            for row_indx, entry_data in enumerate(data_entries, start=1): #zero-th row is used for column description
                 #freq and PSD value
-                freq = f'{entry_data[0]:.0f}'
-                PSD = f'{entry_data[1]:.1f}'
+                freq = f'{entry_data[0]:.10g}'
+                PSD = f'{entry_data[1]:.10g}'
                 #Input point number
                 lbl_nmbr = entry_data[2]
                 lbl_nmbr['text']= str(row_indx)
@@ -606,14 +599,8 @@ class PSDgen(object):
                 ent_PSD.insert(0, PSD)
                 ent_PSD.grid(row=row_indx, column=2, sticky='nswe', padx=0, pady=1)
         
-            #Change row of entry line
-            self.new_entry[2]['text'] = str(row_indx+1)
-            self.new_entry[2].grid(row=row_indx+1, column=0, sticky='nswe', padx=0, pady=1)
-            self.new_entry[3].grid(row=row_indx+1, column=1, sticky='nswe', padx=0, pady=1)
-            self.new_entry[4].grid(row=row_indx+1, column=2, sticky='nswe', padx=0, pady=1)
-        
-        except:
-            self.new_entry[2]['text'] = str(1)
-            self.new_entry[2].grid(row=1, column=0, sticky='nswe', padx=0, pady=1)
-            self.new_entry[3].grid(row=1, column=1, sticky='nswe', padx=0, pady=1)
-            self.new_entry[4].grid(row=1, column=2, sticky='nswe', padx=0, pady=1)
+        #Change row of entry line
+        self.new_entry[2]['text'] = str(row_indx+1)
+        self.new_entry[2].grid(row=row_indx+1, column=0, sticky='nswe', padx=0, pady=1)
+        self.new_entry[3].grid(row=row_indx+1, column=1, sticky='nswe', padx=0, pady=1)
+        self.new_entry[4].grid(row=row_indx+1, column=2, sticky='nswe', padx=0, pady=1)

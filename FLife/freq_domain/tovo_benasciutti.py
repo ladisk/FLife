@@ -137,7 +137,15 @@ class TovoBenasciutti(Narrowband):
         return b
 
     def get_PDF(self, s, method='method 2'):
-        """Returns cycle PDF(Probability Density Function) as a function of stress s.
+        """Returns the rainflow amplitude PDF per peak as a function of stress s.
+
+        Weights follow Benasciutti and Tovo [2], Eq. (28) with the marginals of
+        Tovo [1], Eqs. (23) and (26): the level-crossing part has the Rayleigh density
+        of sigma with weight b*alpha2, the range-counting part has the Rayleigh density
+        of alpha2*sigma with weight (1-b). The function integrates to 1 - b*(1-alpha2);
+        the missing mass b*(1-alpha2) sits at zero amplitude and does not damage.
+        The damage is nu_p/C * int s**k * pdf(s) ds, which equals the closed form
+        of [2], Eq. (27) (nu_p is the peak rate).
 
         :param s:  numpy.ndarray
             Stress vector.
@@ -157,7 +165,7 @@ class TovoBenasciutti(Narrowband):
         b = self._calculate_coefficient(method=method)
 
         def pdf(s):
-            px = b * ((s / m0) * np.exp( - s**2 / (2 * m0))) + \
+            px = b * alpha2 * ((s / m0) * np.exp( - s**2 / (2 * m0))) + \
                 (1 - b) * ((s / (m0 * alpha2**2)) * np.exp( - s**2 / (2 * alpha2**2 * m0))) 
             return px
         return pdf(s)
@@ -183,9 +191,9 @@ class TovoBenasciutti(Narrowband):
         :rtype: float
         """ 
         if integrate_pdf:
-            d = self.spectral_data.nu / C * \
-                quad(lambda s: s**k*self.get_PDF(s, method=method), 
-                     a=0, b=np.inf)[0]
+            # damage = nu_p / C * int s**k pdf(s) ds, Benasciutti and Tovo [2], Eqs. (16), (27), (28)
+            nu_p = self.spectral_data.m_p
+            d = nu_p / C * quad(lambda s: s**k * self.get_PDF(s, method=method), a=0, b=np.inf)[0]
         else:
             m0 = self.spectral_data.moments[0]
             nu = self.spectral_data.nu

@@ -179,3 +179,116 @@ def test_rainflow_goodman():
     neg = FLife.Rainflow(_sine_spectral_data(mean=-2.))
     np.testing.assert_allclose(neg.get_life(C, k, Su=10.), neg.get_life(C, k) * (1 + 2./10.)**k, rtol=1e-6)
     assert np.isfinite(neg.get_life(C, k, Su=1.5))
+
+
+# --- multimodal methods ---------------------------------------------------------------
+
+def test_jiao_moan_gao_moan_single_band():
+    sd = FLife.SpectralData(input={'PSD': band(10, 300, 100.), 'f': F})
+    C, k = 1e12, 5.
+    nb = FLife.Narrowband(sd).get_life(C, k)
+    np.testing.assert_allclose(FLife.JiaoMoan(sd, ('equalAreaBands', 1)).get_life(C, k), nb, rtol=1e-12)
+    np.testing.assert_allclose(FLife.GaoMoan(sd, ('equalAreaBands', 1)).get_life(C, k), nb, rtol=1e-12)
+
+
+def test_gao_moan_trimodal_large_cycle_moments():
+    # S_L = S_M + S_LF with S_M the sum of two independent Rayleigh amplitudes (MF, HF),
+    # so E[S_L**k] is the multinomial sum of Rayleigh moments
+    sd = FLife.SpectralData(input={'PSD': band(10, 300, 100.), 'f': F})
+    gm = FLife.GaoMoan(sd)
+    m0_LF, m0_MF, m0_HF, nu_L, C = 3., 2., 0.5, 1.7, 1e3
+    for k in (0, 3, 5, 7):
+        expected = sum(comb(k, i) * comb(k - i, j) * rayleigh_moment(i, m0_LF) * rayleigh_moment(j, m0_MF)
+                       * rayleigh_moment(k - i - j, m0_HF) for i in range(k + 1) for j in range(k - i + 1))
+        d = gm._damage_intesity_trimodal_LF(m0_LF=m0_LF, m0_MF=m0_MF, m0_HF=m0_HF, nu_L=nu_L, C=C, k=k)
+        np.testing.assert_allclose(d, nu_L * expected / C, rtol=1e-8, err_msg=f'k={k}')
+
+
+# --- single-band methods --------------------------------------------------------------
+
+def test_tovo_benasciutti_pdf_damage_matches_closed_form():
+    sd = FLife.SpectralData(input={'PSD': band(40, 60, 100.) + band(140, 160, 2.3), 'f': F})
+    assert abs(sd.alpha2 - 0.7) < 0.01
+    tb = FLife.TovoBenasciutti(sd)
+    C, k = 1e12, 5.
+    for method in ('method 1', 'method 2', 'method 3'):
+        np.testing.assert_allclose(tb.get_life(C, k, method=method, integrate_pdf=True),
+                                   tb.get_life(C, k, method=method), rtol=1e-6, err_msg=method)
+
+
+def test_tovo_benasciutti_pdf_integral_damage_equals_closed_form():
+    # Benasciutti and Tovo (2005), Eq. (27): damage = nu_p/C * int s**k get_PDF(s) ds = closed form
+    from scipy.integrate import quad
+    sd = FLife.SpectralData(input={'PSD': band(40, 60, 100.) + band(140, 160, 2.3), 'f': F})
+    tb = FLife.TovoBenasciutti(sd)
+    C, k = 1e12, 5.
+    for method in ('method 1', 'method 2', 'method 3'):
+        d_pdf = sd.m_p / C * quad(lambda s: s**k * tb.get_PDF(s, method=method), 0, np.inf)[0]
+        np.testing.assert_allclose(1 / d_pdf, tb.get_life(C, k, method=method), rtol=1e-6, err_msg=method)
+
+
+def test_jun_park_validity_warning():
+    # narrow band: sqrt(1 - alpha1**2) < 0.3 is outside the validated range
+    sd_nb = FLife.SpectralData(input={'PSD': band(95, 105, 100.), 'f': F})
+    with pytest.warns(UserWarning, match='Qc'):
+        FLife.JunPark(sd_nb).get_life(1e12, 5.)
+
+    import warnings
+    sd_bb = FLife.SpectralData(input={'PSD': band(10, 20, 50.) + band(150, 170, 50.), 'f': F})
+    assert np.sqrt(1 - sd_bb.alpha1**2) > 0.3
+    with warnings.catch_warnings():
+        warnings.simplefilter('error')
+        FLife.JunPark(sd_bb).get_life(1e12, 5.)
+
+
+# --- PSDgen GUI logic (no window needed) ----------------------------------------------
+
+class _FakeWidget(dict):
+    def __init__(self):
+        super().__init__()
+        self.text = ''
+    def delete(self, *args):
+        self.text = ''
+    def insert(self, index, text):
+        self.text = text
+    def get(self):
+        return self.text
+    def grid(self, **kwargs):
+        pass
+
+
+def _psdgen(points):
+    pytest.importorskip('tkinter')
+    from FLife.gui import PSDgen
+    gen = PSDgen.__new__(PSDgen)  # skip the Tk window
+    gen.freq = np.arange(0, 100, 0.5)
+    gen.data_entries = {i: (fr, p, _FakeWidget(), _FakeWidget(), _FakeWidget()) for i, (fr, p) in enumerate(points)}
+    return gen
+
+
+def test_psdgen_get_psd_and_save(tmp_path, monkeypatch):
+    gen = _psdgen([(10., 0.01), (20., 0.03)])
+    psd = gen.get_PSD()
+    assert psd[0, 0] == 10. and psd[-1, 0] == 20.  # last point included
+    np.testing.assert_allclose(psd[-1, 1], 0.03)
+
+    import FLife.gui
+    path = tmp_path / 'psd.txt'
+    monkeypatch.setattr(FLife.gui, 'asksaveasfilename', lambda **kwargs: str(path))
+    gen.root = type('Root', (), {'title': lambda self, text: None})()
+    gen.save_file()
+    np.testing.assert_allclose(np.loadtxt(path), psd)
+
+    empty = _psdgen([])
+    assert np.all(empty.get_PSD()[:, 1] == 0)
+
+
+def test_psdgen_table_keeps_small_values():
+    gen = _psdgen([(10.5, 0.01), (20., 0.003)])
+    gen.new_entry = [None, None, _FakeWidget(), _FakeWidget(), _FakeWidget()]
+    gen.refresh_PSD_table()
+    rows = [entry for entry in gen.data_entries.values()]
+    assert [float(r[3].get()) for r in rows] == [10.5, 20.]
+    assert [float(r[4].get()) for r in rows] == [0.01, 0.003]
+
+

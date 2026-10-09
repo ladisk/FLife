@@ -23,7 +23,7 @@ def test_data():
         'Narrowband': 1064.200649,
         'Alpha 0.75': 1625.785759,
         'Wirsching Light': 1461.814034,
-        'Gao Moan': 2542.3257819693144, # was 2237.738423 before the equal-area band split fix
+        'Gao Moan': 1019.629305, # was 2542.325782 before the 3-band convolution fix; 2237.738423 before the equal-area band split fix
         'Jiao Moan': 813.490369,
         'Fu Cebon': 1151.170596,
         'Modified Fu Cebon': 846.208325,
@@ -90,6 +90,11 @@ def test_data():
         'Park': quad(pk.get_PDF, a=0, b=np.inf)[0],
         #'Jun Park': quad(jp.get_PDF, a=0, b=np.inf)[0] # Correction factor scales the PDF
     }
+    # Tovo-Benasciutti get_PDF is a per-peak density with weights b*alpha2 : (1-b) (Benasciutti and Tovo 2005,
+    # Eq. 28); it integrates to 1 - b*(1-alpha2), the rest is zero-amplitude mass
+    for i, m in ((1, 'method 1'), (2, 'method 2'), (3, 'method 3')):
+        b = tb._calculate_coefficient(method=m)
+        PDFs[f'Tovo Benasciutti {i}'] /= 1 - b * (1 - sd.alpha2)
     for method, value in PDFs.items():
         np.testing.assert_almost_equal(value, 1., decimal=5, err_msg=f'Method: {method}')
 
