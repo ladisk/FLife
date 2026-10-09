@@ -147,6 +147,9 @@ class SpectralData(object):
                 For uniaxial amplitude spectrum input, amplitude_spectrum array should be the shape of (f), 
                 for multiaxial amplitude spectrum input, amplitude_spectrum array should be a matrix
                 with the shape of (f,6) for 3D stress state or (f,3) for 2D stress state.
+                The amplitude spectrum A is the RMS amplitude per frequency line, PSD = |A|**2/df.
+                For one-sided peak amplitudes (e.g. FFT amplitudes as used by LiWI and COIN-LiWI,
+                Schmidt and Kraft 2023) pass A/sqrt(2).
                 For multi-point amplitude spectrum input (whole FEM model), amplitude_spectrum array should be a matrix
                 with the shape of (N,f,6) for 3D stress state or (N,f,3) for 2D stress state, 
 
@@ -314,7 +317,7 @@ class SpectralData(object):
                     amplitde_spectrum = input['amplitude_spectrum']
                     f = input['f']
                     self._validate_input(f, amplitde_spectrum, kind='amplitude_spectrum')
-                    psd = amplitde_spectrum**2/(f[1]-f[0])
+                    psd = np.abs(amplitde_spectrum)**2/(f[1]-f[0])
                     self.psd = np.column_stack((f, psd))
                     # needed parameters for time-history generation
                     if T is not None and fs is not None:
