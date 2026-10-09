@@ -2,73 +2,79 @@ import numpy as np
 from . import cplane
 from scipy.optimize import minimize
 
+# All criteria accept the PSD of one node (f, 6, 6) / (f, 3, 3) or of many
+# nodes (N, f, 6, 6) / (N, f, 3, 3) and return the equivalent PSD (f,) or (N, f).
+
+
+def _df(self):
+    freq = self._freq()
+    return freq[1] - freq[0]
+
+
+def _psd_along(a, s):
+    """PSD of the scalar a . sigma, a (..., 6) and s (..., f, 6, 6)."""
+    return np.real(np.einsum('...i,...fij,...j->...f', a, s, a))
+
+
+def _plane_vector(frames, K=None):
+    """Voigt coefficients of the critical-plane stress for direction cosines (..., 3, 3).
+
+    K=None gives the normal stress on eta_1, otherwise
+    (sigma_11 - sigma_33 + K (eta_1 + eta_3)^T sigma (eta_1 + eta_3)) / (1 + K),
+    which is 2 tau for K=0.
+    """
+    e1, e3 = frames[..., 0, :], frames[..., 2, :]
+    if K is None:
+        return cplane._normal_vector(e1)
+    return (cplane._normal_vector(e1) - cplane._normal_vector(e3)
+            + K * cplane._normal_vector(e1 + e3)) / (1 + K)
+
+
+def _quadratic_criterion(s, Q, Q_2D):
+    """trace(Q S) for a constant weight matrix Q."""
+    if s.shape[-2:] == (6, 6):
+        return np.real(np.einsum('ij,...fji->...f', Q, s))
+    elif s.shape[-2:] == (3, 3):
+        return np.real(np.einsum('ij,...fji->...f', Q_2D, s))
+    raise Exception('Input Error. PSD matrix should be the size of (f,6,6) for 3D stress state or (f,3,3) for 2D stress state')
+
+
 def _max_normal(self, s, search_method):
     """
-    Internal function for calculating equivalent stress at one node.
+    Internal function for calculating equivalent stress at one node or at all nodes.
     """
     s = cplane._plane_stress_to_voigt_3d(s)
-    
-    freq = self.multiaxial_psd[1]
-    df = freq[1] - freq[0]
-    
-    l1, m1, n1, l2, m2, n2, l3, m3, n3 = cplane.max_variance(multiaxial_psd=s, df=df, method='maxnormal',search_method=search_method)
-    
-    a = np.asarray([l1**2, m1**2, n1**2,
-                2*l1*m1, 2*l1*n1, 2*m1*n1])
-
-    s_eq = np.einsum('i,zij,j', a, s, a)
-    return s_eq
+    frames = cplane.max_variance_planes(s, _df(self), 'maxnormal', search_method=search_method)
+    return _psd_along(_plane_vector(frames), s)
 
 
 def _max_shear(self, s, search_method):
     """
-    Internal function for calculating equivalent stress at one node.
+    Internal function for calculating equivalent stress at one node or at all nodes.
     """
     s = cplane._plane_stress_to_voigt_3d(s)
-    
-    freq = self.multiaxial_psd[1]
-    df = freq[1] - freq[0]
-
-    l1, m1, n1, l2, m2, n2, l3, m3, n3 = cplane.max_variance(multiaxial_psd=s, df=df, method='maxshear', search_method=search_method)
-
-    a = np.asarray([l1**2-l3**2, m1**2-m3**2, n1**2-n3**2,
-            2*(l1*m1-l3*m3), 2*(l1*n1-l3*n3), 2*(m1*n1-m3*n3)])
-
-    s_eq = np.einsum('i,zij,j', a, s, a)
-    return s_eq
+    frames = cplane.max_variance_planes(s, _df(self), 'maxshear', search_method=search_method)
+    return _psd_along(_plane_vector(frames, K=0.), s)
 
 
 def _max_normal_and_shear(self, s, s_af, tau_af, search_method='local'):
     """
-    Internal function for calculating equivalent stress at one node.
+    Internal function for calculating equivalent stress at one node or at all nodes.
+
+    The critical plane maximises the variance of the equivalent stress itself
+    (Bedkowski and Macha), so the result does not depend on how the plane
+    search labels eta_1 and eta_3.
     """
     s = cplane._plane_stress_to_voigt_3d(s)
-    
-    freq = self.multiaxial_psd[1]
-    df = freq[1] - freq[0]
-
     K = 2 * tau_af / s_af - 1
-    l1, m1, n1, l2, m2, n2, l3, m3, n3 = cplane.max_variance(multiaxial_psd=s, df=df, method='maxshear',K=K, search_method=search_method)
-    
-    a = np.asarray([l1**2-l3**2+K*(l1+l3)**2,
-                    m1**2-m3**2+K*(m1+m3)**2,
-                    n1**2-n3**2+K*(n1+n3)**2,
-                    2*(l1*m1-l3*m3+K*(l1+l3)*(m1+m3)),
-                    2*(l1*n1-l3*n3+K*(l1+l3)*(n1+n3)),
-                    2*(m1*n1-m3*n3+K*(m1+m3)*(n1+n3))]) / (1 + K) 
-
-    s_eq = np.einsum('i,zij,j', a, s, a)
-    return s_eq
+    frames = cplane.max_variance_planes(s, _df(self), 'maxnormalshear', K=K, search_method=search_method)
+    return _psd_along(_plane_vector(frames, K=K), s)
 
 
 def _EVMS(self, s):
     """
-    Internal function for calculating equivalent stress at one node.
+    Internal function for calculating equivalent stress at one node or at all nodes.
     """
-    
-    freq = self.multiaxial_psd[1]
-    df = freq[1] - freq[0]
-
     Q = np.array([
         [1,-1/2,-1/2,0,0,0],
         [-1/2,1,-1/2,0,0,0],
@@ -82,13 +88,7 @@ def _EVMS(self, s):
         [-1/2,1,0],
         [0,0,3],])
 
-    if s.shape[1] == 6 and s.shape[2] == 6:
-        s_eq = np.trace(np.einsum('ij,kjl->kil', Q, s),axis1=1,axis2=2)
-    elif s.shape[1] == 3 and s.shape[2] == 3:
-        s_eq = np.trace(np.einsum('ij,kjl->kil', Q_2D, s),axis1=1,axis2=2)
-    else:
-        raise Exception('Input Error. PSD matrix should be the size of (f,6,6) for 3D stress state or (f,3,3) for 2D stress state')
-    return s_eq
+    return _quadratic_criterion(s, Q, Q_2D)
 
 
 def _cs(self, s, s_af, tau_af):
@@ -160,12 +160,8 @@ def _multiaxial_rainflow(self, s):
 
 def _thermoelastic(self,s):
     """
-    Internal function for calculating equivalent stress at one node.
+    Internal function for calculating equivalent stress at one node or at all nodes.
     """
-    
-    freq = self.multiaxial_psd[1]
-    df = freq[1] - freq[0]
-
     Q = np.array([
         [1,1,1,0,0,0],
         [1,1,1,0,0,0],
@@ -179,199 +175,161 @@ def _thermoelastic(self,s):
         [1,1,0],
         [0,0,0]])
     
-    if s.shape[1] == 6 and s.shape[2] == 6:
-        s_eq = np.trace(np.einsum('ij,kjl->kil', Q, s),axis1=1,axis2=2)
-    elif s.shape[1] == 3 and s.shape[2] == 3:
-        s_eq = np.trace(np.einsum('ij,kjl->kil', Q_2D, s),axis1=1,axis2=2)
-    else:
-        raise Exception('Input Error. PSD matrix should be the size of (f, 6, 6) for 3D stress state or (f,3,3) for 2D stress state')
-                
-    return s_eq
+    return _quadratic_criterion(s, Q, Q_2D)
 
 
 def _liwi(self,s):
     """
-    Internal function for calculating equivalent stress at one node.
+    Internal function for calculating equivalent stress at one node or at all nodes.
+
+    s is the amplitude spectrum (..., f, 3); returns the complex equivalent amplitude (..., f).
     """
-    s_eq = np.empty((len(s)),dtype=complex)
+    sigma_x, sigma_y, tau_xy = s[...,0], s[...,1], s[...,2]
 
-    for i in range(len(s)):
-        sigma_x, sigma_y, tau_xy = s[i,0], s[i,1], s[i,2]
+    # Calculate absolute values and angles
+    sigma_x_abs = np.abs(sigma_x)
+    sigma_y_abs = np.abs(sigma_y)
+    tau_xy_abs = np.abs(tau_xy)
 
-        # Calculate absolute values and angles
-        sigma_x_abs = np.abs(sigma_x)
-        sigma_y_abs = np.abs(sigma_y)
-        tau_xy_abs = np.abs(tau_xy)
+    sigma_x_angle = np.angle(sigma_x)
+    sigma_y_angle = np.angle(sigma_y)
+    tau_xy_angle = np.angle(tau_xy)
 
-        sigma_x_angle = np.angle(sigma_x)
-        sigma_y_angle = np.angle(sigma_y)
-        tau_xy_angle = np.angle(tau_xy)
+    # Define initial parameters
+    A1 = sigma_x_abs
+    phi_1 = sigma_x_angle
 
-        # Define initial parameters
-        A1 = sigma_x_abs
-        phi_1 = sigma_x_angle
-        r = 0
+    A2 = [sigma_y_abs, np.sqrt(3) * tau_xy_abs]
+    phi_2 = [sigma_y_angle, tau_xy_angle]
+    theta = [np.arccos(-1/2), np.pi / 2]
 
-        A2 = np.array([sigma_y_abs, np.sqrt(3) * tau_xy_abs])
-        phi_2 = np.array([sigma_y_angle, tau_xy_angle])
-        theta = np.array([np.arccos(-1/2), np.pi / 2])
+    for r in range(2):
+        # Calculate intermediate variables in the main loop
+        phi_a = np.angle(A1 + A2[r] * np.e**(1j * (phi_2[r] - phi_1 - theta[r])))
+        phi_c_overline = theta[r] - 0.5 * np.angle(A2[r]**2 + 2 * A1 * A2[r] * np.cos(phi_1 - phi_2[r]) * np.e**(1j * theta[r]) + A1**2 * np.e**(2j * theta[r]))
 
-        while r < 2:
-            # Calculate intermediate variables in the main loop
-            phi_a = np.angle(A1 + A2[r] * np.e**(1j * (phi_2[r] - phi_1 - theta[r])))
-            phi_c_overline = theta[r] - 0.5 * np.angle(A2[r]**2 + 2 * A1 * A2[r] * np.cos(phi_1 - phi_2[r]) * np.e**(1j * theta[r]) + A1**2 * np.e**(2j * theta[r]))
+        phi_c = ((phi_c_overline - theta[r] / 2) % (np.pi/2)) + theta[r] / 2
+        phi_c = np.where(A2[r] >= A1, phi_c, phi_c - np.pi / 2)
 
-            if A2[r] >= A1:
-                phi_c = ((phi_c_overline - theta[r] / 2) % (np.pi/2)) + theta[r] / 2
-            elif A2[r] < A1:
-                phi_c = ((phi_c_overline - theta[r] / 2) % (np.pi/2)) + theta[r] / 2 - np.pi / 2
-            else:
-                phi_c = phi_c_overline
+        A1 = (0.5 * (A1**2 + A2[r]**2 + 2 * A1 * A2[r] * np.cos(phi_1 - phi_2[r]) * np.cos(theta[r])) + 0.5 * np.abs(A1**2 * np.e**(2j * phi_1) + A2[r]**2 * np.e**(2j * phi_2[r]) + 2 * A1 * A2[r] * np.e**(2j * (phi_1 + phi_2[r]))))**0.5
 
-            A1 = (0.5 * (A1**2 + A2[r]**2 + 2 * A1 * A2[r] * np.cos(phi_1 - phi_2[r]) * np.cos(theta[r])) + 0.5 * np.abs(A1**2 * np.e**(2j * phi_1) + A2[r]**2 * np.e**(2j * phi_2[r]) + 2 * A1 * A2[r] * np.e**(2j * (phi_1 + phi_2[r]))))**0.5
-                    
-            phi_1 = phi_a + phi_c + phi_1
-            r += 1  # Increment r
+        phi_1 = phi_a + phi_c + phi_1
 
-        # Calculate phi_B0
-        phi_B0 = 0.5 * np.angle(sigma_x_abs**2 * np.e**(2j * sigma_x_angle) + sigma_y_abs**2 * np.e**(2j * sigma_y_angle) - sigma_x_abs * sigma_y_abs * np.e**(1j * (sigma_x_angle + sigma_y_angle)) + 3 * tau_xy_abs**2 * np.e**(2j * tau_xy_angle))
+    # Calculate phi_B0
+    phi_B0 = 0.5 * np.angle(sigma_x_abs**2 * np.e**(2j * sigma_x_angle) + sigma_y_abs**2 * np.e**(2j * sigma_y_angle) - sigma_x_abs * sigma_y_abs * np.e**(1j * (sigma_x_angle + sigma_y_angle)) + 3 * tau_xy_abs**2 * np.e**(2j * tau_xy_angle))
 
-        if np.abs(np.angle((np.e**(1j * phi_1))/(np.e**(1j * phi_B0)))) < np.abs(np.angle((np.e**(1j * phi_1))/(np.e**(1j * (phi_B0+np.pi))))):
-            phi_vM = phi_B0
-        else:
-            phi_vM = phi_B0 + np.pi
+    closer_to_B0 = np.abs(np.angle((np.e**(1j * phi_1))/(np.e**(1j * phi_B0)))) < np.abs(np.angle((np.e**(1j * phi_1))/(np.e**(1j * (phi_B0+np.pi)))))
+    phi_vM = np.where(closer_to_B0, phi_B0, phi_B0 + np.pi)
 
+    # Calculate delta_UM
+    sigma_vM_abs = (0.5 * np.abs(sigma_x_abs**2 + sigma_y_abs**2 - sigma_x_abs * sigma_y_abs * np.cos(sigma_x_angle - sigma_y_angle) + 3 * tau_xy_abs**2) + 0.5 * np.abs(sigma_x_abs**2 * np.e**(2j * sigma_x_angle) + sigma_y_abs**2 * np.e**(2j * sigma_y_angle) - sigma_x_abs * sigma_y_abs * np.e**(1j*(sigma_x_angle+sigma_y_angle)) + 3 * tau_xy_abs**2 * np.e**(2j * tau_xy_angle)))**0.5
 
-        # Calculate delta_UM
-        sigma_vM_abs = (0.5 * np.abs(sigma_x_abs**2 + sigma_y_abs**2 - sigma_x_abs * sigma_y_abs * np.cos(sigma_x_angle - sigma_y_angle) + 3 * tau_xy_abs**2) + 0.5 * np.abs(sigma_x_abs**2 * np.e**(2j * sigma_x_angle) + sigma_y_abs**2 * np.e**(2j * sigma_y_angle) - sigma_x_abs * sigma_y_abs * np.e**(1j*(sigma_x_angle+sigma_y_angle)) + 3 * tau_xy_abs**2 * np.e**(2j * tau_xy_angle)))**0.5
-
-        sigma_vM = sigma_vM_abs * np.e**(1j * phi_vM)
-
-        s_eq[i] = sigma_vM
-    
-    return s_eq
+    return sigma_vM_abs * np.e**(1j * phi_vM)
 
 
 def _coin_liwi(self, s, k_a, k_phi):
     """
-    Internal function for calculating equivalent stress at one node.
+    Internal function for calculating equivalent stress at one node or at all nodes.
+
+    s is the amplitude spectrum (..., f, 6); returns the complex equivalent amplitude (..., f).
     """
-    s_eq = np.empty((len(s)),dtype=complex)
+    sigma_x_f = s[...,0]
+    sigma_y_f = s[...,1]
+    sigma_z_f = s[...,2]
+    tau_xy_f = s[...,3]
+    tau_xz_f = s[...,4]
+    tau_yz_f = s[...,5]
 
-    for i in range(len(s)):
+    # S is symmetric: trace(S conj(S)) and trace(S S) from the components
+    I_1_underscore = sigma_x_f + sigma_y_f + sigma_z_f
 
-        sigma_x_f = s[i,0]
-        sigma_y_f = s[i,1]  
-        sigma_z_f = s[i,2]  
-        tau_xy_f = s[i,3]
-        tau_xz_f = s[i,4]   
-        tau_yz_f = s[i,5]   
+    I_1_squared = I_1_underscore * np.conj(I_1_underscore)
 
-        S = np.array([[sigma_x_f, tau_xy_f, tau_xz_f],
-                    [tau_xy_f, sigma_y_f, tau_yz_f],
-                    [tau_xz_f, tau_yz_f, sigma_z_f]])
+    I_1_squared_underscore = I_1_underscore * I_1_underscore
 
-        I_1_underscore = np.trace(S)
+    trace_S_conjS = (np.abs(sigma_x_f)**2 + np.abs(sigma_y_f)**2 + np.abs(sigma_z_f)**2
+                     + 2 * (np.abs(tau_xy_f)**2 + np.abs(tau_xz_f)**2 + np.abs(tau_yz_f)**2))
+    trace_SS = (sigma_x_f**2 + sigma_y_f**2 + sigma_z_f**2
+                + 2 * (tau_xy_f**2 + tau_xz_f**2 + tau_yz_f**2))
 
-        I_1_squared = np.trace(S) * np.conj(np.trace(S))
+    I_2 = 0.5 * (I_1_squared - trace_S_conjS)
 
-        I_1_squared_underscore = np.trace(S) * np.trace(S)
+    I_2_underscore = 0.5 * (I_1_squared_underscore - trace_SS)
 
-        I_2 = 0.5 * (I_1_squared - np.trace(S@np.conj(S)))
+    sigma_eq_ka = I_1_squared - k_a**2 * I_2
 
-        I_2_underscore = 0.5 * (I_1_squared_underscore - np.trace(S @ S))
+    sigma_eq_ka_underscore = I_1_squared_underscore - k_a**2 * I_2_underscore
 
+    phi_I1 = np.angle(I_1_underscore)
 
+    phi_eq_ka = np.angle(np.sqrt(sigma_eq_ka_underscore.astype(complex)))
 
-        sigma_eq_ka = I_1_squared - k_a**2 * I_2
+    # amplitude
+    sigma_coin = np.sqrt((k_phi * sigma_eq_ka + (1 - k_phi) * abs(sigma_eq_ka_underscore)).astype(complex))
 
-        sigma_eq_ka_underscore = I_1_squared_underscore - k_a**2 * I_2_underscore
+    #phase angle
+    first = np.angle(np.exp(1j * phi_I1) / np.exp(1j * phi_eq_ka)) < np.angle(np.exp(1j * phi_I1) / np.exp(1j * phi_eq_ka + np.pi))
+    phi_coin = np.where(first, phi_eq_ka, phi_eq_ka + np.pi)
 
-        phi_I1 = np.angle(I_1_underscore)
-
-        phi_eq_ka = np.angle(np.sqrt(sigma_eq_ka_underscore))
-
-
-        # amplitude
-        sigma_coin = np.sqrt(k_phi * sigma_eq_ka + (1 - k_phi) * abs(sigma_eq_ka_underscore))
-
-        #phase angle
-
-        if np.angle(np.exp(1j * phi_I1) / np.exp(1j * phi_eq_ka)) < np.angle(np.exp(1j * phi_I1) / np.exp(1j * phi_eq_ka + np.pi)):
-            phi_coin = phi_eq_ka
-
-        else:
-            phi_coin = phi_eq_ka + np.pi 
-
-        sigma_coin_f = sigma_coin * np.exp(1j * phi_coin)
-
-        s_eq[i] = sigma_coin_f
-    
-    return s_eq
+    return sigma_coin * np.exp(1j * phi_coin)
 
 def _EVMS_out_of_phase(self, s):
     """
-    Internal function for calculating equivalent stress at one node.
+    Internal function for calculating equivalent stress at one node or at all nodes.
     """
-    s_eq = np.empty((len(s)))
+    if s.shape[-2:] != (3, 3):
+        raise ValueError('EVMS_out_of_phase only works for biaxial stresses: PSD matrix (f,3,3)')
 
-    for i in range(len(s)):
-        sigma_xx_squared = np.real(s[i,0,0])
-        sigma_yy_squared = np.real(s[i,1,1])
-        tau_xy_squared = np.real(s[i,2,2])
-        sigma_xx_sigma_yy = np.sqrt(sigma_xx_squared * sigma_yy_squared)
+    sigma_xx_squared = np.real(s[...,0,0])
+    sigma_yy_squared = np.real(s[...,1,1])
+    tau_xy_squared = np.real(s[...,2,2])
+    sigma_xx_sigma_yy = np.sqrt(sigma_xx_squared * sigma_yy_squared)
 
-        phi_yy_phi_xx = np.angle(s[i,0,1])
-        phi_xx_phi_yy = np.angle(s[i,1,0])
-        phi_xy_phi_xx = np.angle(s[i,0,2])
+    phi_yy_phi_xx = np.angle(s[...,0,1])
+    phi_xx_phi_yy = np.angle(s[...,1,0])
+    phi_xy_phi_xx = np.angle(s[...,0,2])
 
-        s_eq[i] = 0.5  * (sigma_xx_squared + sigma_yy_squared - sigma_xx_sigma_yy * np.cos(phi_xx_phi_yy) + 3 * tau_xy_squared) + 0.5 * np.abs(sigma_xx_squared + sigma_yy_squared * np.exp(2j * phi_yy_phi_xx) - sigma_xx_sigma_yy * np.exp(1j * phi_yy_phi_xx) + 3*tau_xy_squared * np.exp(2j * phi_xy_phi_xx))
+    s_eq = 0.5  * (sigma_xx_squared + sigma_yy_squared - sigma_xx_sigma_yy * np.cos(phi_xx_phi_yy) + 3 * tau_xy_squared) + 0.5 * np.abs(sigma_xx_squared + sigma_yy_squared * np.exp(2j * phi_yy_phi_xx) - sigma_xx_sigma_yy * np.exp(1j * phi_yy_phi_xx) + 3*tau_xy_squared * np.exp(2j * phi_xy_phi_xx))
 
     return s_eq
 
 def _Nieslony(self, s, s_af, tau_af,coefficient_load_type):
     """
-    Internal function for calculating equivalent stress at one node.
+    Internal function for calculating equivalent stress at one node or at all nodes.
     """
     s = cplane._plane_stress_to_voigt_3d(s)
 
     G_p = 1/9*_thermoelastic(self,s)
     G_EVMS = _EVMS(self,s)
 
-    s_eq = np.empty((len(s)))
+    a_sigma = np.sqrt(2*np.diagonal(s, axis1=-2, axis2=-1))
+    #find the index of maximum value of a_sigma
+    k = np.argmax(a_sigma, axis=-1)
+    phi_k = np.angle(np.take_along_axis(s, k[..., None, None], axis=-1)[..., 0])
+    s_ = a_sigma * np.exp(1j * phi_k)
+    s_ = [s_[..., i] for i in range(6)]
+    sigma_EMSc = 1/np.sqrt(2) * np.sqrt((s_[0]-s_[1])**2 + (s_[1]-s_[2])**2 + (s_[2]-s_[0])**2 + 6*(s_[3]**2+s_[4]**2+s_[5]**2))
+    sigma_pc = 1/3 * (s_[0]+s_[1]+s_[2])
+    rp_EMS = np.abs(np.cos(np.angle(sigma_EMSc)-np.angle(sigma_pc)))
 
-    for i in range(len(s)): 
-        a_sigma = np.sqrt(2*np.diagonal(s[i]))
-        #find the index of maximum value of a_sigma
-        k = np.argmax(a_sigma)
-        phi_k = np.angle(s[i,:,k])
-        s_ = a_sigma * np.exp(1j * phi_k)
-        sigma_EMSc = 1/np.sqrt(2) * np.sqrt((s_[0]-s_[1])**2 + (s_[1]-s_[2])**2 + (s_[2]-s_[0])**2 + 6*(s_[3]**2+s_[4]**2+s_[5]**2))
-        sigma_pc = 1/3 * (s_[0]+s_[1]+s_[2])
-        rp_EMS = np.abs(np.cos(np.angle(sigma_EMSc)-np.angle(sigma_pc)))
+    if coefficient_load_type == 'tension':
+        A = (-np.sqrt(3) / tau_af) * ((s_af * rp_EMS) - np.sqrt((s_af ** 2) * (rp_EMS ** 2) - (s_af ** 2) + 3 * (tau_af ** 2)))
+        B = (np.sqrt(3) / 3) * (s_af / tau_af)
 
-        if coefficient_load_type == 'tension':
-            A = (-np.sqrt(3) / tau_af) * ((s_af * rp_EMS) - np.sqrt((s_af ** 2) * (rp_EMS ** 2) - (s_af ** 2) + 3 * (tau_af ** 2)))
-            B = (np.sqrt(3) / 3) * (s_af / tau_af)
+    elif coefficient_load_type == 'torsion':
+        A = (-np.sqrt(3) / s_af) * ((s_af * rp_EMS) - np.sqrt((s_af ** 2) * (rp_EMS ** 2) - (s_af ** 2) + 3 * (tau_af ** 2)))
+        B = np.sqrt(3) / 3
+    else:
+        raise ValueError('Invalid coefficient_load_type. Please choose either "tension" or "torsion"')
 
-        elif coefficient_load_type == 'torsion':
-            A = (-np.sqrt(3) / s_af) * ((s_af * rp_EMS) - np.sqrt((s_af ** 2) * (rp_EMS ** 2) - (s_af ** 2) + 3 * (tau_af ** 2)))
-            B = np.sqrt(3) / 3
-        else:
-            raise ValueError('Invalid coefficient_load_type. Please choose either "tension" or "torsion"')
-        
-        s_eq[i] = np.real(A**2 * G_p[i] + B**2 * G_EVMS[i] + 2 * A * B * rp_EMS * np.sqrt(G_p[i] * G_EVMS[i]))
-    
+    s_eq = np.real(A**2 * G_p + B**2 * G_EVMS + 2 * A * B * rp_EMS * np.sqrt(np.maximum(G_p * G_EVMS, 0)))
+
     return s_eq
 
 def _Lemaitre(self, s, poisson_ratio):
     """
-    Internal function for calculating equivalent stress at one node.
+    Internal function for calculating equivalent stress at one node or at all nodes.
     """
-    
-    freq = self.multiaxial_psd[1]
-    df = freq[1] - freq[0]
-
     Q = np.array([
         [1,-poisson_ratio,-poisson_ratio,0,0,0],
         [-poisson_ratio,1,-poisson_ratio,0,0,0],
@@ -385,10 +343,4 @@ def _Lemaitre(self, s, poisson_ratio):
         [-poisson_ratio,1,0],
         [0,0,2*(1+poisson_ratio)],])
 
-    if s.shape[1] == 6 and s.shape[2] == 6:
-        s_eq = np.trace(np.einsum('ij,kjl->kil', Q, s),axis1=1,axis2=2)
-    elif s.shape[1] == 3 and s.shape[2] == 3:
-        s_eq = np.trace(np.einsum('ij,kjl->kil', Q_2D, s),axis1=1,axis2=2)
-    else:
-        raise Exception('Input Error. PSD matrix should be the size of (f,6,6) for 3D stress state or (f,3,3) for 2D stress state')
-    return s_eq
+    return _quadratic_criterion(s, Q, Q_2D)
