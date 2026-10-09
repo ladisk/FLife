@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from . import cplane
 from . import criteria
@@ -119,23 +120,17 @@ class EquivalentStress(SpectralData): #equivalentstress
         return a[..., :, None] * np.conj(a[..., None, :]) / (f[1] - f[0]), f
 
     def loop_over_points(self, criterion, *args, **kwargs):
-        """Loop the selected criterion over multiple points on the model"""    
-        if hasattr(self,'multiaxial_psd'):
-            s_eq_multi_point = np.empty((self.multiaxial_psd[0].shape[:2]))
-        elif hasattr(self,'multiaxial_amplitude_spectrum'):
-            s_eq_multi_point = np.empty((self.multiaxial_amplitude_spectrum[0].shape[:2]),dtype=complex)
-        
-        for i in range(len(s_eq_multi_point)):
-            if hasattr(self,'multiaxial_psd'):
-                s_eq = criterion(self,s=self.multiaxial_psd[0][i],*args, **kwargs)
-            elif hasattr(self,'multiaxial_amplitude_spectrum'):
-                s_eq = criterion(self,s=self.multiaxial_amplitude_spectrum[0][i],*args, **kwargs)
-            s_eq_multi_point[i] = s_eq
-        if hasattr(self,'multiaxial_psd'):
-            self.eq_psd_multipoint = (s_eq_multi_point, self.multiaxial_psd[1]) #(multipoint psd, freq)
-        elif hasattr(self,'multiaxial_amplitude_spectrum'):
-            #calculate psd from amplitude spectrum at each point at each frequency
-            self.eq_psd_multipoint = (abs(s_eq_multi_point**2), self.multiaxial_amplitude_spectrum[1])
+        """Deprecated. Loop the criterion over the points of a multipoint input and set `eq_psd_multipoint`."""
+        warnings.warn('`loop_over_points` is deprecated; the criteria now process all points at once.',
+                      DeprecationWarning, stacklevel=2)
+        if criterion in (criteria._liwi, criteria._coin_liwi) and hasattr(self, 'multiaxial_amplitude_spectrum'):
+            a, f = self.multiaxial_amplitude_spectrum
+            s_eq = np.array([criterion(self, s=ai, *args, **kwargs) for ai in a])
+            self.eq_psd_multipoint = (np.abs(s_eq)**2, f)
+            return
+        psd, f = self._psd_matrix()
+        s_eq = np.array([criterion(self, s=si, *args, **kwargs) for si in psd])
+        self.eq_psd_multipoint = (np.real(s_eq), f)
 
     def _all_points(self, criterion, *args, **kwargs):
         """Apply a criterion that accepts all points at once (N, f, ...) and set `eq_psd_multipoint`."""

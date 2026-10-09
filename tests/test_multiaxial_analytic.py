@@ -390,6 +390,18 @@ def test_cs_requires_observation_time():
     np.testing.assert_allclose(es.psd[:, 1], ref)
 
 
+def test_loop_over_points_deprecated():
+    S = np.stack([psd_from_sources([UNIAXIAL], [P]), psd_from_sources([SHEAR], [P])])
+    es = FLife.EquivalentStress(input={'PSD': S, 'f': F})
+    es.EVMS()
+    ref = es.eq_psd_multipoint[0]
+    es = FLife.EquivalentStress(input={'PSD': S, 'f': F})
+    with pytest.warns(DeprecationWarning):
+        es.loop_over_points(criterion=criteria._EVMS)
+    np.testing.assert_allclose(es.eq_psd_multipoint[0], ref)
+    np.testing.assert_allclose(es.eq_psd_multipoint[1], F)
+
+
 # --- multiaxial rainflow (Pitoiset and Preumont 2000) -----------------------------------
 
 def _mr_state(seed):
