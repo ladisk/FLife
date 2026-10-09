@@ -430,12 +430,17 @@ class SpectralData(object):
         """Calculates coefficients, needed in spectral-fatigue-life estimates. Coefficients are 
         calculated with regard to entire PSD.
         """
-        self.moments = np.ravel(self.get_spectral_moments(self.PSD_splitting, moments=[0,1,2,3,4]))
-        self.nu, = self.get_nup(self.PSD_splitting)
-        self.m_p, = self.get_mp(self.PSD_splitting)
-        self.alpha075, = self.get_bandwidth_estimator(self.PSD_splitting, i=0.75)
-        self.alpha1, = self.get_bandwidth_estimator(self.PSD_splitting, i=1)
-        self.alpha2, = self.get_bandwidth_estimator(self.PSD_splitting, i=2)
+        # each moment is integrated once and shared by all coefficients below
+        self._moment_cache = {}
+        try:
+            self.moments = np.ravel(self.get_spectral_moments(self.PSD_splitting, moments=[0,1,2,3,4]))
+            self.nu, = self.get_nup(self.PSD_splitting)
+            self.m_p, = self.get_mp(self.PSD_splitting)
+            self.alpha075, = self.get_bandwidth_estimator(self.PSD_splitting, i=0.75)
+            self.alpha1, = self.get_bandwidth_estimator(self.PSD_splitting, i=1)
+            self.alpha2, = self.get_bandwidth_estimator(self.PSD_splitting, i=2)
+        finally:
+            self._moment_cache = None
 
     def _get_spectral_moment(self, psd, i):
         """Calculates i-th spectral moment. 
@@ -473,12 +478,21 @@ class SpectralData(object):
             PSD_splitting = self.PSD_splitting 
         band_stop_indexes = self._get_band_stop_frequency(PSD_splitting)
         m_list = list()
+        cache = getattr(self, '_moment_cache', None)  # only set while coefficients are calculated
 
         for index in range(len(band_stop_indexes)):
-            if index == 0:
-                m_list.append([self._get_spectral_moment(self.psd[:band_stop_indexes[index]+1,:], i) for i in moments])
+            start = 0 if index == 0 else band_stop_indexes[index-1]
+            band = self.psd[start:band_stop_indexes[index]+1,:]
+            if cache is None:
+                m_list.append([self._get_spectral_moment(band, i) for i in moments])
             else:
-                m_list.append([self._get_spectral_moment(self.psd[band_stop_indexes[index-1]:band_stop_indexes[index]+1,:], i) for i in moments])
+                m_band = []
+                for i in moments:
+                    key = (start, band_stop_indexes[index], i)
+                    if key not in cache:
+                        cache[key] = self._get_spectral_moment(band, i)
+                    m_band.append(cache[key])
+                m_list.append(m_band)
 
         return np.array(m_list)
 

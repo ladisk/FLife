@@ -111,7 +111,7 @@ def random_gaussian(freq, PSD, T, fs, rg=None, random_amplitude=False, **kwargs)
         
         ampl_spectra = np.sqrt(PSD_new * N * fs / 2)  # amplitude spectra modulus
         if random_amplitude == True:
-            ampl_spectra = np.array([rg.rayleigh(size=1, scale=x)[0] for x in ampl_spectra]) # Rayleigh distributed amplitudes
+            ampl_spectra = rg.rayleigh(scale=ampl_spectra) # Rayleigh distributed amplitudes
 
         ampl_spectra_random = ampl_spectra * np.exp(
             1j * phase * 2 * np.pi)  # amplitude spectra,  random phase
