@@ -14,7 +14,11 @@ class Low(object):
     Numerical implementation supports only integer values of  
     S-N curve parameter k (inverse slope). Due to approximation of
     large stress cycles through McLaurin series, sufficient engineering
-    precision is up to k=6 [1].
+    precision is up to k=6 [1]. For some spectra (e.g. narrowband) the
+    large-cycle damage term can become negative; a warning is then issued.
+    Low [1] validated the method only for beta = 4 and 10, where beta = nu0_HF/nu0_LF
+    is the ratio of the zero-crossing frequencies of the bands (Eq. 15); a warning
+    is issued for beta < 4. The result is not changed by the warnings.
 
     References
     ----------
@@ -138,6 +142,13 @@ class Low(object):
         int_func_large = lambda r_hf, r_lf: self._inner_integral_large(k, r_lf, r_hf, beta) *  pdf_r(r_hf, m0H) * pdf_r(r_lf, m0L)
         I_large = 1/np.pi * integrate.dblquad(int_func_large, 0, np.inf, lambda r_lf: 0, lambda r_lf: np.inf)[0]
         d_large = v0L / C  * I_large 
+        if d_large < 0:
+            warnings.warn(f'Large-cycle damage is negative (zero-crossing frequency ratio of the bands is {beta:.2f}); '
+                          'the series approximation of large cycles is not applicable to this spectrum.')
+
+        if beta < 4:
+            warnings.warn(f'Zero-crossing frequency ratio of the bands is beta = {beta:.2f}. '
+                          'Low (2010) validated the method only for beta = 4 and 10.')
 
         #Agregated damage
         d = d_small + d_large

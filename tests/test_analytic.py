@@ -191,6 +191,19 @@ def test_jiao_moan_gao_moan_single_band():
     np.testing.assert_allclose(FLife.GaoMoan(sd, ('equalAreaBands', 1)).get_life(C, k), nb, rtol=1e-12)
 
 
+def test_gao_moan_bimodal_equals_jiao_moan_with_zero_bandwidth():
+    # Gao-Moan (2008, p. 1947) set the HF bandwidth parameter to zero; Jiao-Moan use the Vanmarcke one.
+    # With the Vanmarcke parameter forced to zero the two large-cycle rates are the same expression.
+    sd = FLife.SpectralData(input={'PSD': band(10, 20, 50.) + band(150, 170, 50.), 'f': F})
+    C, k = 1e12, 5.
+    gm = FLife.GaoMoan(sd, ('equalAreaBands', 2)).get_life(C, k)
+    jm = FLife.JiaoMoan(sd, ('equalAreaBands', 2))
+    jm_life = jm.get_life(C, k)
+    assert gm >= jm_life  # zero bandwidth gives a lower large-cycle rate, so a longer life
+    sd.get_vanmarcke_parameter = lambda *a, **kw: np.zeros(2)
+    np.testing.assert_allclose(gm, FLife.JiaoMoan(sd, ('equalAreaBands', 2)).get_life(C, k), rtol=1e-10)
+
+
 def test_gao_moan_trimodal_large_cycle_moments():
     # S_L = S_M + S_LF with S_M the sum of two independent Rayleigh amplitudes (MF, HF),
     # so E[S_L**k] is the multinomial sum of Rayleigh moments
@@ -225,6 +238,19 @@ def test_tovo_benasciutti_pdf_integral_damage_equals_closed_form():
     for method in ('method 1', 'method 2', 'method 3'):
         d_pdf = sd.m_p / C * quad(lambda s: s**k * tb.get_PDF(s, method=method), 0, np.inf)[0]
         np.testing.assert_allclose(1 / d_pdf, tb.get_life(C, k, method=method), rtol=1e-6, err_msg=method)
+
+
+def test_low_warns_for_small_beta():
+    # centre frequencies 30 and 90 Hz (beta about 3), then 15 and 160 Hz (beta about 10)
+    sd = FLife.SpectralData(input={'PSD': band(25, 35, 50.) + band(85, 95, 50.), 'f': F})
+    low = FLife.Low(sd, ('userDefinedBands', [60, 400]))
+    with pytest.warns(UserWarning, match='validated the method only for beta = 4 and 10'):
+        low.get_life(1e12, 3)
+    sd = FLife.SpectralData(input={'PSD': band(10, 20, 50.) + band(150, 170, 50.), 'f': F})
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter('error')
+        FLife.Low(sd, ('userDefinedBands', [80, 400])).get_life(1e12, 3)
 
 
 def test_jun_park_validity_warning():
@@ -291,4 +317,12 @@ def test_psdgen_table_keeps_small_values():
     assert [float(r[3].get()) for r in rows] == [10.5, 20.]
     assert [float(r[4].get()) for r in rows] == [0.01, 0.003]
 
+
+# --- performance rewrites keep the old results -------------------------------------------
+
+def test_low_warns_on_negative_large_cycle_damage():
+    # narrowband PSD at k=5: the large-cycle series gives negative damage
+    sd = FLife.SpectralData(input={'PSD': band(50, 52, 10.), 'f': F})
+    with pytest.warns(UserWarning, match='Large-cycle damage is negative'):
+        FLife.Low(sd).get_life(1e18, 5)
 
