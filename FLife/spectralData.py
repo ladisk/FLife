@@ -1,8 +1,7 @@
-from ast import If
 import numpy as np
 from scipy import signal
 from scipy import stats
-from .tools import PSDgen, random_gaussian
+from .tools import random_gaussian
 import warnings
 
 class SpectralData(object):
@@ -224,6 +223,10 @@ class SpectralData(object):
                                                                     
         # Default input is by GUI
         if input == None or input == 'GUI':
+            try:
+                from .gui import PSDgen
+            except ImportError as e:
+                raise ImportError('GUI input requires tkinter (Ubuntu: `sudo apt install python3-tk`).') from e
             self.psd = PSDgen().get_PSD()
             
             # needed parameters for time-history generation
