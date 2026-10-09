@@ -136,3 +136,46 @@ def test_input_validation():
 def test_ndarray_input_raises_clear_error():
     with pytest.raises(ValueError, match='Unrecognized Input'):
         FLife.SpectralData(input=np.ones(100))
+
+
+# --- rainflow -------------------------------------------------------------------------
+
+def _sine_spectral_data(mean, amplitude=1., n_periods=200, fs=1000., f0=10.):
+    t = np.arange(int(n_periods*fs/f0)) / fs
+    x = mean + amplitude*np.sin(2*np.pi*f0*t)
+    return FLife.SpectralData(input={'time_history': x, 'dt': 1/fs})
+
+
+def test_rainflow_requires_T_and_fs():
+    sd = FLife.SpectralData(input={'PSD': band(50, 150, 10.), 'f': F})
+    with pytest.raises(Exception, match='T and fs'):
+        FLife.Rainflow(sd, fs=2000)
+    rf = FLife.Rainflow(sd, T=1, fs=2000, rg=np.random.default_rng(0))
+    assert rf.spectral_data.data.size == 2000
+
+
+def test_rainflow_nr_load_classes():
+    import fatpack
+    sd = FLife.SpectralData(input={'PSD': band(50, 150, 10.), 'f': F}, T=2, fs=2000, rg=np.random.default_rng(0))
+    C, k = 1e12, 5.
+    for nr in (8, 512):
+        ranges = fatpack.find_rainflow_ranges(sd.data, k=nr)
+        expected = sd.t / np.sum((ranges/2)**k / C)
+        np.testing.assert_allclose(FLife.Rainflow(sd).get_life(C, k, nr_load_classes=nr), expected, rtol=1e-12)
+
+
+def test_rainflow_goodman():
+    C, k = 1e12, 5.
+    sd = _sine_spectral_data(mean=2.)
+    rf = FLife.Rainflow(sd)
+    life = rf.get_life(C, k)
+    assert rf.get_life(C, k, Su=False) == life  # old default still means "off"
+    np.testing.assert_allclose(rf.get_life(C, k, Su=10.), life * (1 - 2./10.)**k, rtol=1e-6)
+    for Su in (0., -10.):
+        with pytest.raises(ValueError):
+            rf.get_life(C, k, Su=Su)
+    with pytest.raises(ValueError, match='Goodman'):
+        rf.get_life(C, k, Su=1.5)
+    neg = FLife.Rainflow(_sine_spectral_data(mean=-2.))
+    np.testing.assert_allclose(neg.get_life(C, k, Su=10.), neg.get_life(C, k) * (1 + 2./10.)**k, rtol=1e-6)
+    assert np.isfinite(neg.get_life(C, k, Su=1.5))
