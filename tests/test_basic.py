@@ -23,7 +23,7 @@ def test_data():
         'Narrowband': 1064.200649,
         'Alpha 0.75': 1625.785759,
         'Wirsching Light': 1461.814034,
-        'Gao Moan': 1019.629305, # was 2542.325782 before the 3-band convolution fix; 2237.738423 before the equal-area band split fix
+        'Gao Moan': 2483.562519710285, # was 1019.629305 before delta_H = delta_M = 0 (Gao and Moan 2008, p. 1947); 2237.738423 before the 3-band convolution fix
         'Jiao Moan': 813.490369,
         'Fu Cebon': 1151.170596,
         'Modified Fu Cebon': 846.208325,
