@@ -75,10 +75,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         """
         # Class in instantiated with EquivalentStress(input), input is dictionary or tuple (PSD,freq)
         if isinstance(input, dict) or isinstance(input, tuple):
-            SpectralData.__init__(self,input=input)
-            if T is not None and fs is not None:
-                self.t = T
-                self.fs = fs
+            SpectralData.__init__(self, input=input, T=T, fs=fs, rg=rg)
         # Class instance is instantiated with SpectralData(input) and inherited with EquivalentStress(spectral_data). Input is an instance of SpectralData class
         elif isinstance(input, SpectralData):
             self.spectral_data = input
@@ -89,6 +86,7 @@ class EquivalentStress(SpectralData): #equivalentstress
             if hasattr(input,'t') and hasattr(input,'fs'):
                 self.t = input.t
                 self.fs = input.fs
+                self.rg = getattr(input, 'rg', None)
             self.multipoint = self.spectral_data.multipoint
         else:
             raise Exception('Unrecognized Input Error. `input` should be a dictionary with keys: `PSD` and `f`).')
@@ -123,7 +121,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         self.psd = np.column_stack((f, eq_psd))
         # needed parameters for time-history generation
         if hasattr(self,'t') and hasattr(self, 'fs'):
-            self._set_time_history(f=f, psd=eq_psd, T=self.t, fs=self.fs)
+            self._set_time_history(f=f, psd=eq_psd, T=self.t, fs=self.fs, rg=getattr(self, 'rg', None))
         if hasattr(self,'psd'):
             self.PSD_splitting = ('equalAreaBands', 1) 
             self._calculate_coefficients()
