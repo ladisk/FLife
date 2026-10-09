@@ -102,7 +102,7 @@ def random_gaussian(freq, PSD, T, fs, rg=None, random_amplitude=False, **kwargs)
     freq_new = np.arange(0, M, 1) / N  * fs # frequency vector
     PSD_new = np.interp(freq_new, freq, PSD, left=0, right=0)
     
-    if rg == None:
+    if rg is None:
         rg = np.random.default_rng()
     
     if isinstance(rg, np.random._generator.Generator):
