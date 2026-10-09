@@ -22,13 +22,7 @@ dependencies = [
     "scipy",
     "fatpack",
     "rainflow",
-    "pylint",
-    "pytest",
-    "lvm_read",
-    "matplotlib",
-    "pyExSi",
-    "pyvista[all]",
-    "pyvistaqt",
+    "matplotlib>=3.3",
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -49,12 +43,21 @@ authors = [
 ]
 
 [project.optional-dependencies]
+gui = [
+    "pyvista[all]",
+    "pyvistaqt",
+    "PyQt5",
+]
 dev = [
+    "pytest",
+    "pytest-cov",
+    "pylint",
+    "pyExSi",
+    "lvm_read",
     "sphinx",
     "twine",
     "wheel",
     "build",
-    "pytest",
     "sphinx-rtd-theme",
     "sphinx-copybutton",
 ]

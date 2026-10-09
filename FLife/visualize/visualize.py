@@ -1,8 +1,17 @@
-import pyvista as pv
-import pyvistaqt as pvqt
 import numpy as np
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+
+
+def _import_pyvista(qt=False):
+    try:
+        import pyvista as pv
+        if qt:
+            import pyvistaqt as pvqt
+            return pv, pvqt
+        return pv
+    except ImportError as e:
+        raise ImportError('Mesh visualization requires the GUI extras: pip install FLife[gui]') from e
 
 
 def set_mesh(self,filename):
@@ -12,6 +21,7 @@ def set_mesh(self,filename):
             The filename of the mesh to be visualized and used with pick_point method.
     """
 
+    pv = _import_pyvista()
     self.mesh = pv.read(filename)
 
 
@@ -23,6 +33,7 @@ def pick_point(self):
     Select the point by right clicking on the mesh. Use left click to rotate the mesh and middle to pan.
     When the point is selected, the equivalent stress PSD data at that point is written to self.psd argument to be used in fatigue analysis.
     """
+    pv, pvqt = _import_pyvista(qt=True)
     if not hasattr(self, 'mesh'):
         raise AttributeError("Mesh not set. Use set_mesh method to set the mesh.")
     
