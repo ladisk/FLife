@@ -70,6 +70,8 @@ def eq_psd(S, criterion, f=F, **kwargs):
     es = FLife.EquivalentStress(input={'PSD': S, 'f': f})
     if criterion == 'cs':
         kwargs.setdefault('T', 1.)
+    if criterion == 'multiaxial_rainflow':
+        kwargs.setdefault('k', 5.)
     getattr(es, criterion)(**kwargs)
     return es.eq_psd_multipoint[0] if es.multipoint else es.psd[:, 1]
 
@@ -118,14 +120,15 @@ def test_uniaxial_reduction_any_orientation(criterion):
                                    UNIAXIAL_FACTOR[criterion], rtol=1e-8, atol=1e-12)
 
 
-@pytest.mark.parametrize('criterion', ['EVMS', 'Lemaitre', 'thermoelastic',
+@pytest.mark.parametrize('criterion', ['EVMS', 'Lemaitre', 'thermoelastic', 'multiaxial_rainflow',
                                        'EVMS_out_of_phase', 'max_normal_and_shear'])
 def test_uniaxial_reduction_plane_stress(criterion):
     kwargs = {'poisson_ratio': 0.3} if criterion == 'Lemaitre' else {}
     if criterion == 'max_normal_and_shear':
         kwargs = {'s_af': S_AF, 'tau_af': TAU_AF}
     expected = UNIAXIAL_FACTOR.get(criterion, 1.)
-    for R in IN_PLANE:
+    # multiaxial_rainflow (largest eigenvalue of the Voigt PSD) is not frame invariant
+    for R in (IN_PLANE[:1] if criterion == 'multiaxial_rainflow' else IN_PLANE):
         S = to_2d(psd_from_sources([R @ UNIAXIAL @ R.T], [P]))
         np.testing.assert_allclose(ratio(eq_psd(S, criterion, **kwargs)), expected, rtol=1e-8)
 
@@ -141,6 +144,8 @@ def test_pure_shear_factors(criterion):
 def test_pure_shear_plane_stress():
     S = to_2d(psd_from_sources([SHEAR], [P]))
     np.testing.assert_allclose(ratio(eq_psd(S, 'EVMS_out_of_phase')), 3., rtol=1e-12)
+    # largest eigenvalue of Re(S) per frequency (the optimiser used to stop early)
+    np.testing.assert_allclose(ratio(eq_psd(S, 'multiaxial_rainflow')), 1., rtol=1e-12)
 
 
 # --- invariance -------------------------------------------------------------------------
@@ -225,9 +230,9 @@ def test_closed_form_criteria_return_real_psd():
 
 # --- multipoint -------------------------------------------------------------------------
 
-@pytest.mark.parametrize('criterion', list(PSD_CRITERIA) + ['EVMS_out_of_phase'])
+@pytest.mark.parametrize('criterion', list(PSD_CRITERIA) + ['multiaxial_rainflow', 'EVMS_out_of_phase'])
 def test_all_points_equal_single_points(criterion):
-    plane = criterion == 'EVMS_out_of_phase'
+    plane = criterion in ('multiaxial_rainflow', 'EVMS_out_of_phase')
     S = np.stack([psd_from_sources(random_state(s, plane=plane), [P1, P2]) for s in range(3)])
     if plane:
         S = to_2d(S)
@@ -385,3 +390,107 @@ def test_cs_requires_observation_time():
     np.testing.assert_allclose(es.psd[:, 1], ref)
 
 
+# --- multiaxial rainflow (Pitoiset and Preumont 2000) -----------------------------------
+
+def _mr_state(seed):
+    """Two coherent plane-stress sources in separate bands (3x3 PSD)."""
+    return to_2d(psd_from_sources(random_state(seed, plane=True), [P1, P2]))
+
+
+def _scan_directions(n=40000):
+    rng = np.random.default_rng(1)
+    c = rng.normal(size=(n, 3))
+    return c / np.linalg.norm(c, axis=1, keepdims=True)
+
+
+def _moment(S, c, q):
+    """Single-moment quantity lambda_q(c) = sum_f f^q c^T Re S c df (df = 1 here)."""
+    psd = np.einsum('ni,fij,nj->nf', c, np.real(S), c)
+    return psd @ (F**q)
+
+
+@pytest.mark.parametrize('i', [0, 1, 2])
+@pytest.mark.parametrize('k', [None, 3., 7.3])
+def test_multiaxial_rainflow_uniaxial_reduction(i, k):
+    S = np.zeros((len(F), 3, 3))
+    S[:, i, i] = P
+    es = FLife.EquivalentStress(input={'PSD': S, 'f': F})
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        es.multiaxial_rainflow(k=k)
+    np.testing.assert_allclose(es.psd[:, 1], P, rtol=1e-12, atol=1e-15)
+    np.testing.assert_allclose(np.abs(es.multiaxial_rainflow_direction), np.eye(3)[i], atol=1e-12)
+
+
+def test_multiaxial_rainflow_two_bands_fixed_direction():
+    # s_x at 50 Hz and uncorrelated shear at 120 Hz: a fixed c cannot have both
+    S = np.zeros((len(F), 3, 3))
+    S[:, 0, 0] = P1
+    S[:, 2, 2] = 2 * P2
+    eq = eq_psd(S, 'multiaxial_rainflow', k=5.)
+    # damage-based choice at k = 5 takes the high-frequency shear band, not the envelope
+    np.testing.assert_allclose(eq, 2 * P2, rtol=1e-12, atol=1e-15)
+    envelope = np.linalg.eigvalsh(S)[:, -1]
+    assert eq.sum() < envelope.sum()
+
+
+@pytest.mark.parametrize('k', [3., 5., 10.])
+@pytest.mark.parametrize('seed', [0, 1, 2])
+def test_multiaxial_rainflow_equals_max_damage_scan(k, seed):
+    S = _mr_state(seed)
+    es = FLife.EquivalentStress(input={'PSD': S, 'f': F})
+    es.multiaxial_rainflow(k=k)
+    c = es.multiaxial_rainflow_direction
+    np.testing.assert_allclose(np.linalg.norm(c), 1.)
+    q = 2. / k
+    best = _moment(S, c[None], q)[0]
+    scan = _moment(S, _scan_directions(), q)
+    assert best >= scan.max() * (1 - 1e-12)
+    assert best <= scan.max() * (1 + 1e-3)
+    np.testing.assert_allclose(es.psd[:, 1], np.einsum('i,fij,j->f', c, np.real(S), c), rtol=1e-12)
+
+
+@pytest.mark.parametrize('seed', [0, 1, 2])
+def test_multiaxial_rainflow_without_k_is_max_variance(seed):
+    S = _mr_state(seed)
+    es = FLife.EquivalentStress(input={'PSD': S, 'f': F})
+    with pytest.warns(UserWarning, match='`k`'):
+        es.multiaxial_rainflow()
+    c = es.multiaxial_rainflow_direction
+    best = _moment(S, c[None], 0.)[0]
+    scan = _moment(S, _scan_directions(), 0.)
+    assert best >= scan.max() * (1 - 1e-12)
+    assert best <= scan.max() * (1 + 1e-3)
+
+
+def test_multiaxial_rainflow_no_warning_with_k():
+    S = _mr_state(0)
+    es = FLife.EquivalentStress(input={'PSD': S, 'f': F})
+    with warnings.catch_warnings():
+        warnings.simplefilter('error')
+        es.multiaxial_rainflow(k=4.)
+
+
+def test_multiaxial_rainflow_sign_invariance_and_imaginary_part():
+    S = _mr_state(3)
+    r = np.real(S)
+    eq = eq_psd(S, 'multiaxial_rainflow', k=4.)
+    # c and -c give the same PSD
+    es = FLife.EquivalentStress(input={'PSD': S, 'f': F})
+    es.multiaxial_rainflow(k=4.)
+    c = es.multiaxial_rainflow_direction
+    np.testing.assert_allclose(np.einsum('i,fij,j->f', -c, r, -c), eq, rtol=1e-12)
+    # only Re S matters
+    A = np.random.default_rng(5).normal(size=(3, 3))
+    S2 = S + 1j * (A - A.T)[None] * P[:, None, None]
+    np.testing.assert_allclose(eq_psd(S2, 'multiaxial_rainflow', k=4.), eq, rtol=1e-10)
+
+
+def test_multiaxial_rainflow_multipoint_direction():
+    S = np.stack([_mr_state(s) for s in range(3)])
+    es = FLife.EquivalentStress(input={'PSD': S, 'f': F})
+    es.multiaxial_rainflow(k=4.)
+    assert es.multiaxial_rainflow_direction.shape == (3, 3)
+    single = FLife.EquivalentStress(input={'PSD': S[1], 'f': F})
+    single.multiaxial_rainflow(k=4.)
+    np.testing.assert_allclose(es.multiaxial_rainflow_direction[1], single.multiaxial_rainflow_direction)

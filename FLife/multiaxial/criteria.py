@@ -1,6 +1,6 @@
+import warnings
 import numpy as np
 from . import cplane
-from scipy.optimize import minimize
 
 # All criteria accept the PSD of one node (f, 6, 6) / (f, 3, 3) or of many
 # nodes (N, f, 6, 6) / (N, f, 3, 3) and return the equivalent PSD (f,) or (N, f).
@@ -116,48 +116,41 @@ def _cs(self, s, s_af, tau_af, T=None):
     return s_eq
 
 
-def _multiaxial_rainflow(self, s):
+def _multiaxial_rainflow(self, s, k=None):
     """
-    Internal function for calculating equivalent stress at one node.
+    Internal function for calculating equivalent stress at one node or at all nodes.
+
+    One fixed unit vector c is used for the whole spectrum (Pitoiset and Preumont 2000, Eq. 9).
+    The equivalent PSD is c^T Re(S) c (Eq. 14). c is the top eigenvector of
+    M = sum_f f^(2/k) Re S(f) df, the maximum of the single-moment damage over c.
+    Without k, the exponent is 0 (maximum variance, the limit k -> infinity).
+    The vector is stored in `self.multiaxial_rainflow_direction`: (3,) or (N, 3).
     """
-    if s.shape[1] == 6 and s.shape[2] == 6:
+    if s.shape[-2:] == (6, 6):
         raise ValueError('Multiaxial rainflow only works for biaxial stresses: PSD matrix (f,3,3)')
-    
-    freq = self.multiaxial_psd[1]
-    df = freq[1] - freq[0]
 
-    
+    f = np.asarray(self._freq(), dtype=float)
+    if k is None:
+        warnings.warn('multiaxial_rainflow: no S-N slope `k` given. The direction c is chosen for maximum '
+                      'variance (k -> infinity), not for maximum damage as in Pitoiset and Preumont (2000). '
+                      'Pass `k` for the damage-based choice.', UserWarning, stacklevel=3)
+        q = 0.
+    else:
+        if k <= 0:
+            raise ValueError('S-N slope k must be positive.')
+        q = 2. / k
 
-    def constraint(c):
-        return np.sum(c**2) - 1
-
-    initial_guess = np.array([0.34,0.33,0.33])
-
-    # Define the constraint for the optimizaton
-    cons = {'type': 'eq', 'fun': constraint}
-
-    # Perform the optimization
-    s_eq = np.empty((len(s)))
-    for i in range(len(s)):
-        def Psi_m(c):
-            Q = np.outer(c, c)
-            # s[i] is Hermitian, so the quadratic form is real; take the real
-            # part so the optimiser never sees a complex objective.
-            return -np.real(np.trace(Q@s[i]))
-        
-        result = minimize(fun=Psi_m, x0=initial_guess, constraints=[cons], method='SLSQP')
-
-
-        if not result.success:
-            print("Optimization failed:", result.message)
-
-            s_eq[i] = -Psi_m(initial_guess)
-        # Extract the optimized c values
-        else:    
-            c_opt = result.x
-
-            s_eq[i] = -Psi_m(c_opt)
-    return s_eq
+    r = np.real(s)
+    weight = np.where(f > 0, np.abs(f), 0.)**q if q > 0 else np.ones_like(f)
+    weight = weight * _df(self)
+    m = np.einsum('f,...fij->...ij', weight, r)
+    c = np.linalg.eigh(m)[1][..., -1]
+    # fix the sign: largest component positive
+    idx = np.argmax(np.abs(c), axis=-1)
+    sign = np.sign(np.take_along_axis(c, idx[..., None], axis=-1))
+    c = c * np.where(sign == 0, 1., sign)
+    self.multiaxial_rainflow_direction = c
+    return np.einsum('...i,...fij,...j->...f', c, r, c)
 
 
 def _thermoelastic(self,s):

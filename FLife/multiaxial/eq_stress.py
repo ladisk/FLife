@@ -312,12 +312,27 @@ class EquivalentStress(SpectralData): #equivalentstress
             s_eq = criteria._cs(self,s=psd, s_af=s_af, tau_af=tau_af, T=T)
             self.set_eq_stress(eq_psd=s_eq, f=f)
 
-    def multiaxial_rainflow(self):
+    def multiaxial_rainflow(self, k=None):
         """Converts the stress tensor at one node to equivalent,
         scalar psd stress, for use in frequency domain multiaxial rainflow.
 
         ONLY WORKS FOR BIAXIAL STRESSES: PSD MATRIX (f,3,3) - single point or (N,f,3,3) - multiple points
-    
+
+        One fixed unit vector c is used for the whole spectrum (Pitoiset and Preumont 2000,
+        Eq. 9 and Sec. 3), and the equivalent PSD is c^T Re(S(f)) c (Eqs. 11-14). The article
+        picks c as the combination of maximum damage, computed with the single moment method
+        (Sec. 4.1). For the single moment damage, which grows with c^T M c where
+        M = sum_f f^(2/k) Re S(f) df, the maximum is the top eigenvector of M.
+
+        :param k: float, optional
+            Slope of the S-N curve, N*S^k = C. If given, c is chosen by maximum single moment
+            damage (article method). If missing, c is the maximum-variance direction
+            (top eigenvector of sum_f Re S(f) df, the limit k -> infinity) and a UserWarning
+            asks for k.
+
+        The chosen c is stored in `multiaxial_rainflow_direction`, shape (3,) or (N, 3).
+        The sign of c does not matter (c and -c give the same PSD).
+
         --------
 
         - Pitoiset, Xavier, and André Preumont; 
@@ -327,12 +342,13 @@ class EquivalentStress(SpectralData): #equivalentstress
         """
         # psd is multiple-point
         if self.multipoint:
-            self.loop_over_points(criterion=criteria._multiaxial_rainflow)
+            self._all_points(criterion=criteria._multiaxial_rainflow, k=k)
         
         # psd is single-point
         else:
-            s_eq = criteria._multiaxial_rainflow(self,s=self.multiaxial_psd[0])
-            self.set_eq_stress(eq_psd=s_eq, f=self.multiaxial_psd[1])
+            psd, f = self._psd_matrix()
+            s_eq = criteria._multiaxial_rainflow(self,s=psd, k=k)
+            self.set_eq_stress(eq_psd=s_eq, f=f)
 
     def thermoelastic(self):
         """Converts the stress tensor at one node to equivalent,
