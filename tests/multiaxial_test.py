@@ -18,7 +18,7 @@ def test_data():
         'max_shear': 2430.1468521282327,
         'max_normal_and_shear': 2587.451584100599, #s_af = 1, tau_af = 1; plane of max equivalent-stress variance (was 1565.051025189015)
         'cs': 1650.2990744626302, #s_af = 1, tau_af = 1; N1 = nu0*T, grid search (was 1647.0269200556531)
-        'multiaxial_rainflow': 1636.5919423074781,
+        'multiaxial_rainflow': 1620.6973371278707,
         'thermoelastic': 1027.6423513625518,
         'liwi': 694.4189527601052,
         'coin_liwi': 681.5169976755546, #k_a=1.70, k_phi=0.90
@@ -68,7 +68,7 @@ def test_data():
     max_shear.max_shear()
     max_normal_and_shear.max_normal_and_shear(s_af=1, tau_af=1)
     cs.cs(s_af=1, tau_af=1)
-    multiaxial_rainflow.multiaxial_rainflow()
+    multiaxial_rainflow.multiaxial_rainflow(k=7.3)
     thermoelastic.thermoelastic()
     liwi.liwi()
     coin_liwi.coin_liwi(k_a=1.70, k_phi=0.90)
