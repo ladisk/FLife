@@ -310,6 +310,70 @@ def test_cs_frame_independence(case):
 
 # --- amplitude-spectrum criteria --------------------------------------------------------
 
+def test_coin_liwi_uniaxial_phase():
+    # Schmidt & Kraft (2023), Eq. 36: phase follows the first invariant
+    a = np.zeros((5, 6), complex)
+    a[:, 0] = np.exp(1j * 0.3)
+    s_eq = criteria._coin_liwi(None, a, k_a=1.7, k_phi=0.9)
+    np.testing.assert_allclose(np.angle(s_eq), 0.3, atol=1e-12)
+
+
+def _liwi_states(n=4000, seed=0):
+    rng = np.random.default_rng(seed)
+    return rng.normal(size=(n, 3)) + 1j * rng.normal(size=(n, 3))
+
+
+def test_liwi_amplitude_is_bonte_eq10():
+    # Schmidt & Pandiya (2021), Eqs. 10-11: Bonte amplitude. This is COIN-LiWI with
+    # k_a^2 = 3 and k_phi = 0.5 (Schmidt & Kraft 2023, Eq. 32), not k_phi = 1 (their Eq. 38).
+    s = _liwi_states()
+    sx, sy, t = s[:, 0], s[:, 1], s[:, 2]
+    d = np.angle(sy) - np.angle(sx)
+    H = abs(sx)**2 + abs(sy)**2 - abs(sx) * abs(sy) * np.cos(d) + 3 * abs(t)**2
+    C = (abs(sx)**2 + abs(sy)**2 * np.exp(2j * d) - abs(sx) * abs(sy) * np.exp(1j * d)
+         + 3 * abs(t)**2 * np.exp(2j * (np.angle(t) - np.angle(sx))))
+    amp = np.abs(criteria._liwi(None, s))
+    np.testing.assert_allclose(amp, np.sqrt(0.5 * H + 0.5 * np.abs(C)), rtol=1e-12)
+    s6 = np.zeros((s.shape[0], 6), complex)
+    s6[:, [0, 1, 3]] = s
+    np.testing.assert_allclose(amp, np.abs(criteria._coin_liwi(None, s6, k_a=np.sqrt(3), k_phi=0.5)), rtol=1e-12)
+
+
+@pytest.mark.parametrize('phase', [0., np.pi])
+def test_liwi_static_sign(phase):
+    # Schmidt & Pandiya (2021), Eqs. 32-33: in-phase states keep the sign of the stresses
+    s = np.array([[2., 1., 0.5], [1., -0.3, 0.2], [0.4, 0., 1.]]) * np.exp(1j * phase)
+    s_eq = criteria._liwi(None, s)
+    np.testing.assert_allclose(s_eq.real, np.sign(np.cos(phase)) * np.abs(s_eq), atol=1e-12)
+
+
+def _liwi_phase_reference(s):
+    """Schmidt & Pandiya (2021), Eqs. 12 and 15-30, evaluated with the exact maximum times
+    (Eqs. 17, 24) and branch rules (Eqs. 20, 26) instead of the approximation of Eqs. 27-28."""
+    sx, sy, t = s[:, 0], s[:, 1], s[:, 2]
+    A1, p1 = np.abs(sx), np.angle(sx)
+    for A2, p2, th in [(np.abs(sy), np.angle(sy), 2 * np.pi / 3), (np.sqrt(3) * np.abs(t), np.angle(t), np.pi / 2)]:
+        d = p2 - p1
+        wt = -0.5 * np.angle(A1**2 + A2**2 * np.exp(2j * d) + 2 * A1 * A2 * np.exp(1j * d) * np.cos(th))
+        a, b = A1 * np.cos(wt), A2 * np.cos(wt + d)                          # Eq. 16
+        p_a = np.angle(A1 + A2 * np.exp(1j * (d - th)))                      # Eq. 18
+        p_c = np.angle(a + b * np.exp(1j * th))                              # Eqs. 19, 25
+        p_c = np.where((A2 > A1) & (p_c < th / 2), p_c + np.pi,
+                       np.where((A2 <= A1) & (p_c > th / 2), th - p_c, p_c))  # Eqs. 20, 26
+        A1 = np.abs(a + b * np.exp(1j * th))                                 # Eqs. 15, 22
+        p1 = p_c + p_a + p1                                                  # Eqs. 21, 29
+    p_bo = 0.5 * np.angle(sx**2 + sy**2 - sx * sy + 3 * t**2)                # Eq. 12
+    closer = np.abs(np.angle(np.exp(1j * (p1 - p_bo)))) < np.abs(np.angle(np.exp(1j * (p1 - p_bo - np.pi))))
+    return np.where(closer, p_bo, p_bo + np.pi)                              # Eq. 30
+
+
+def test_liwi_phase_matches_article_equations():
+    s = _liwi_states()
+    s_eq = criteria._liwi(None, s)
+    ref = np.exp(1j * _liwi_phase_reference(s))
+    np.testing.assert_allclose(s_eq / np.abs(s_eq), ref, atol=1e-9)
+
+
 def test_cs_requires_observation_time():
     S = psd_from_sources([UNIAXIAL], [P])
     es = FLife.EquivalentStress(input={'PSD': S, 'f': F})

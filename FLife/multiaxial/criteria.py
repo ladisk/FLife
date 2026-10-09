@@ -185,6 +185,10 @@ def _liwi(self,s):
     Internal function for calculating equivalent stress at one node or at all nodes.
 
     s is the amplitude spectrum (..., f, 3); returns the complex equivalent amplitude (..., f).
+    Schmidt & Pandiya (2021): amplitude from Eqs. 10-11 (Bonte), equal to COIN-LiWI with k_a**2 = 3 and
+    k_phi = 0.5; phase from Eqs. 12, 15-18, 27-30.
+    Note: PSD = |A|**2/df, so A is the RMS amplitude per line; for one-sided peak amplitudes (FFT amplitudes,
+    Schmidt and Pandiya 2021, Eqs. 1 and 7) pass A/sqrt(2).
     """
     sigma_x, sigma_y, tau_xy = s[...,0], s[...,1], s[...,2]
 
@@ -213,7 +217,8 @@ def _liwi(self,s):
         phi_c = ((phi_c_overline - theta[r] / 2) % (np.pi/2)) + theta[r] / 2
         phi_c = np.where(A2[r] >= A1, phi_c, phi_c - np.pi / 2)
 
-        A1 = (0.5 * (A1**2 + A2[r]**2 + 2 * A1 * A2[r] * np.cos(phi_1 - phi_2[r]) * np.cos(theta[r])) + 0.5 * np.abs(A1**2 * np.e**(2j * phi_1) + A2[r]**2 * np.e**(2j * phi_2[r]) + 2 * A1 * A2[r] * np.e**(2j * (phi_1 + phi_2[r]))))**0.5
+        # amplitude of the resultant vector (Schmidt & Pandiya 2021, Eqs. 15, 17, 22, 24): cross term 2 A1 A2 cos(theta) e^{j(phi_1+phi_2)}
+        A1 = (0.5 * (A1**2 + A2[r]**2 + 2 * A1 * A2[r] * np.cos(phi_1 - phi_2[r]) * np.cos(theta[r])) + 0.5 * np.abs(A1**2 * np.e**(2j * phi_1) + A2[r]**2 * np.e**(2j * phi_2[r]) + 2 * A1 * A2[r] * np.cos(theta[r]) * np.e**(1j * (phi_1 + phi_2[r]))))**0.5
 
         phi_1 = phi_a + phi_c + phi_1
 
@@ -234,6 +239,8 @@ def _coin_liwi(self, s, k_a, k_phi):
     Internal function for calculating equivalent stress at one node or at all nodes.
 
     s is the amplitude spectrum (..., f, 6); returns the complex equivalent amplitude (..., f).
+    Note: PSD = |A|**2/df, so A is the RMS amplitude per line; for one-sided peak amplitudes (FFT amplitudes,
+    Schmidt and Kraft 2023) pass A/sqrt(2).
     """
     sigma_x_f = s[...,0]
     sigma_y_f = s[...,1]
@@ -269,9 +276,10 @@ def _coin_liwi(self, s, k_a, k_phi):
     # amplitude
     sigma_coin = np.sqrt((k_phi * sigma_eq_ka + (1 - k_phi) * abs(sigma_eq_ka_underscore)).astype(complex))
 
-    #phase angle
-    first = np.angle(np.exp(1j * phi_I1) / np.exp(1j * phi_eq_ka)) < np.angle(np.exp(1j * phi_I1) / np.exp(1j * phi_eq_ka + np.pi))
-    phi_coin = np.where(first, phi_eq_ka, phi_eq_ka + np.pi)
+    #phase angle: of phi_eq_ka and phi_eq_ka + pi, take the one closer to phi_I1 (Schmidt & Kraft 2023, Eq. 36)
+    d0 = np.abs(np.angle(np.exp(1j * (phi_I1 - phi_eq_ka))))
+    d1 = np.abs(np.angle(np.exp(1j * (phi_I1 - phi_eq_ka - np.pi))))
+    phi_coin = np.where(d0 < d1, phi_eq_ka, phi_eq_ka + np.pi)
 
     return sigma_coin * np.exp(1j * phi_coin)
 
