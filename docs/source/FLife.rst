@@ -247,7 +247,7 @@ uniaxial stress state can be used with all spectral methods, provided by
 FLife. For a review of the multiaxial criteria implemented here, please see
 Jaša Šonc and Janko Slavič, Review of Multiaxial Vibration Fatigue Spectral
 Methods—With Open-Source Support, Applied Nonlinear Dynamics and Vibrations,
-2026, `see https://www.sciltp.com/journals/andv/articles/2606004129`.
+2026, `see https://doi.org/10.53941/andv.2026.100003`.
 
 Supported multiaxial criteria
 -----------------------------
