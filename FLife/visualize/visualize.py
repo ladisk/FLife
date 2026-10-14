@@ -1,5 +1,4 @@
 import pyvista as pv
-import pyvistaqt as pvqt
 import numpy as np
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -27,6 +26,15 @@ def pick_point(self):
         raise AttributeError("Mesh not set. Use set_mesh method to set the mesh.")
     
     else:
+        # pyvistaqt requires Qt bindings; import it here so that FLife can be
+        # imported (and used for fatigue computations) without Qt installed.
+        try:
+            import pyvistaqt as pvqt
+        except Exception as e:
+            raise ImportError(
+                "pick_point requires pyvistaqt and Qt bindings (e.g. PyQt5 or PySide6). "
+                "Install them with: pip install FLife[gui]") from e
+
         # Create the plotter object
         
         p = pvqt.BackgroundPlotter()

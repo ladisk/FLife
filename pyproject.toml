@@ -49,6 +49,9 @@ authors = [
 ]
 
 [project.optional-dependencies]
+gui = [
+    "PyQt5",
+]
 dev = [
     "sphinx",
     "twine",

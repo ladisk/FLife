@@ -25,6 +25,13 @@ Use `pip` to install it by:
 
     $ pip install FLife
 
+The interactive mesh visualization (``FLife.visualize.pick_point``) additionally
+needs Qt bindings, which can be installed with:
+
+.. code-block:: console
+
+    $ pip install FLife[gui]
+
 
 Supported methods in the frequency-domain
 -----------------------------------------
