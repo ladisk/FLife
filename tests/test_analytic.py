@@ -32,3 +32,17 @@ def test_gao_moan_bimodal_runs():
     sd = FLife.SpectralData(input={'PSD': band(10, 20, 50.) + band(150, 170, 50.), 'f': F})
     life = FLife.GaoMoan(sd, ('equalAreaBands', 2)).get_life(1e12, 5.)
     assert np.isfinite(life) and life > 0
+
+
+def test_jun_park_validity_warning():
+    # narrow band: sqrt(1 - alpha1**2) < 0.3 is outside the validated range
+    sd_nb = FLife.SpectralData(input={'PSD': band(95, 105, 100.), 'f': F})
+    with pytest.warns(UserWarning, match='Qc'):
+        FLife.JunPark(sd_nb).get_life(1e12, 5.)
+
+    import warnings
+    sd_bb = FLife.SpectralData(input={'PSD': band(10, 20, 50.) + band(150, 170, 50.), 'f': F})
+    assert np.sqrt(1 - sd_bb.alpha1**2) > 0.3
+    with warnings.catch_warnings():
+        warnings.simplefilter('error')
+        FLife.JunPark(sd_bb).get_life(1e12, 5.)
