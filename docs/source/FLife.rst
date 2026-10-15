@@ -14,7 +14,7 @@ Use `pip` to install it by:
     $ pip install FLife
 
 The 3D mesh visualization in ``FLife.visualize`` (``set_mesh``, ``pick_point``) needs
-the optional GUI dependencies (``pyvista``, ``pyvistaqt`` and ``PyQt5``):
+the optional GUI dependencies (``pyvista``, ``pyvistaqt`` and ``PySide6``):
 
 .. code-block:: console
 
