@@ -222,7 +222,7 @@ class SpectralData(object):
                                                 trim=psd_trim_length)
                                                                     
         # Default input is by GUI
-        if input == None or input == 'GUI':
+        if input is None or (isinstance(input, str) and input == 'GUI'):
             try:
                 from .gui import PSDgen
             except ImportError as e:
@@ -248,7 +248,7 @@ class SpectralData(object):
                     self.multiaxial_psd = (input['PSD'],input['f'])
 
                     # Check dimension of multiaxial stress PSD
-                    if self.multiaxial_psd[0].ndim == 3 or self.multiaxial_psd[0].ndim == 4 and (
+                    if self.multiaxial_psd[0].ndim in (3, 4) and (
                         (self.multiaxial_psd[0].shape[-1] == 6 and self.multiaxial_psd[0].shape[-2] == 6) or
                         (self.multiaxial_psd[0].shape[-1] == 3 and self.multiaxial_psd[0].shape[-2] == 3)
                     ):     
@@ -263,13 +263,16 @@ class SpectralData(object):
                     else:
                         raise Exception('Input Error. PSD matrix should be the size of (f,6,6) for 3D stress state or (f,3,3) for 2D stress state')
 
+                    freq_axis = 1 if self.multipoint else 0
+                    self._validate_input(input['f'], input['PSD'], freq_axis=freq_axis, kind='multiaxial_psd')
                     if T is not None and fs is not None:
-                        self._check_fs(f=input['f'], psd=input['PSD'], T=T, fs=fs, multipoint=True, **kwargs)
+                        self._check_fs(f=input['f'], psd=input['PSD'], T=T, fs=fs, freq_axis=freq_axis)
             
                 # Uniaxial PSD
                 elif input['PSD'].ndim==1:
                     psd = input['PSD']
                     f = input['f']
+                    self._validate_input(f, psd, kind='psd')
                     self.psd = np.column_stack((f, psd))
                     # needed parameters for time-history generation
                     if T is not None and fs is not None:
@@ -281,7 +284,7 @@ class SpectralData(object):
                     self.multiaxial_amplitude_spectrum = (input['amplitude_spectrum'],input['f'])
 
                     # Check dimension of multiaxial amplitude spectrum
-                    if self.multiaxial_amplitude_spectrum[0].ndim == 2 or self.multiaxial_amplitude_spectrum[0].ndim == 3 and (
+                    if self.multiaxial_amplitude_spectrum[0].ndim in (2, 3) and (
                         (self.multiaxial_amplitude_spectrum[0].shape[-1] == 6) or
                         (self.multiaxial_amplitude_spectrum[0].shape[-1] == 3)
                     ):     
@@ -296,14 +299,17 @@ class SpectralData(object):
                     else:
                         raise Exception('Input Error. PSD matrix should be the size of (f,6,6) for 3D stress state or (f,3,3) for 2D stress state')
 
+                    freq_axis = 1 if self.multipoint else 0
+                    self._validate_input(input['f'], input['amplitude_spectrum'], freq_axis=freq_axis, kind='multiaxial_amplitude_spectrum')
                     if T is not None and fs is not None:
-                        self._check_fs(f=input['f'], psd=input['amplitude_spectrum'], T=T, fs=fs, multipoint=True, **kwargs)
+                        self._check_fs(f=input['f'], psd=input['amplitude_spectrum'], T=T, fs=fs, freq_axis=freq_axis)
                 
                 # Uniaxial amplitude spectrum
                 elif input['amplitude_spectrum'].ndim==1:
                     print('Input amplitude spectrum is uniaxial')
                     amplitde_spectrum = input['amplitude_spectrum']
                     f = input['f']
+                    self._validate_input(f, amplitde_spectrum, kind='amplitude_spectrum')
                     psd = amplitde_spectrum**2/(f[1]-f[0])
                     self.psd = np.column_stack((f, psd))
                     # needed parameters for time-history generation
@@ -314,7 +320,7 @@ class SpectralData(object):
                 raise Exception('Unrecognized Input Error. `input` should be dictionary with keys `PSD` and `f` or `time_history` and `dt`.')
 
         else:
-            raise Exception('Unrecognized Input Error') 
+            raise ValueError('Unrecognized Input Error. `input` should be a dictionary, see the documentation.') 
 
         if hasattr(self,'psd'):
             self.PSD_splitting = ('equalAreaBands', 1) 
@@ -340,18 +346,48 @@ class SpectralData(object):
     
         return data
     
-    def _check_fs(self, f, psd, T=None, fs=None, multipoint=False, **kwargs):
-        
-        #if input is multi point, multiaxial
-        if multipoint:
-            f_max_indx = np.where(psd>0)[1][-1]
+    def _validate_input(self, f, values, freq_axis=0, kind='psd'):
+        """Checks user-given frequency vector and PSD (or amplitude spectrum). Raises ValueError.
+        """
+        f = np.asarray(f)
+        values = np.asarray(values)
+        if f.ndim != 1 or f.size < 2:
+            raise ValueError('Frequency vector `f` should be 1D with at least 2 points.')
+        if values.shape[freq_axis] != f.size:
+            raise ValueError(f'Length of `f` ({f.size}) does not match the frequency axis of the input ({values.shape[freq_axis]}).')
+        if not np.all(np.isfinite(f)) or not np.all(np.isfinite(values)):
+            raise ValueError('Input contains NaN or inf values.')
+        df = np.diff(f)
+        if np.any(df <= 0):
+            raise ValueError('Frequency vector `f` should be strictly increasing.')
+        if f[0] < 0:
+            raise ValueError('Frequency vector `f` should be non-negative (one-sided spectrum).')
+
+        if kind == 'psd':
+            power = values
+        elif kind == 'multiaxial_psd':
+            power = np.real(np.diagonal(values, axis1=-2, axis2=-1))
         else:
-            f_max_indx = np.where(psd>0)[0][-1]
-        f_max = f[f_max_indx]
+            power = np.abs(values)**2
+        if kind in ('multiaxial_psd', 'multiaxial_amplitude_spectrum') and not np.allclose(df, np.median(df), rtol=1e-3):
+            raise ValueError('Multiaxial input requires a uniform frequency vector `f`.')
+        scale = np.max(np.abs(power)) if power.size else 0.
+        if np.min(power) < -1e-8 * scale:
+            raise ValueError('PSD values should be non-negative.')
+        if not scale > 0:
+            raise ValueError('Input has zero variance (m0 = 0).')
+
+    def _check_fs(self, f, psd, T=None, fs=None, freq_axis=0, **kwargs):
+        # highest frequency with nonzero content at any point or component
+        psd = np.moveaxis(np.abs(np.asarray(psd)), freq_axis, 0)
+        nonzero = np.nonzero(psd.reshape(psd.shape[0], -1).max(axis=1) > 0)[0]
+        if nonzero.size == 0:
+            return
+        f_max = f[nonzero[-1]]
                 
         # Sampling frequency check
         if fs < 2*f_max:
-            raise Exception('Parameter `fs` should be higher. It should be fs >= 2*fmax.')
+            raise ValueError('Parameter `fs` should be higher. It should be fs >= 2*fmax.')
                     
         if fs < 10*f_max:
             warnings.warn(f'Parameter `fs` should be higher. It is suggested to use fs>=10*fmax.')
@@ -361,7 +397,7 @@ class SpectralData(object):
         """   
         if T is not None and fs is not None:
             
-            self._check_fs(f, psd, T, fs, multipoint=False, **kwargs)
+            self._check_fs(f, psd, T, fs)
             # get time history
             time, signal = random_gaussian(freq=f, PSD=psd, T=T, fs=fs, **kwargs) # stationary, normally distributed
 
