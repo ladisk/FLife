@@ -63,3 +63,12 @@ def test_rainflow_goodman():
     neg = FLife.Rainflow(_sine_spectral_data(mean=-2.))
     np.testing.assert_allclose(neg.get_life(C, k, Su=10.), neg.get_life(C, k) * (1 + 2./10.)**k, rtol=1e-6)
     assert np.isfinite(neg.get_life(C, k, Su=1.5))
+
+
+def test_psd_trim_length_is_number_of_points():
+    t = np.arange(20000) / 1000.
+    x = np.random.default_rng(0).standard_normal(t.size)
+    full = FLife.SpectralData(input={'time_history': x, 'dt': 1e-3}, nperseg=500)
+    trimmed = FLife.SpectralData(input={'time_history': x, 'dt': 1e-3}, nperseg=500, psd_trim_length=100)
+    assert trimmed.psd.shape == (100, 2)
+    np.testing.assert_array_equal(trimmed.psd, full.psd[:100])

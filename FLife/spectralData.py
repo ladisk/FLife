@@ -384,10 +384,7 @@ class SpectralData(object):
         if trim is None:
             return psd
         else:
-            df = fs / nperseg
-            trim_idx = int(np.floor(trim * df))
-
-            return psd[:trim_idx, :trim_idx]
+            return psd[:int(trim)]
 
     def _calculate_coefficients(self):
         """Calculates coefficients, needed in spectral-fatigue-life estimates. Coefficients are 
