@@ -8,19 +8,19 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11", "3.12", "3.13"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flake8 pytest
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install flake8
+          pip install .[dev,gui]
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names
@@ -28,5 +28,25 @@ jobs:
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Test with pytest
+        env:
+          QT_QPA_PLATFORM: offscreen
         run: |
           pytest
+
+  runtime-only:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install runtime dependencies only
+        run: |
+          python -m pip install --upgrade pip
+          pip install . pytest
+      - name: Import check
+        run: python -c "import FLife; FLife.SpectralData"
+      - name: Core tests
+        run: pytest tests/test_basic.py

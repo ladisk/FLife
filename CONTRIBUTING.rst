@@ -22,7 +22,7 @@ is as follows.
 
   .. code-block:: console
 
-      $ git clone ttps://github.com/ladisk/FLife.git
+      $ git clone https://github.com/ladisk/FLife.git
       $ cd FLife
 
 To begin development, install the required packages with :

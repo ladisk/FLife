@@ -9,4 +9,4 @@ matplotlib>=3.3
 pyExSi
 pyvista[all]
 pyvistaqt
-PyQt5
+PySide6
