@@ -231,7 +231,7 @@ class SpectralData(object):
             
             # needed parameters for time-history generation
             if T is not None and fs is not None:
-                self._set_time_history(f=self.psd[:,0], psd=self.psd[:,1], T=T, fs=fs, **kwargs)
+                self._set_time_history(f=self.psd[:,0], psd=self.psd[:,1], T=T, fs=fs, rg=rg, **kwargs)
 
         # Input is dictionary a) PSD and frequency vector or b) time history and sampling interval
         elif isinstance(input, dict):
@@ -273,7 +273,7 @@ class SpectralData(object):
                     self.psd = np.column_stack((f, psd))
                     # needed parameters for time-history generation
                     if T is not None and fs is not None:
-                        self._set_time_history(f=f, psd=psd, T=T, fs=fs, **kwargs)
+                        self._set_time_history(f=f, psd=psd, T=T, fs=fs, rg=rg, **kwargs)
             
             elif 'amplitude_spectrum' in input and 'f' in input:
                 #multiaxial amplitude spectrum
@@ -308,7 +308,7 @@ class SpectralData(object):
                     self.psd = np.column_stack((f, psd))
                     # needed parameters for time-history generation
                     if T is not None and fs is not None:
-                        self._set_time_history(f=f, psd=psd, T=T, fs=fs, **kwargs)
+                        self._set_time_history(f=f, psd=psd, T=T, fs=fs, rg=rg, **kwargs)
 
             else:
                 raise Exception('Unrecognized Input Error. `input` should be dictionary with keys `PSD` and `f` or `time_history` and `dt`.')
@@ -356,14 +356,14 @@ class SpectralData(object):
         if fs < 10*f_max:
             warnings.warn(f'Parameter `fs` should be higher. It is suggested to use fs>=10*fmax.')
 
-    def _set_time_history(self, f, psd, T=None, fs=None, **kwargs):
+    def _set_time_history(self, f, psd, T=None, fs=None, rg=None, **kwargs):
         """Generates and set time-history of signal on basis of PSD and frequency vector.
         """   
         if T is not None and fs is not None:
             
             self._check_fs(f, psd, T, fs, multipoint=False, **kwargs)
             # get time history
-            time, signal = random_gaussian(freq=f, PSD=psd, T=T, fs=fs, **kwargs) # stationary, normally distributed
+            time, signal = random_gaussian(freq=f, PSD=psd, T=T, fs=fs, rg=rg, **kwargs) # stationary, normally distributed
 
             #set data
             self.data = signal
