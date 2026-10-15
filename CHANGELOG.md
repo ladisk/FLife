@@ -55,7 +55,7 @@ Multiaxial criteria (bundled test data, ratio of equivalent m0 new/old):
 ### Packaging
 
 - pyExSi, lvm_read, pytest and pylint are no longer runtime dependencies. pyExSi and lvm_read are in the `dev` extra.
-- New `gui` extra: pyvista, pyvistaqt, PyQt5. New `dev` extra: pytest, pytest-cov, pylint and build tools.
+- New `gui` extra: pyvista, pyvistaqt, PySide6 (LGPL; PyQt5 is GPL). New `dev` extra: pytest, pytest-cov, pylint and build tools.
 - `visualize`, `set_mesh`, `pick_point` and `PSDgen` are imported lazily. `import FLife` works without GUI packages. GUI input without tkinter raises an ImportError with install instructions.
 - CI installs `.[dev,gui]` and gates the release on tests.
 
