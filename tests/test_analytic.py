@@ -46,3 +46,20 @@ def test_jun_park_validity_warning():
     with warnings.catch_warnings():
         warnings.simplefilter('error')
         FLife.JunPark(sd_bb).get_life(1e12, 5.)
+
+
+def test_rainflow_goodman():
+    C, k = 1e12, 5.
+    sd = _sine_spectral_data(mean=2.)
+    rf = FLife.Rainflow(sd)
+    life = rf.get_life(C, k)
+    assert rf.get_life(C, k, Su=False) == life  # old default still means "off"
+    np.testing.assert_allclose(rf.get_life(C, k, Su=10.), life * (1 - 2./10.)**k, rtol=1e-6)
+    for Su in (0., -10.):
+        with pytest.raises(ValueError):
+            rf.get_life(C, k, Su=Su)
+    with pytest.raises(ValueError, match='Goodman'):
+        rf.get_life(C, k, Su=1.5)
+    neg = FLife.Rainflow(_sine_spectral_data(mean=-2.))
+    np.testing.assert_allclose(neg.get_life(C, k, Su=10.), neg.get_life(C, k) * (1 + 2./10.)**k, rtol=1e-6)
+    assert np.isfinite(neg.get_life(C, k, Su=1.5))
