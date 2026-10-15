@@ -1,0 +1,34 @@
+"""Checks of fixed bugs against analytic references (synthetic PSDs only)."""
+import numpy as np
+import pytest
+import sys, os
+my_path = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, my_path + '/../')
+import FLife
+
+F = np.arange(0, 400.5, 0.25)
+
+
+def band(f1, f2, var, f=F):
+    """Flat PSD with variance `var` on [f1, f2]."""
+    return np.where((f >= f1) & (f <= f2), var / (f2 - f1), 0.)
+
+
+def _sine_spectral_data(mean, amplitude=1., n_periods=200, fs=1000., f0=10.):
+    t = np.arange(int(n_periods*fs/f0)) / fs
+    x = mean + amplitude*np.sin(2*np.pi*f0*t)
+    return FLife.SpectralData(input={'time_history': x, 'dt': 1/fs})
+
+
+def test_jiao_moan_gao_moan_single_band():
+    sd = FLife.SpectralData(input={'PSD': band(10, 300, 100.), 'f': F})
+    C, k = 1e12, 5.
+    nb = FLife.Narrowband(sd).get_life(C, k)
+    np.testing.assert_allclose(FLife.JiaoMoan(sd, ('equalAreaBands', 1)).get_life(C, k), nb, rtol=1e-12)
+    np.testing.assert_allclose(FLife.GaoMoan(sd, ('equalAreaBands', 1)).get_life(C, k), nb, rtol=1e-12)
+
+
+def test_gao_moan_bimodal_runs():
+    sd = FLife.SpectralData(input={'PSD': band(10, 20, 50.) + band(150, 170, 50.), 'f': F})
+    life = FLife.GaoMoan(sd, ('equalAreaBands', 2)).get_life(1e12, 5.)
+    assert np.isfinite(life) and life > 0
