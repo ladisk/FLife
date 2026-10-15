@@ -46,7 +46,7 @@ authors = [
 gui = [
     "pyvista[all]",
     "pyvistaqt",
-    "PyQt5",
+    "PySide6",
 ]
 dev = [
     "pytest",
