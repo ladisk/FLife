@@ -125,7 +125,7 @@ class GaoMoan(JiaoMoan):
 
         # -- damage intensity
         dNB_H = self.damage_intesity_NB(m0=m0H, nu=v0H, C=C, k=k) 
-        dNB_P = self._damage_intesity_bimodal_LF(m0_LF=m0L, m0_HF=m0H, nuP=v0P, C=C, k=k)  #deduje od jiao-moana
+        dNB_P = self._damage_intesity_bimodal_LF(m0_LF=m0L, m0_HF=m0H, nuP=v0P, C=C, k=k)  # inherited from JiaoMoan
 
         d = dNB_H + dNB_P
         T = 1 / d
