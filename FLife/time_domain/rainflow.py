@@ -73,7 +73,7 @@ class Rainflow(object):
             else:
                 raise Exception('Time history is not set; T and fs must be specified.')
             
-    def get_life(self, C, k, algorithm = 'four-point',  Su = False, range = False, 
+    def get_life(self, C, k, algorithm = 'four-point',  Su = None, range = False, 
                  nr_load_classes=512, **kwargs):
         """Calculate fatigue life with parameters C, k, as defined in [3]
         
@@ -86,7 +86,7 @@ class Rainflow(object):
             Defaults to 'four-point'.
         :param Su: [int,float]
             Ultimate tensile strength [MPa]. If specified, Goodman equivalent stress
-            is used for fatigue life estimation. Defaults to False.
+            is used for fatigue life estimation. Defaults to None (no mean stress correction).
         :param range: bool
             If True, ranges instead of amplitudes are used for fatigue life estimation.
             Defaults to False.
@@ -99,6 +99,11 @@ class Rainflow(object):
         :rtype: float
         """    
         t = self.spectral_data.t
+        if Su is False: # backwards compatibility
+            Su = None
+        if Su is not None and not Su > 0:
+            raise ValueError('Parameter `Su` should be positive.')
+
         cycles = self._get_cycles(algorithm = algorithm, Su=Su, **kwargs)
         ranges = cycles[0]
         means = cycles[1]
@@ -110,7 +115,10 @@ class Rainflow(object):
         else: 
             raise Exception('Unrecognized Input Error')
 
-        if Su: ranges = ranges/(1. - means/Su)
+        if Su is not None:
+            if np.any(means >= Su):
+                raise ValueError('Goodman correction is not valid for mean stress >= `Su`.')
+            ranges = ranges/(1. - means/Su)
 
         try :
             counts = cycles[2]  #three-point algorithm returns half cycles
