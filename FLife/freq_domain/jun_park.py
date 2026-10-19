@@ -171,7 +171,7 @@ class JunPark(object):
         alpha_2 = self.spectral_data.alpha2
 
         # Correction factor Qc is validated under following conditions
-        if not 0 <= alpha_1 - alpha_2 <= 1 and 0 <= alpha_2 <= 1 and np.sqrt(1-alpha_1**2) > 0.3:
+        if not (0 <= alpha_1 - alpha_2 <= 1 and 0 <= alpha_2 <= 1 and np.sqrt(1-alpha_1**2) > 0.3):
             warnings.warn('Correction factor Qc is not validated for given alpha_1 and alpha_2. Results should be evaluated carefully.')
 
         delta_alpha = alpha_1 - alpha_2
