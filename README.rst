@@ -244,14 +244,18 @@ Vibration-fatigue life can be compared to rainflow method. When Rainflow class i
     
 .. code-block:: python
 
-    sd = FLife.SpectralData(input='GUI') # time history is not generated at this point
-    
     seed = 111
-    rg =  np.random.default_rng(seed)
-    rf1 = FLife.Rainflow(sd, T=100, fs=1e3) # time history is generated and assigned to parameter SpectralData.data
-    rf2 = FLife.Rainflow(sd, T=100, fs =1e3,  rg=rg) # time history is generated and assigned to parameter SpectralData.data, signal phase is defined by random generator
+    rg = np.random.default_rng(seed)
+
+    sd1 = FLife.SpectralData(input='GUI') # time history is not generated at this point
+    rf1 = FLife.Rainflow(sd1, T=100, fs=1e3) # time history is generated and assigned to parameter SpectralData.data, random phase
+
+    sd2 = FLife.SpectralData(input='GUI')
+    rf2 = FLife.Rainflow(sd2, T=100, fs=1e3, rg=rg) # time history is generated, signal phase is defined by random generator
     rf_life_3pt = rf2.get_life(C, k, algorithm='three-point')
-    rf_life_4pt = rf2.get_life(C, k, algorithm='four-point', nr_load_classes=1024) 
+    rf_life_4pt = rf2.get_life(C, k, algorithm='four-point', nr_load_classes=1024)
+
+    # If SpectralData already holds a time history, Rainflow reuses it and ignores T, fs and rg.
     
     error_nb = FLife.tools.relative_error(life_nb, rf_life_3pt)
     error_dirlik = FLife.tools.relative_error(life_dirlik, rf_life_3pt)
