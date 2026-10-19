@@ -68,7 +68,7 @@ class Rainflow(object):
             psd = spectral_data.psd[:,1]
             
             # se parametra T in fs
-            if 'T' and 'fs' in kwargs.keys():             
+            if 'T' in kwargs and 'fs' in kwargs:             
                 self.spectral_data._set_time_history(f=f, psd=psd, **kwargs)
             else:
                 raise Exception('Time history is not set; T and fs must be specified.')
@@ -104,7 +104,7 @@ class Rainflow(object):
         if Su is not None and not Su > 0:
             raise ValueError('Parameter `Su` should be positive.')
 
-        cycles = self._get_cycles(algorithm = algorithm, Su=Su, **kwargs)
+        cycles = self._get_cycles(algorithm=algorithm, nr_load_classes=nr_load_classes, **kwargs)
         ranges = cycles[0]
         means = cycles[1]
         
