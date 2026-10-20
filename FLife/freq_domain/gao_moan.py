@@ -6,6 +6,11 @@ from ..tools import pdf_rayleigh_sum
 class GaoMoan(JiaoMoan):
     """Class for fatigue life estimation using frequency domain 
     method by Gao and Moan [1].
+
+    The Vanmarcke bandwidth parameters of the HF and MF bands in the large-cycle
+    rates (Eqs. 4 and 5 of [1]) are set to zero, as recommended on p. 1947 of [1]
+    ("It is therefore recommended to use zeros for these bandwidth parameters as
+    done in this paper"). This applies to the 2-band and 3-band variants.
     
     References
     ----------
@@ -114,8 +119,10 @@ class GaoMoan(JiaoMoan):
         m0L, m2L = moments[0] #spectral moments for lower band
         m0H, m2H = moments[1] #spectral moments for upper band
 
-        # -- Vanmarcke bandwidth parameter
-        _, epsV_H = self.spectral_data.get_vanmarcke_parameter(self.PSD_splitting)
+        # -- bandwidth parameter of the HF process: zero, as recommended by Gao and Moan [1], p. 1947:
+        # "It is therefore recommended to use zeros for these bandwidth parameters as done in this paper."
+        # The article also applies the procedure to bimodal processes (end of Sec. 2).
+        epsV_H = 0.0
 
         # -- positive slope zero crossing frequency
         _, v0H = self.spectral_data.get_nup(self.PSD_splitting)
@@ -136,8 +143,10 @@ class GaoMoan(JiaoMoan):
         m0M, m2M = moments[1]
         m0H, m2H = moments[2]
 
-        # -- Vanmarcke bandwidth parameter
-        _, epsV_M, epsV_H = self.spectral_data.get_vanmarcke_parameter(self.PSD_splitting)
+        # -- bandwidth parameters of the HF and MF processes: zero, as recommended by Gao and Moan [1], p. 1947:
+        # "It is therefore recommended to use zeros for these bandwidth parameters as done in this paper."
+        # Eqs. (4) and (5) use them only to correct for wide-banded HF and MF processes.
+        epsV_M = epsV_H = 0.0
 
         # -- positive slope zero crossing frequency
         _, _, v0H = self.spectral_data.get_nup(self.PSD_splitting)
