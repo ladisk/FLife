@@ -646,4 +646,7 @@ class SpectralData(object):
         for n in range(N):
             freq_indx.append(np.abs(c_psd - (n+1) * q_area/N).argmin())
 
+        # -- Last band ends at the last frequency point, so trailing zeros do not cut it short
+        freq_indx[-1] = len(psd_val) - 1
+
         return tuple(freq_indx)
