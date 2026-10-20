@@ -1,6 +1,5 @@
 import numpy as np
 from scipy import stats
-from scipy import integrate
 from .jiao_moan import JiaoMoan
 from ..tools import pdf_rayleigh_sum
 
@@ -162,9 +161,9 @@ class GaoMoan(JiaoMoan):
         T = 1 / d
         return T
 
-    def _damage_intesity_trimodal_LF(self, m0_LF, m0_MF, m0_HF, nu_L, C, k):
-        """Calculates damage intensity for low frequency component of bimodal random process,
-        with parameters m0, nuP, C, k, as defined in [2].
+    def _damage_intesity_trimodal_LF(self, m0_LF, m0_MF, m0_HF, nu_L, C, k, n=128):
+        """Calculates damage intensity of large-amplitude cycles of trimodal random process,
+        with parameters m0, nu_L, C, k, as defined in [1] (Eqs. 3, 5, 7, 8).
         :param m0_LF: [int,float]
             Zeroth spectral moment of low-frequency component [MPa**2].
         :param m0_MF: [int,float]
@@ -177,16 +176,23 @@ class GaoMoan(JiaoMoan):
             Fatigue strength coefficient [MPa**k].
         :param k : [int,float]
             Fatigue strength exponent [/].
+        :param n: int
+            Number of Gauss-Legendre points per dimension.
         :return d: float
             Estimated damage intensity of low frequency component.
         """
         # medium-amplitude cycle pdf
         pdf_M = pdf_rayleigh_sum(m0_MF, m0_HF)
-        # LF component pdf - rayleigh distributed
-        pdf_LF = lambda s: stats.rayleigh.pdf(s/np.sqrt(m0_LF)) / np.sqrt(m0_LF)
-        # large-amplitude cycle pdf
-        pdf_L = lambda s: np.convolve(pdf_M(s), pdf_LF(s))[0] # large cycle pdf
+        # large-amplitude cycle S_L = S_M + S_LF is a convolution of both pdfs, so
+        # E[S_L**k] is a double integral over S_M and S_LF (truncated at 10 std)
+        x, w = np.polynomial.legendre.leggauss(n)
+        s_max_M = 10*np.sqrt(m0_MF + m0_HF)
+        s_max_LF = 10*np.sqrt(m0_LF)
+        s_M, w_M = 0.5*s_max_M*(x + 1), 0.5*s_max_M*w
+        s_LF, w_LF = 0.5*s_max_LF*(x + 1), 0.5*s_max_LF*w
+        w_M = w_M * pdf_M(s_M)
+        w_LF = w_LF * stats.rayleigh.pdf(s_LF, scale=np.sqrt(m0_LF))
 
-        S_L = integrate.quad(lambda s: s**k * pdf_L(s), 0, np.inf)[0] 
+        S_L = np.einsum('ij,i,j->', (s_M[:, None] + s_LF[None, :])**k, w_M, w_LF)
         d = nu_L * S_L / C
         return d
