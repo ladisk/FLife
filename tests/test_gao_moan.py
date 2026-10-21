@@ -1,6 +1,7 @@
 from math import comb
 
 import numpy as np
+import pytest
 from scipy.special import gamma
 
 import FLife
@@ -33,21 +34,37 @@ def test_trimodal_large_cycle_moments():
         np.testing.assert_allclose(d, nu_L * expected / C, rtol=1e-8, err_msg=f'k={k}')
 
 
-def test_bimodal_uses_zero_bandwidth_parameter():
-    # Gao and Moan (2008), p. 1947: "It is therefore recommended to use zeros for these bandwidth
-    # parameters as done in this paper." With the bandwidth parameter set to zero, the bimodal
-    # Gao-Moan rate is the Jiao-Moan rate.
+def test_bimodal_default_equals_jiao_moan():
+    # Gao and Moan (2008), Eq. (4) with the Vanmarcke parameter is the Jiao-Moan rate
     sd = FLife.SpectralData(input={'PSD': band(10, 20, 50.) + band(150, 170, 50.), 'f': F})
     C, k = 1e12, 5.
     gm = FLife.GaoMoan(sd, ('userDefinedBands', [80, 400])).get_life(C, k)
+    jm = FLife.JiaoMoan(sd, ('userDefinedBands', [80, 400])).get_life(C, k)
+    np.testing.assert_allclose(gm, jm, rtol=1e-10)
+
+
+def test_bimodal_zero_bandwidth():
+    # Gao and Moan (2008), p. 1947: "It is therefore recommended to use zeros for these bandwidth
+    # parameters as done in this paper."
+    sd = FLife.SpectralData(input={'PSD': band(10, 20, 50.) + band(150, 170, 50.), 'f': F})
+    C, k = 1e12, 5.
+    gm = FLife.GaoMoan(sd, ('userDefinedBands', [80, 400])).get_life(C, k, bandwidth='zero')
     sd.get_vanmarcke_parameter = lambda *a, **kw: np.zeros(2)
     jm = FLife.JiaoMoan(sd, ('userDefinedBands', [80, 400])).get_life(C, k)
     np.testing.assert_allclose(gm, jm, rtol=1e-10)
 
 
-def test_trimodal_uses_zero_bandwidth_parameters():
+def test_trimodal_bandwidth_options():
     sd = FLife.SpectralData(input={'PSD': band(5, 15, 40.) + band(50, 60, 30.) + band(200, 220, 30.), 'f': F})
     C, k = 1e12, 5.
-    gm = FLife.GaoMoan(sd, ('userDefinedBands', [30, 120, 400])).get_life(C, k)
+    gm = FLife.GaoMoan(sd, ('userDefinedBands', [30, 120, 400]))
+    vanmarcke, zero = gm.get_life(C, k), gm.get_life(C, k, bandwidth='zero')
+    assert vanmarcke < zero  # nonzero bandwidth parameters give higher large-cycle rates
     sd.get_vanmarcke_parameter = lambda *a, **kw: np.zeros(3)
-    np.testing.assert_allclose(FLife.GaoMoan(sd, ('userDefinedBands', [30, 120, 400])).get_life(C, k), gm, rtol=1e-10)
+    np.testing.assert_allclose(gm.get_life(C, k), zero, rtol=1e-10)
+
+
+def test_bandwidth_option_is_checked():
+    sd = FLife.SpectralData(input={'PSD': band(10, 300, 1.), 'f': F})
+    with pytest.raises(ValueError):
+        FLife.GaoMoan(sd).get_life(1e12, 5., bandwidth='Vanmarcke')

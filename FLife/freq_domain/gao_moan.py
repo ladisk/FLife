@@ -7,10 +7,13 @@ class GaoMoan(JiaoMoan):
     """Class for fatigue life estimation using frequency domain 
     method by Gao and Moan [1].
 
-    The Vanmarcke bandwidth parameters of the HF and MF bands in the large-cycle
-    rates (Eqs. 4 and 5 of [1]) are set to zero, as recommended on p. 1947 of [1]
-    ("It is therefore recommended to use zeros for these bandwidth parameters as
-    done in this paper"). This applies to the 2-band and 3-band variants.
+    The large-cycle rates (Eqs. 4 and 5 of [1]) contain the Vanmarcke bandwidth
+    parameters of the HF and MF bands. By default they are used as printed in the
+    equations. With ``bandwidth='zero'`` they are set to zero, as the authors
+    recommend on p. 1947 of [1] ("It is therefore recommended to use zeros for
+    these bandwidth parameters as done in this paper"); all results in [1] are
+    obtained this way. According to [1], the Vanmarcke parameters can make the
+    result "quite conservative" when the HF and MF bands are wide-banded.
     
     References
     ----------
@@ -92,37 +95,50 @@ class GaoMoan(JiaoMoan):
         """
         JiaoMoan.__init__(self, spectral_data, PSD_splitting)
         
-    def get_life(self, C, k):
+    def get_life(self, C, k, bandwidth='vanmarcke'):
         """Calculate fatigue life with parameters C, k, as defined in [1, 2].
 
         :param C: [int,float];
             S-N curve intercept [MPa**k].
         :param k: [int,float];
             S-N curve inverse slope [/].
+        :param bandwidth: str
+            Bandwidth parameters of the HF and MF bands in Eqs. (4) and (5) of [1]:
+
+            - 'vanmarcke': Vanmarcke bandwidth parameters, as printed in Eqs. (4) and (5).
+            - 'zero': zero, as recommended by the authors on p. 1947 of [1] and used
+              for all results in [1].
+
+            Used for 2 and 3 bands. Defaults to 'vanmarcke'.
         :return:
             Estimated fatigue life in seconds.
         :rtype: float
         """
+        if bandwidth not in ('vanmarcke', 'zero'):
+            raise ValueError("Parameter `bandwidth` must be 'vanmarcke' or 'zero'.")
+
         if len(self.band_stop_indexes) == 1: # narrow-band
             T = self._life_NB(C,k)
         elif len(self.band_stop_indexes) == 2: # bi-modal
-            T = self._life_bimodal(C,k)
+            T = self._life_bimodal(C,k, bandwidth)
         elif len(self.band_stop_indexes) == 3: # tri-modal
-            T = self._life_trimodal(C,k)
+            T = self._life_trimodal(C,k, bandwidth)
         else:
             raise Exception('Specify up to tri-modal random process.')
         return T
 
-    def _life_bimodal(self, C, k):
+    def _life_bimodal(self, C, k, bandwidth='vanmarcke'):
         # -- spectral moments for each narrowband
         moments = self.spectral_data.get_spectral_moments(self.PSD_splitting, moments=[0,2])
         m0L, m2L = moments[0] #spectral moments for lower band
         m0H, m2H = moments[1] #spectral moments for upper band
 
-        # -- bandwidth parameter of the HF process: zero, as recommended by Gao and Moan [1], p. 1947:
-        # "It is therefore recommended to use zeros for these bandwidth parameters as done in this paper."
-        # The article also applies the procedure to bimodal processes (end of Sec. 2).
-        epsV_H = 0.0
+        # -- bandwidth parameter of the HF process: Vanmarcke as printed in Eq. (4) of [1],
+        # or zero as recommended on p. 1947 of [1]
+        if bandwidth == 'zero':
+            epsV_H = 0.0
+        else:
+            _, epsV_H = self.spectral_data.get_vanmarcke_parameter(self.PSD_splitting)
 
         # -- positive slope zero crossing frequency
         _, v0H = self.spectral_data.get_nup(self.PSD_splitting)
@@ -137,16 +153,18 @@ class GaoMoan(JiaoMoan):
         T = 1 / d
         return T
 
-    def _life_trimodal(self, C, k):
+    def _life_trimodal(self, C, k, bandwidth='vanmarcke'):
         moments = self.spectral_data.get_spectral_moments(self.PSD_splitting, moments=[0,2])
         m0L, m2L = moments[0]
         m0M, m2M = moments[1]
         m0H, m2H = moments[2]
 
-        # -- bandwidth parameters of the HF and MF processes: zero, as recommended by Gao and Moan [1], p. 1947:
-        # "It is therefore recommended to use zeros for these bandwidth parameters as done in this paper."
-        # Eqs. (4) and (5) use them only to correct for wide-banded HF and MF processes.
-        epsV_M = epsV_H = 0.0
+        # -- bandwidth parameters of the HF and MF processes: Vanmarcke as printed in Eqs. (4) and (5)
+        # of [1], or zero as recommended on p. 1947 of [1]
+        if bandwidth == 'zero':
+            epsV_M = epsV_H = 0.0
+        else:
+            _, epsV_M, epsV_H = self.spectral_data.get_vanmarcke_parameter(self.PSD_splitting)
 
         # -- positive slope zero crossing frequency
         _, _, v0H = self.spectral_data.get_nup(self.PSD_splitting)

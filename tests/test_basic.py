@@ -23,7 +23,7 @@ def test_data():
         'Narrowband': 1064.200649,
         'Alpha 0.75': 1625.785759,
         'Wirsching Light': 1461.814034,
-        'Gao Moan': 2497.053150, # 1048.762545 before zero bandwidth parameters (Gao and Moan 2008, p. 1947); 2237.738423 before the 3-band convolution fix
+        'Gao Moan': 1048.762545, # was 2237.738423 before the 3-band convolution fix
         'Jiao Moan': 813.490369,
         'Fu Cebon': 1151.170596,
         'Modified Fu Cebon': 846.208325,
