@@ -150,6 +150,10 @@ class TovoBenasciutti(Narrowband):
             - 'method 3': weighting parameter `b` is defined by Tovo and Benasciutti [3].
 
         :return: function pdf(s)
+
+        The PDF is per peak, as in Eq. (28) of [2]. Level crossing counting also gives cycles 
+        with zero amplitude (a Dirac delta at s=0, mass 1 - alpha2), which are left out. 
+        The returned PDF therefore integrates to 1 - b*(1 - alpha2); they cause no damage.
         """
         alpha2 = self.spectral_data.alpha2
         m0 = self.spectral_data.moments[0]
@@ -157,7 +161,7 @@ class TovoBenasciutti(Narrowband):
         b = self._calculate_coefficient(method=method)
 
         def pdf(s):
-            px = b * ((s / m0) * np.exp( - s**2 / (2 * m0))) + \
+            px = b * alpha2 * ((s / m0) * np.exp( - s**2 / (2 * m0))) + \
                 (1 - b) * ((s / (m0 * alpha2**2)) * np.exp( - s**2 / (2 * alpha2**2 * m0))) 
             return px
         return pdf(s)
@@ -183,7 +187,7 @@ class TovoBenasciutti(Narrowband):
         :rtype: float
         """ 
         if integrate_pdf:
-            d = self.spectral_data.nu / C * \
+            d = self.spectral_data.m_p / C * \
                 quad(lambda s: s**k*self.get_PDF(s, method=method), 
                      a=0, b=np.inf)[0]
         else:
