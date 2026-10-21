@@ -151,7 +151,8 @@ class TovoBenasciutti(Narrowband):
 
         :return: function pdf(s)
 
-        The PDF is per peak, as in Eq. (28) of [2]. Level crossing counting also gives cycles 
+        The PDF is per peak, as in Eq. (28) of [2] (or with a notation closer to the 
+        implementation here in Eq. (27) in [4]). Level crossing counting also gives cycles 
         with zero amplitude (a Dirac delta at s=0, mass 1 - alpha2), which are left out. 
         The returned PDF therefore integrates to 1 - b*(1 - alpha2); they cause no damage.
         """
