@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import stats
+from scipy.special import ndtr
 
 def relative_error(value, value_ref):
     """Return the relative error 
@@ -51,7 +52,7 @@ def pdf_rayleigh_sum(m0L, m0H):
         pdf = 1 / np.sqrt(m0) * (m0L_norm * x/np.sqrt(m0) * np.exp(- (x/np.sqrt(m0))**2 /(2*m0L_norm)) \
             + m0H_norm * x/np.sqrt(m0) * np.exp(- (x/np.sqrt(m0))**2 /(2*m0H_norm)) \
             + np.sqrt(2*np.pi*m0L_norm*m0H_norm) * ((x/np.sqrt(m0))**2 -1) * np.exp(-(x/np.sqrt(m0))**2/2) \
-            * (stats.norm.cdf(np.sqrt(m0L_norm/m0H_norm)*x/np.sqrt(m0)) + stats.norm.cdf(np.sqrt(m0H_norm/m0L_norm)*x/np.sqrt(m0)) - 1))
+            * (ndtr(np.sqrt(m0L_norm/m0H_norm)*x/np.sqrt(m0)) + ndtr(np.sqrt(m0H_norm/m0L_norm)*x/np.sqrt(m0)) - 1))
         return pdf
     return pdf
 
@@ -111,7 +112,7 @@ def random_gaussian(freq, PSD, T, fs, rg=None, random_amplitude=False, **kwargs)
         
         ampl_spectra = np.sqrt(PSD_new * N * fs / 2)  # amplitude spectra modulus
         if random_amplitude == True:
-            ampl_spectra = np.array([rg.rayleigh(size=1, scale=x)[0] for x in ampl_spectra]) # Rayleigh distributed amplitudes
+            ampl_spectra = rg.rayleigh(scale=ampl_spectra) # Rayleigh distributed amplitudes
 
         ampl_spectra_random = ampl_spectra * np.exp(
             1j * phase * 2 * np.pi)  # amplitude spectra,  random phase

@@ -157,13 +157,18 @@ class ZhaoBaker(object):
 
         :return: function pdf(s)
         """
+        return self._get_pdf_function(method=method)(s)
+
+    def _get_pdf_function(self, method='method 1'):
+        """Returns function pdf(s); coefficients are calculated once, not at each call of pdf(s).
+        """
         m0 = self.spectral_data.moments[0]
         a, b, w = self._calculate_coefficients(method=method)
 
         def pdf(s):
             return  w * ((a*b) / (np.sqrt(m0))) * ((s/np.sqrt(m0)))**(b-1) * np.exp(-a * (s/np.sqrt(m0))**b) +\
                 (1-w) * (s/m0) * np.exp(-0.5 * (s/np.sqrt(m0))**2)
-        return pdf(s)
+        return pdf
         
         
     def get_life(self, C, k, method='method 1', integrate_pdf=False): 
@@ -187,8 +192,9 @@ class ZhaoBaker(object):
         :rtype: float
         """
         if integrate_pdf:
+            pdf = self._get_pdf_function(method=method)
             d = self.spectral_data.m_p / C * \
-                quad(lambda s: s**k*self.get_PDF(s, method=method), 
+                quad(lambda s: s**k*pdf(s), 
                     a=0, b=np.inf)[0]
         else:
             m0 = self.spectral_data.moments[0]

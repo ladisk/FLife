@@ -1,7 +1,5 @@
-from ast import Raise
 import numpy as np
 from scipy import stats
-from scipy import integrate
 from scipy import special
 import warnings
 
@@ -73,6 +71,9 @@ class Low(object):
     >>> plt.xlim(0,300)
     >>> plt.legend()
     """
+    _N_NODES = 96  # Gauss-Legendre nodes per dimension
+    _N_SIGMA = 10  # upper integration limit in standard deviations of the Rayleigh peaks
+
     def __init__(self, spectral_data, PSD_splitting = ('equalAreaBands', 2)):
         """Get needed values from reference object.
 
@@ -120,23 +121,25 @@ class Low(object):
 
         #band's zero crossing frequency ratio
         beta = v0H/v0L
+        # Both double integrals are evaluated with Gauss-Legendre quadrature on tensor grids
+        # (Rayleigh densities are truncated at `_N_SIGMA` standard deviations).
+        x, w = np.polynomial.legendre.leggauss(self._N_NODES)
+        nodes = lambda a, b: (0.5*(b-a)*x + 0.5*(b+a), 0.5*(b-a)*w)
+        r_lf, w_lf = nodes(0, self._N_SIGMA*np.sqrt(m0L))
+        r_hf, w_hf = nodes(0, self._N_SIGMA*np.sqrt(m0H))
+        phi, w_phi = nodes(np.pi/4/beta, np.pi/2)
+        pdf_r = lambda r, var: stats.rayleigh.pdf(r, scale=np.sqrt(var))
 
         #Damage from small cycles
-        #stress discrepancy
-        eps = lambda r_lf, phi, beta: np.pi / (2*beta) * r_lf * np.abs(np.sin(phi))
-        #peak PDF
-        pdf_r = lambda r, var: stats.rayleigh.pdf(r, scale=np.sqrt(var))
-        #phase angle
-        pdf_phi = lambda phi, beta: stats.uniform.pdf(phi, loc=np.pi/4/beta, scale=np.pi/2-np.pi/4/beta)
-
-        #damage
-        int_func_small = lambda phi, r_lf: self._inner_integral_small(k, eps(r_lf, phi, beta), m0H) * pdf_phi(phi, beta) * pdf_r(r_lf, m0L)
-        I_small = integrate.dblquad(int_func_small, 0, np.inf, lambda r_lf: np.pi/4/beta, lambda r_lf: np.pi/2)[0]
+        R_lf, PHI = np.meshgrid(r_lf, phi, indexing='ij')
+        eps = np.pi / (2*beta) * R_lf * np.abs(np.sin(PHI))  #stress discrepancy
+        pdf_phi = 1 / (np.pi/2 - np.pi/4/beta)  #uniform phase angle
+        I_small = np.einsum('ij,i,j->', self._inner_integral_small(k, eps, m0H), w_lf*pdf_r(r_lf, m0L), w_phi*pdf_phi)
         d_small = v0Small / C * I_small
 
         #Damage from large cycles
-        int_func_large = lambda r_hf, r_lf: self._inner_integral_large(k, r_lf, r_hf, beta) *  pdf_r(r_hf, m0H) * pdf_r(r_lf, m0L)
-        I_large = 1/np.pi * integrate.dblquad(int_func_large, 0, np.inf, lambda r_lf: 0, lambda r_lf: np.inf)[0]
+        R_lf, R_hf = np.meshgrid(r_lf, r_hf, indexing='ij')
+        I_large = 1/np.pi * np.einsum('ij,i,j->', self._inner_integral_large(k, R_lf, R_hf, beta), w_lf*pdf_r(r_lf, m0L), w_hf*pdf_r(r_hf, m0H))
         d_large = v0L / C  * I_large 
 
         #Agregated damage
@@ -147,7 +150,8 @@ class Low(object):
     def _Ik(self, eps, var, K):
         """Calculates coefficients for binomial series expansion for small cycles damage estimation[1].
         """
-        Ik_array = np.zeros(K)
+        eps = np.asarray(eps, dtype=float)
+        Ik_array = np.zeros((K,) + eps.shape)
         Ik_array[0] = np.exp(-eps**2/(2*var))
         Ik_array[1] = eps * Ik_array[0] + np.sqrt(2*np.pi) * np.sqrt(var) * stats.norm.cdf(-eps/np.sqrt(var))
         for i in range(K-2):
