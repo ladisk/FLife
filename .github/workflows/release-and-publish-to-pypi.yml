@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write
-  packages: write
 
 jobs:
   test:
@@ -33,6 +32,9 @@ jobs:
   release:
     needs: test
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # create the GitHub release
+      id-token: write   # PyPI trusted publishing
 
     steps:
     - uses: actions/checkout@v4
@@ -42,33 +44,18 @@ jobs:
         python-version: 3.11
 
     - name: Install dependencies
-      run: pip install build tomli tomli-w
+      run: pip install build
 
-    # Optional (run a python script to sync versions with the tag)
-    - name: Extract tag version
-      id: tag
-      run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
-    - name: Set version from tag
-      run: python sync_version.py --set-version ${{ steps.tag.outputs.version }}
-
-    - name: Check if there are changes
-      id: diff
+    - name: Check that the tag matches the package version
       run: |
-        if git diff --quiet; then
-          echo "changed=false" >> $GITHUB_OUTPUT
-        else
-          echo "changed=true" >> $GITHUB_OUTPUT
+        TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+        PKG_VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+        INIT_VERSION=$(python -c "import re; print(re.search(r'__version__\s*=\s*[\'\"]([^\'\"]+)', open('FLife/__init__.py').read()).group(1))")
+        echo "tag: $TAG_VERSION, pyproject.toml: $PKG_VERSION, FLife/__init__.py: $INIT_VERSION"
+        if [ "$TAG_VERSION" != "$PKG_VERSION" ] || [ "$TAG_VERSION" != "$INIT_VERSION" ]; then
+          echo "::error::Tag v$TAG_VERSION does not match the package version. Run 'python sync_version.py --set-version $TAG_VERSION', commit, and tag that commit."
+          exit 1
         fi
-
-    - name: Commit version sync (if needed)
-      if: steps.diff.outputs.changed == 'true'
-      run: |
-        git config user.name "github-actions"
-        git config user.email "github-actions@github.com"
-        git commit -am "sync version to ${{ steps.tag.outputs.version }}"
-        git push origin HEAD:main
-    # ---
 
     - name: Build distribution
       run: python -m build
@@ -79,7 +66,4 @@ jobs:
         files: dist/*.whl
 
     - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@v1.13.0
-      with:
-        user: __token__
-        password: ${{ secrets.PYPI_API_TOKEN }}
+      uses: pypa/gh-action-pypi-publish@release/v1
