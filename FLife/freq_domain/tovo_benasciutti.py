@@ -152,9 +152,9 @@ class TovoBenasciutti(Narrowband):
         :return: function pdf(s)
 
         The PDF is per peak, as in Eq. (28) of [2] (or with a notation closer to the 
-        implementation here in Eq. (27) in [4]). Level crossing counting also gives cycles 
-        with zero amplitude (a Dirac delta at s=0, mass 1 - alpha2), which are left out. 
-        The returned PDF therefore integrates to 1 - b*(1 - alpha2); they cause no damage.
+        implementation here in Eq. (27) in [4]). It is used with the peak rate nu_p, Eq. (16) 
+        of [2]. Not every peak makes a cycle: level crossing counting gives alpha2 cycles per peak. 
+        The PDF therefore integrates to b*alpha2 + 1 - b, not 1.
         """
         alpha2 = self.spectral_data.alpha2
         m0 = self.spectral_data.moments[0]

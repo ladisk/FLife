@@ -26,8 +26,8 @@ def test_pdf_damage_equals_closed_form(method):
 
 
 def test_pdf_mass():
-    # Eq. (19): level crossing counting gives zero-amplitude cycles with mass 1 - alpha2 per peak,
-    # so the continuous part of the Eq. (28) PDF integrates to 1 - b (1 - alpha2)
+    # Eq. (19): level crossing counting gives alpha2 cycles per peak,
+    # so the Eq. (28) PDF integrates to b alpha2 + 1 - b
     sd = FLife.SpectralData(input={'PSD': band(10, 20, 50.) + band(150, 170, 50.), 'f': F})
     tb = FLife.TovoBenasciutti(sd)
     b, alpha2 = tb._calculate_coefficient('method 2'), sd.alpha2

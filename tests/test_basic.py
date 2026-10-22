@@ -92,7 +92,7 @@ def test_data():
     }
     for method, value in PDFs.items():
         if method.startswith('Tovo Benasciutti'):
-            # Benasciutti and Tovo (2005), Eqs. (19) and (28): zero-amplitude cycles are left out
+            # Benasciutti and Tovo (2005), Eqs. (19) and (28): the PDF is per peak, not every peak makes a cycle
             b = tb._calculate_coefficient(method='method ' + method[-1])
             expected = 1. - b * (1. - sd.alpha2)
         else:
