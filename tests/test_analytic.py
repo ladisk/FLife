@@ -130,3 +130,25 @@ def test_random_amplitude_same_seed_as_list_comprehension():
     ampl = np.array([rg.rayleigh(size=1, scale=x)[0] for x in ampl])
     ref = np.fft.irfft(ampl * np.exp(2j * np.pi * phase), n=N)
     np.testing.assert_allclose(new, ref / np.std(ref) * np.std(new), rtol=1e-12, atol=1e-12)
+
+
+def test_low_warns_on_negative_large_cycle_damage():
+    # narrowband PSD at k=5: the sixth-order series of the large cycles (Low 2010, App. C) gives negative damage
+    sd = FLife.SpectralData(input={'PSD': band(50, 52, 10.), 'f': F})
+    with pytest.warns(UserWarning, match='Large-cycle damage is negative'):
+        FLife.Low(sd).get_life(1e18, 5)
+
+
+def test_low_no_warning_for_well_separated_bimodal():
+    # beta about 10, studied range of Low (2010)
+    sd = FLife.SpectralData(input={'PSD': band(10, 20, 50.) + band(150, 170, 50.), 'f': F})
+    with warnings.catch_warnings():
+        warnings.simplefilter('error')
+        FLife.Low(sd, ('userDefinedBands', [80, 400])).get_life(1e18, 3)
+
+
+def test_low_warns_for_small_beta():
+    # centre frequencies 30 and 90 Hz, beta about 3 (Low 2010 studied beta = 4 and 10)
+    sd = FLife.SpectralData(input={'PSD': band(25, 35, 50.) + band(85, 95, 50.), 'f': F})
+    with pytest.warns(UserWarning, match='studied the method only for beta = 4 and 10'):
+        FLife.Low(sd, ('userDefinedBands', [60, 400])).get_life(1e12, 3)
