@@ -126,13 +126,8 @@ class BandsMethod(Narrowband):
     def _m0_ref_modifiedPSD(self, k, f_ref):
         f = self.spectral_data.psd[:, 0]
         PSD = self.spectral_data.psd[:, 1] 
-        modified_PSD = []
         df = f[1] - f[0] 
-
-        for f_i, PSD_i in zip(f,PSD):
-            PSD_i_modified = (f_i / f_ref)**(2/k) * PSD_i
-            modified_PSD.append(PSD_i_modified)
-        modified_PSD = np.array(modified_PSD)
+        modified_PSD = (f / f_ref)**(2/k) * PSD
 
         if np.__version__>='2.0.0':
             trapezoid = np.trapezoid
