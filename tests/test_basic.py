@@ -91,13 +91,7 @@ def test_data():
         #'Jun Park': quad(jp.get_PDF, a=0, b=np.inf)[0] # Correction factor scales the PDF
     }
     for method, value in PDFs.items():
-        if method.startswith('Tovo Benasciutti'):
-            # Benasciutti and Tovo (2005), Eqs. (19) and (28): the PDF is per peak, not every peak makes a cycle
-            b = tb._calculate_coefficient(method='method ' + method[-1])
-            expected = 1. - b * (1. - sd.alpha2)
-        else:
-            expected = 1.
-        np.testing.assert_almost_equal(value, expected, decimal=5, err_msg=f'Method: {method}')
+        np.testing.assert_almost_equal(value, 1., decimal=5, err_msg=f'Method: {method}')
 
     results = {
         'Rainflow': rf.get_life(C=C, k=k, algorithm='four-point'),
