@@ -151,10 +151,10 @@ class TovoBenasciutti(Narrowband):
 
         :return: function pdf(s)
 
-        The PDF is per peak, as in Eq. (28) of [2] (or with a notation closer to the 
-        implementation here in Eq. (27) in [4]). It is used with the peak rate nu_p, Eq. (16) 
-        of [2]. Not every peak makes a cycle: level crossing counting gives alpha2 cycles per peak. 
-        The PDF therefore integrates to b*alpha2 + 1 - b, not 1.
+        The PDF of Eq. (28) in [2] (Eq. (27) in [4]) is per peak and integrates to 
+        b*alpha2 + 1 - b, the number of cycles per peak: level crossing counting gives alpha2 
+        cycles per peak, range counting one. Here it is divided by this number, so it integrates 
+        to 1. Use it with the number of cycles per second from :meth:`get_cycle_rate`, not with nu_p.
         """
         alpha2 = self.spectral_data.alpha2
         m0 = self.spectral_data.moments[0]
@@ -164,8 +164,18 @@ class TovoBenasciutti(Narrowband):
         def pdf(s):
             px = b * alpha2 * ((s / m0) * np.exp( - s**2 / (2 * m0))) + \
                 (1 - b) * ((s / (m0 * alpha2**2)) * np.exp( - s**2 / (2 * alpha2**2 * m0))) 
-            return px
+            return px / (b * alpha2 + 1 - b)
         return pdf(s)
+
+    def get_cycle_rate(self, method='method 2'):
+        """Returns the number of cycles per second, b*nu_0 + (1-b)*nu_p, that goes with :meth:`get_PDF`.
+        It is the peak rate nu_p, Eq. (16) in [2], times the number of cycles per peak, b*alpha2 + 1 - b.
+
+        :param method:  string, see :meth:`get_PDF`
+        :return: float
+        """
+        b = self._calculate_coefficient(method=method)
+        return b * self.spectral_data.nu + (1 - b) * self.spectral_data.m_p
 
     def get_life(self, C, k, method='method 2', integrate_pdf=False):
         """Calculate fatigue life with parameters C, k, as defined in [4].
@@ -188,7 +198,7 @@ class TovoBenasciutti(Narrowband):
         :rtype: float
         """ 
         if integrate_pdf:
-            d = self.spectral_data.m_p / C * \
+            d = self.get_cycle_rate(method=method) / C * \
                 quad(lambda s: s**k*self.get_PDF(s, method=method), 
                      a=0, b=np.inf)[0]
         else:
