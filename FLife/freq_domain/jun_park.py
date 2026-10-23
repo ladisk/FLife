@@ -155,6 +155,12 @@ class JunPark(object):
         sigma_H = 1/(B_1 * D_4) * (MRR_1 - D_1**2 - D_2*sigma_R - D_3)
         sigma_E = 1/(A_1 * D_1) * (MRR_1 - D_2*sigma_R - D_3 - B_1*D_4*sigma_H)
 
+        # Eq. (24) in [1] assumes D_2, D_3 and sigma_H are positive; the article gives no remedy otherwise
+        if not (D_2 > 0 and D_3 > 0 and sigma_H > 0):
+            warnings.warn(f'Jun-Park parameters D_2 = {D_2:.3g}, D_3 = {D_3:.3g}, sigma_H = {sigma_H:.3g} '
+                          'are not all positive as Eq. (24) in [1] assumes. The PDF can be negative and the '
+                          'result should be evaluated carefully.')
+
         self.parameters = {}
         self.parameters['D_1'] = D_1
         self.parameters['D_2'] = D_2
