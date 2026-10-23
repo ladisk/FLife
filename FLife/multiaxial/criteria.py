@@ -49,13 +49,23 @@ def _max_normal_and_shear(self, s, s_af, tau_af, search_method='local'):
 
     K = 2 * tau_af / s_af - 1
     l1, m1, n1, l2, m2, n2, l3, m3, n3 = cplane.max_variance(multiaxial_psd=s, df=df, method='maxshear',K=K, search_method=search_method)
-    
-    a = np.asarray([l1**2-l3**2+K*(l1+l3)**2,
-                    m1**2-m3**2+K*(m1+m3)**2,
-                    n1**2-n3**2+K*(n1+n3)**2,
-                    2*(l1*m1-l3*m3+K*(l1+l3)*(m1+m3)),
-                    2*(l1*n1-l3*n3+K*(l1+l3)*(n1+n3)),
-                    2*(m1*n1-m3*n3+K*(m1+m3)*(n1+n3))]) / (1 + K) 
+
+    def plane_vector(e1, e3):
+        (l1, m1, n1), (l3, m3, n3) = e1, e3
+        return np.asarray([l1**2-l3**2+K*(l1+l3)**2,
+                           m1**2-m3**2+K*(m1+m3)**2,
+                           n1**2-n3**2+K*(n1+n3)**2,
+                           2*(l1*m1-l3*m3+K*(l1+l3)*(m1+m3)),
+                           2*(l1*n1-l3*n3+K*(l1+l3)*(n1+n3)),
+                           2*(m1*n1-m3*n3+K*(m1+m3)*(n1+n3))]) / (1 + K)
+
+    # The shear stress variance does not change when e3 is reversed or e1 and e3 are swapped, so the
+    # search does not tell which of the two maximum-shear planes (Nieslony and Macha 2007, Eq. 3.23) and
+    # which shear sign it found. Take the one with the largest equivalent stress variance (Eq. 4.1).
+    e1, e3 = np.array([l1, m1, n1]), np.array([l3, m3, n3])
+    mu = np.sum(s, axis=0) * df
+    a = max((plane_vector(e1, e3), plane_vector(e1, -e3), plane_vector(e3, e1), plane_vector(e3, -e1)),
+            key=lambda a: np.einsum('i,ij,j', a, mu, a).real)
 
     s_eq = np.einsum('i,zij,j', a, s, a)
     return s_eq
