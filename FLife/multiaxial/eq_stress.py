@@ -240,7 +240,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         scalar psd stress, using the C-S criterion.
         
         :param s_af: float
-            Fully reversed torsion-fatigue limit.
+            Fully reversed bending-fatigue limit.
         :param tau_af: float
             Fully reversed torsion-fatigue limit.
         

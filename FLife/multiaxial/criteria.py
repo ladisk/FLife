@@ -101,16 +101,18 @@ def _cs(self, s, s_af, tau_af):
     df = freq[1] - freq[0]
 
     # .. Find critical plane.
-    C = cplane.csrandom(multiaxial_psd=s, df=df, s_af=s_af, tau_af=tau_af)
+    C = cplane.csrandom(multiaxial_psd=s, df=df, s_af=s_af, tau_af=tau_af, f=freq)
     
     # .. Transform stress.
     s = np.einsum('ij,zjk,lk->zil', C, s, C)
     
     # .. Calculate equivalent PSD.
     sww = s[:, 2, 2]
-    suw = s[:, -1, -1,]
+    svw = s[:, -1, -1,]
 
-    s_eq = sww.real + suw.real * (s_af/tau_af)
+    # .. Eq. (22) in Carpinteri et al. (2014): unsquared ratio as published and in the authors' code;
+    #    the time-domain criterion (Carpinteri and Spagnoli 2001, Eq. 27) squares it, see issue #51.
+    s_eq = sww.real + svw.real * (s_af/tau_af)
     return s_eq
 
 
