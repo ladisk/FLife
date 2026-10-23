@@ -119,6 +119,11 @@ def max_variance(multiaxial_psd, df, method, K=None, search_method='local'):
     '''
     multiaxial_psd = _plane_stress_to_voigt_3d(multiaxial_psd)
     mu = np.sum(multiaxial_psd, axis=0) * df
+    # The plane depends only on the direction cosines, not on the load level, but SLSQP
+    # uses absolute tolerances. Scaling mu to unit trace keeps the objective O(1), as in csrandom.
+    scale = np.real(np.trace(mu))
+    if scale > 0:
+        mu = mu / scale
     bounds = [(0, np.pi), (0, 2*np.pi), (0, 2*np.pi)]
 
     if 'maxnormal' == method:
