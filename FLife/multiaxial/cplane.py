@@ -255,7 +255,7 @@ def spectral_moment(f, multiaxial_psd, n):
     return np.einsum('i,i...->...', f**n, multiaxial_psd) * df
 
 
-def csrandom(multiaxial_psd, df, s_af, tau_af):
+def csrandom(multiaxial_psd, df, s_af, tau_af, f=None):
     '''Determine critical plane with the C-S random criterion.
 
     Uses ZXZ Euler angles with 6x6 Voigt stress transformations derived
@@ -265,6 +265,9 @@ def csrandom(multiaxial_psd, df, s_af, tau_af):
 
     After transformation, sigma_w = S[2,2] and tau_vw = S[5,5].
 
+    :param f: frequency vector in Hz for the spectral moments (Eq. 15a/b);
+        defaults to arange(len) * df
+
     See also
     --------
     Carpinteri A, Spagnoli A and Vantadori S, Reformulation in the frequency
@@ -272,7 +275,9 @@ def csrandom(multiaxial_psd, df, s_af, tau_af):
     Int J Fat, 2014
     '''
     multiaxial_psd = _plane_stress_to_voigt_3d(multiaxial_psd)
-    f = np.arange(0, multiaxial_psd.shape[0] * df, df)
+    if f is None:
+        f = np.arange(multiaxial_psd.shape[0]) * df
+    f = np.asarray(f, dtype=float)
     l0 = spectral_moment(f, multiaxial_psd, 0)
     m2 = spectral_moment(f, multiaxial_psd, 2)
 
