@@ -1,5 +1,6 @@
 import warnings
 import numpy as np
+from scipy.integrate import trapezoid
 from . import cplane
 
 def _max_normal(self, s, search_method):
@@ -135,18 +136,42 @@ def _cs(self, s, s_af, tau_af, T=None):
     return s_eq
 
 
-def _multiaxial_rainflow(self, s):
+def _multiaxial_rainflow(self, s, k=None):
     """
-    Internal function for calculating equivalent stress at one node.
+    Internal function for calculating equivalent stress at one node (f, 3, 3)
+    or at all nodes (N, f, 3, 3).
 
-    At each frequency, the maximum of c^T Re(s) c over unit vectors c is the largest
-    eigenvalue of Re(s) (Rayleigh quotient), so no numerical search is needed.
+    Pitoiset and Preumont (2000) use one constant unit vector c for the whole spectrum
+    (Eqs. 9 and 10). The equivalent PSD is the PSD of s_m = c^T s, c^T Re(S) c (Eqs. 12 and 14).
+    c is the combination with the largest damage (Sec. 3), from the single moment method
+    (Sec. 4.1). That damage grows with the 2/k-th spectral moment c^T M c, with
+    M = int f^(2/k) Re S(f) df, so c is the top eigenvector of M.
+    Without k, the exponent is 0 (maximum variance, the limit k -> infinity).
+    The vector is stored in `self.multiaxial_rainflow_direction`: (3,) or (N, 3).
     """
-    if s.shape[1] == 6 and s.shape[2] == 6:
+    if s.shape[-2:] == (6, 6):
         raise ValueError('Multiaxial rainflow only works for biaxial stresses: PSD matrix (f,3,3)')
 
+    if k is None:
+        warnings.warn('multiaxial_rainflow: no S-N slope `k` given. The direction c is chosen for maximum '
+                      'variance (k -> infinity), not for maximum damage as in Pitoiset and Preumont (2000). '
+                      'Pass `k` for the damage-based choice.', UserWarning, stacklevel=3)
+        q = 0.
+    else:
+        if k <= 0:
+            raise ValueError('S-N slope k must be positive.')
+        q = 2. / k
+
+    f = np.asarray(self.multiaxial_psd[1], dtype=float)
     # s is Hermitian, so the quadratic form c^T s c only uses the real part.
-    return np.linalg.eigvalsh(np.real(s))[:, -1]
+    r = np.real(s)
+    m = trapezoid(f[:, None, None]**q * r, f, axis=-3)
+    c = np.linalg.eigh(m)[1][..., -1]
+    # c and -c give the same PSD; make the largest component positive for a reproducible c
+    idx = np.argmax(np.abs(c), axis=-1)
+    c = c * np.sign(np.take_along_axis(c, idx[..., None], axis=-1))
+    self.multiaxial_rainflow_direction = c
+    return np.einsum('...i,...fij,...j->...f', c, r, c)
 
 
 def _thermoelastic(self,s):

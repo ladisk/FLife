@@ -264,26 +264,45 @@ class EquivalentStress(SpectralData): #equivalentstress
             s_eq = criteria._cs(self,s=self.multiaxial_psd[0], s_af=s_af, tau_af=tau_af, T=T)
             self.set_eq_stress(eq_psd=s_eq, f=self.multiaxial_psd[1])
 
-    def multiaxial_rainflow(self):
+    def multiaxial_rainflow(self, k=None):
         """Converts the stress tensor at one node to equivalent,
         scalar psd stress, for use in frequency domain multiaxial rainflow.
 
         ONLY WORKS FOR BIAXIAL STRESSES: PSD MATRIX (f,3,3) - single point or (N,f,3,3) - multiple points
-    
+
+        One constant unit vector c is used for the whole spectrum (Pitoiset and Preumont 2000,
+        Eqs. 9 and 10), and the equivalent PSD is c^T Re(S(f)) c (Eqs. 11-14). The article
+        picks c as the combination of maximum damage (Sec. 3), computed with the single moment
+        method (Sec. 4.1). The single moment damage grows with c^T M c, where
+        M = int f^(2/k) Re S(f) df, so the maximum is the top eigenvector of M.
+
+        :param k: float, optional
+            Slope of the S-N curve, N*S^k = C. If given, c is chosen by maximum single moment
+            damage (article method). If missing, c is the maximum-variance direction
+            (top eigenvector of int Re S(f) df, the limit k -> infinity) and a UserWarning
+            asks for k.
+
+        The chosen c is stored in `multiaxial_rainflow_direction`, shape (3,) or (N, 3).
+        The sign of c does not matter (c and -c give the same PSD).
+
         --------
 
         - Pitoiset, Xavier, and André Preumont; 
             Spectral methods for multiaxial random fatigue analysis of metallic structures, 
             International journal of fatigue, 2000
 
+        - Lutes, Loren D., and Curtis E. Larsen;
+            Improved spectral method for variable amplitude fatigue prediction,
+            Journal of Structural Engineering, 1990
+
         """
+        s_eq = criteria._multiaxial_rainflow(self, s=self.multiaxial_psd[0], k=k)
         # psd is multiple-point
         if self.multipoint:
-            self.loop_over_points(criterion=criteria._multiaxial_rainflow)
-        
+            self.eq_psd_multipoint = (s_eq, self.multiaxial_psd[1])
+
         # psd is single-point
         else:
-            s_eq = criteria._multiaxial_rainflow(self,s=self.multiaxial_psd[0])
             self.set_eq_stress(eq_psd=s_eq, f=self.multiaxial_psd[1])
 
     def thermoelastic(self):

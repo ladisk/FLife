@@ -18,7 +18,7 @@ def test_data():
         'max_shear': 2430.1468521282327,
         'max_normal_and_shear': 1746.6174328499, #s_af = 1, tau_af = 1; was 1565.051025 before the scaled plane search, two planes share the max shear variance
         'cs': 1650.2990739257525, #s_af = 1, tau_af = 1; N1 = nu0*T, Eq. (16) (was 1647.0269200556531)
-        'multiaxial_rainflow': 1636.5919423074781,
+        'multiaxial_rainflow': 1621.007249408989, #k = 7.3; one fixed c of max single moment damage (was 1636.5919423074781, per-frequency maximum)
         'thermoelastic': 1027.6423513625518,
         'liwi': 2083.2568582803156,
         'coin_liwi': 2044.550993026664, #k_a=1.70, k_phi=0.90
@@ -68,7 +68,7 @@ def test_data():
     max_shear.max_shear()
     max_normal_and_shear.max_normal_and_shear(s_af=1, tau_af=1)
     cs.cs(s_af=1, tau_af=1)
-    multiaxial_rainflow.multiaxial_rainflow()
+    multiaxial_rainflow.multiaxial_rainflow(k=k)
     thermoelastic.thermoelastic()
     liwi.liwi()
     coin_liwi.coin_liwi(k_a=1.70, k_phi=0.90)
