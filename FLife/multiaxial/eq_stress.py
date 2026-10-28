@@ -235,7 +235,7 @@ class EquivalentStress(SpectralData): #equivalentstress
             s_eq = criteria._EVMS(self,s=self.multiaxial_psd[0])
             self.set_eq_stress(eq_psd=s_eq, f=self.multiaxial_psd[1])
 
-    def cs(self, s_af, tau_af):
+    def cs(self, s_af, tau_af, T=None):
         """Converts the stress tensor at one node to equivalent,
         scalar psd stress, using the C-S criterion.
         
@@ -243,6 +243,10 @@ class EquivalentStress(SpectralData): #equivalentstress
             Fully reversed bending-fatigue limit.
         :param tau_af: float
             Fully reversed torsion-fatigue limit.
+        :param T: float, optional
+            Time span in s for the expected number of cycles N1 = nu0*T in the
+            Davenport peak factor that sets the critical plane. Defaults to the
+            T given to EquivalentStress or SpectralData, else 1 s with a warning.
         
         --------
 
@@ -253,11 +257,11 @@ class EquivalentStress(SpectralData): #equivalentstress
         """
         # psd is multiple-point
         if self.multipoint:
-            self.loop_over_points(criterion=criteria._cs, s_af=s_af, tau_af=tau_af)
+            self.loop_over_points(criterion=criteria._cs, s_af=s_af, tau_af=tau_af, T=T)
         
         # psd is single-point
         else:
-            s_eq = criteria._cs(self,s=self.multiaxial_psd[0], s_af=s_af, tau_af=tau_af)
+            s_eq = criteria._cs(self,s=self.multiaxial_psd[0], s_af=s_af, tau_af=tau_af, T=T)
             self.set_eq_stress(eq_psd=s_eq, f=self.multiaxial_psd[1])
 
     def multiaxial_rainflow(self):

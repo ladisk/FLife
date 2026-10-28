@@ -17,7 +17,7 @@ def test_data():
         'max_normal': 1650.300624416056,
         'max_shear': 2430.1468521282327,
         'max_normal_and_shear': 1746.6174328499, #s_af = 1, tau_af = 1; was 1565.051025 before the scaled plane search, two planes share the max shear variance
-        'cs': 1647.0269200556531, #s_af = 1, tau_af = 1 (optimiser-based)
+        'cs': 1650.2990739257525, #s_af = 1, tau_af = 1; N1 = nu0*T, Eq. (16) (was 1647.0269200556531)
         'multiaxial_rainflow': 1636.5919423074781,
         'thermoelastic': 1027.6423513625518,
         'liwi': 2083.2568582803156,
