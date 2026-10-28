@@ -151,7 +151,8 @@ def _multiaxial_rainflow(self, s):
     def constraint(c):
         return np.sum(c**2) - 1
 
-    initial_guess = np.array([0.34,0.33,0.33])
+    # unit vector, so the start point satisfies the constraint
+    initial_guess = np.ones(3) / np.sqrt(3)
 
     # Define the constraint for the optimizaton
     cons = {'type': 'eq', 'fun': constraint}
@@ -159,24 +160,26 @@ def _multiaxial_rainflow(self, s):
     # Perform the optimization
     s_eq = np.empty((len(s)))
     for i in range(len(s)):
-        def Psi_m(c):
-            Q = np.outer(c, c)
-            # s[i] is Hermitian, so the quadratic form is real; take the real
-            # part so the optimiser never sees a complex objective.
-            return -np.real(np.trace(Q@s[i]))
-        
-        result = minimize(fun=Psi_m, x0=initial_guess, constraints=[cons], method='SLSQP')
+        # s[i] is Hermitian, so the quadratic form c^T s[i] c only uses the real part.
+        r = np.real(s[i])
+        # Scale to unit trace, so the optimiser tolerances do not depend on the stress unit.
+        scale = np.trace(r)
+        if scale <= 0:
+            s_eq[i] = 0.
+            continue
+        r = r / scale
 
+        def Psi_m(c):
+            return -(c @ r @ c)
+
+        result = minimize(fun=Psi_m, x0=initial_guess, constraints=[cons], method='SLSQP')
 
         if not result.success:
             print("Optimization failed:", result.message)
 
-            s_eq[i] = -Psi_m(initial_guess)
-        # Extract the optimized c values
-        else:    
-            c_opt = result.x
-
-            s_eq[i] = -Psi_m(c_opt)
+        # project the result on the unit sphere, also if the optimiser failed
+        c_opt = result.x / np.linalg.norm(result.x)
+        s_eq[i] = -scale * Psi_m(c_opt)
     return s_eq
 
 
