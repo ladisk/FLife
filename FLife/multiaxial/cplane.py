@@ -288,14 +288,15 @@ def _shear_vector(s, n):
                      s[..., 1]*n[..., 2] + s[..., 2]*n[..., 1]], axis=-1)
 
 
-def _davenport_extreme(k0, k2):
+def _davenport_extreme(k0, k2, T):
     """Davenport expected maximum sqrt(k0) * (sqrt(2 ln N1) + 0.5772 / sqrt(2 ln N1)), Eq. 17.
 
-    N1 = sqrt(k2 / k0) / (2 pi) for moments k in Hz. The value is 0 where N1 <= 1
-    (the formula is undefined there).
+    N1 = nu0 * T (Eq. 16), with nu0 = sqrt(lambda2 / lambda0) / (2 pi) (Eq. 5) for
+    moments in rad/s, which is sqrt(k2 / k0) for moments k in Hz. The value is 0
+    where N1 <= 1 (the formula is undefined there).
     """
     with np.errstate(divide='ignore', invalid='ignore'):
-        N1 = np.sqrt(np.where(k0 > 0, k2 / k0, 0.)) / (2 * np.pi)
+        N1 = np.sqrt(np.where(k0 > 0, k2 / k0, 0.)) * T
         x = np.sqrt(2 * np.log(np.where(N1 > 1, N1, np.e)))
         value = np.sqrt(np.maximum(k0, 0.)) * (x + 0.5772 / x)
     return np.where((N1 > 1) & (k2 > 0), value, 0.)
@@ -325,7 +326,7 @@ def _max_shear_direction(cov, n, a, b):
     return x1 / norm, x2 / norm
 
 
-def csrandom(multiaxial_psd, df, s_af, tau_af, f=None):
+def csrandom(multiaxial_psd, df, s_af, tau_af, f=None, T=1.):
     '''Determine critical plane with the C-S random criterion.
 
     Returns the 6x6 Voigt transformation CC to the critical-plane frame:
@@ -333,6 +334,7 @@ def csrandom(multiaxial_psd, df, s_af, tau_af, f=None):
 
     :param f: frequency vector in Hz for the spectral moments (Eq. 15a/b);
         defaults to arange(len) * df
+    :param T: time span in s for the number of cycles N1 = nu0 * T (Eq. 16)
 
     The steps follow Sec. 3 and 4 of the article and the authors' MATLAB code
     (Carpinteri, Spagnoli, Vantadori, C_S_Spettrale.m):
@@ -377,7 +379,7 @@ def csrandom(multiaxial_psd, df, s_af, tau_af, f=None):
     def extreme(phi, gamma):
         a = _normal_vector(axis(phi, gamma))
         return _davenport_extreme(np.einsum('...i,ij,...j->...', a, l0, a),
-                                  np.einsum('...i,ij,...j->...', a, m2, a))
+                                  np.einsum('...i,ij,...j->...', a, m2, a), T)
 
     # 1. 1-hat: global maximum of Eq. 17 (grid, then local refinement)
     phi, gamma = np.meshgrid(np.linspace(0, 2*np.pi, 73), np.linspace(0, np.pi, 37), indexing='ij')

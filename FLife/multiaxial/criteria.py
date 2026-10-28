@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from . import cplane
 from scipy.optimize import minimize
@@ -101,17 +102,26 @@ def _EVMS(self, s):
     return s_eq
 
 
-def _cs(self, s, s_af, tau_af):
+def _cs(self, s, s_af, tau_af, T=None):
     """
     Internal function for calculating equivalent stress at one node.
+
+    T is the time span for the number of cycles in the Davenport peak factor:
+    the given value, else the T given to EquivalentStress or SpectralData, else 1 s.
     """
     s = cplane._plane_stress_to_voigt_3d(s)
-    
+    if T is None:
+        T = getattr(self, 't', None)
+    if T is None:
+        T = 1.
+        warnings.warn('C-S criterion: observation time T not given, T = 1 s is assumed. '
+                      'N1 = nu0*T (Carpinteri et al. 2014, Eqs. 16-17) depends on it, so pass `T`.')
+
     freq = self.multiaxial_psd[1]
     df = freq[1] - freq[0]
 
     # .. Find critical plane.
-    C = cplane.csrandom(multiaxial_psd=s, df=df, s_af=s_af, tau_af=tau_af, f=freq)
+    C = cplane.csrandom(multiaxial_psd=s, df=df, s_af=s_af, tau_af=tau_af, f=freq, T=T)
     
     # .. Transform stress.
     s = np.einsum('ij,zjk,lk->zil', C, s, C)

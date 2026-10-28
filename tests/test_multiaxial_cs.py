@@ -73,6 +73,23 @@ def ratio(s_eq):
     return np.real(s_eq[m]) / P[m]
 
 
+def davenport(var, nu0, T):
+    """Eq. (16) and (17): N1 = nu0*T, sqrt(var) (sqrt(2 ln N1) + 0.5772/sqrt(2 ln N1))."""
+    x = np.sqrt(2 * np.log(nu0 * T))
+    return np.sqrt(var) * (x + 0.5772 / x)
+
+
+def two_tones():
+    """sigma_x at 20 Hz (variance 1) and sigma_y at 200 Hz (variance 0.5), uncorrelated."""
+    f = np.arange(0, 300, 0.5)
+    px = np.exp(-0.5 * ((f - 20) / 1.)**2)
+    py = np.exp(-0.5 * ((f - 200) / 1.)**2)
+    px, py = px / (px.sum() * 0.5), 0.5 * py / (py.sum() * 0.5)
+    S = np.zeros((len(f), 6, 6))
+    S[:, 0, 0], S[:, 1, 1] = px, py
+    return f, S, px, py
+
+
 def uniaxial_factor():
     """Uniaxial: normal and shear stress on the plane tilted by delta (Eq. 19), Eq. (22) as printed."""
     return np.cos(DELTA)**4 + S_AF / TAU_AF * np.sin(DELTA)**2 * np.cos(DELTA)**2
@@ -132,3 +149,35 @@ def test_cs_frame_independence(case):
     for R in ROTATIONS[:4]:
         S = psd_from_sources([R @ T @ R.T for T in tensors], psds)
         np.testing.assert_allclose(cs_psd(S, s_af=S_AF, tau_af=TAU_AF), ref, rtol=1e-6)
+
+
+def test_cs_number_of_cycles():
+    """N1 = nu0*T, Eq. (16), with nu0 = sqrt(lambda2/lambda0)/(2 pi), Eq. (5) (= sqrt(m2/m0) in Hz).
+
+    With delta = 0 the equivalent PSD is the normal stress PSD along 1-hat, the
+    direction of the largest Davenport expected maximum, Eq. (17).
+    """
+    f, S, px, py = two_tones()
+    assert davenport(1., 20., 1.) > davenport(0.5, 200., 1.)      # sigma_x wins for T = 1 s
+    np.testing.assert_allclose(cs_psd(S, f=f, T=1., s_af=1., tau_af=1.), px, atol=1e-10)
+
+
+def test_cs_observation_time_argument():
+    f, S, px, py = two_tones()
+    assert davenport(1., 20., 0.2) < davenport(0.5, 200., 0.2)    # sigma_y wins for T = 0.2 s
+    es = FLife.EquivalentStress(input={'PSD': S, 'f': f})
+    es.cs(s_af=1., tau_af=1., T=0.2)
+    np.testing.assert_allclose(es.psd[:, 1], py, atol=1e-10)
+    es.cs(s_af=1., tau_af=1., T=1.)
+    np.testing.assert_allclose(es.psd[:, 1], px, atol=1e-10)
+
+
+def test_cs_default_observation_time():
+    """Without T anywhere, T = 1 s is assumed with a warning."""
+    f, S, px, py = two_tones()
+    es = FLife.EquivalentStress(input={'PSD': S, 'f': f})
+    with pytest.warns(UserWarning, match='observation time T not given'):
+        es.cs(s_af=1., tau_af=1.)
+    default = es.psd[:, 1].copy()
+    es.cs(s_af=1., tau_af=1., T=1.)
+    np.testing.assert_array_equal(default, es.psd[:, 1])
