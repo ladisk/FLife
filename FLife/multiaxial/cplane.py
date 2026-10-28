@@ -191,13 +191,13 @@ def max_variance(multiaxial_psd, df, method, K=None, search_method='local'):
 #   Q_x(a) = [[1, 0, 0], [0, c, s], [0, -s, c]]
 # where c = cos(a), s = sin(a).
 #
-# The C-S algorithm uses ZXZ Euler angles (phi, theta, psi):
-#   C_phi  = Tz(phi)   -- rotation about Z
-#   C_theta = Tx(theta) -- rotation about X (line of nodes)
-#   C_psi  = Tz(psi)   -- rotation about Z' (leaves sigma_z invariant)
-# Plus two more rotations for the critical plane:
-#   C_delta = Tx(delta) -- rotation about X' (2-hat axis)
-#   C_chi   = Tz(chi)   -- rotation about Z (w-axis, leaves sigma_w invariant)
+# The C-S frame is the ZXZ rotation Tz(chi) Tx(delta) Tz(psi) Tx(theta) Tz(phi):
+#   phi, theta -- direction of the 1-hat axis (w)
+#   psi        -- rotation about w (shear direction v)
+#   delta      -- material off-angle about the u axis (Eq. 19)
+#   chi        -- rotation about the tilted w (shear direction on the critical plane)
+# csrandom finds the same frame by working on the axis vectors directly, which
+# avoids the Euler-angle singularities. voigt_transform builds the 6x6 matrix.
 
 def Tz(c, s):
     '''6x6 stress transformation for rotation about Z-axis.
@@ -255,18 +255,96 @@ def spectral_moment(f, multiaxial_psd, n):
     return np.einsum('i,i...->...', f**n, multiaxial_psd) * df
 
 
+_VOIGT_PAIRS = [(0, 0), (1, 1), (2, 2), (0, 1), (0, 2), (1, 2)]
+
+
+def voigt_transform(Q):
+    '''6x6 Voigt stress transformation for direction cosines Q (3, 3).
+
+    sigma' = Q sigma Q^T in Voigt form {sigma_x, sigma_y, sigma_z, tau_xy, tau_xz, tau_yz}.
+    Tz and Tx are special cases.
+    '''
+    Q = np.asarray(Q)
+    T = np.empty(Q.shape[:-2] + (6, 6))
+    for I, (i, j) in enumerate(_VOIGT_PAIRS):
+        for J, (k, l) in enumerate(_VOIGT_PAIRS):
+            T[..., I, J] = Q[..., i, k] * Q[..., j, l]
+            if k != l:
+                T[..., I, J] += Q[..., i, l] * Q[..., j, k]
+    return T
+
+
+def _normal_vector(n):
+    """Voigt coefficients a with a . sigma = n^T sigma n."""
+    l, m, k = n[..., 0], n[..., 1], n[..., 2]
+    return np.stack([l*l, m*m, k*k, 2*l*m, 2*l*k, 2*m*k], axis=-1)
+
+
+def _shear_vector(s, n):
+    """Voigt coefficients a with a . sigma = s^T sigma n."""
+    return np.stack([s[..., 0]*n[..., 0], s[..., 1]*n[..., 1], s[..., 2]*n[..., 2],
+                     s[..., 0]*n[..., 1] + s[..., 1]*n[..., 0],
+                     s[..., 0]*n[..., 2] + s[..., 2]*n[..., 0],
+                     s[..., 1]*n[..., 2] + s[..., 2]*n[..., 1]], axis=-1)
+
+
+def _davenport_extreme(k0, k2):
+    """Davenport expected maximum sqrt(k0) * (sqrt(2 ln N1) + 0.5772 / sqrt(2 ln N1)), Eq. 17.
+
+    N1 = sqrt(k2 / k0) / (2 pi) for moments k in Hz. The value is 0 where N1 <= 1
+    (the formula is undefined there).
+    """
+    with np.errstate(divide='ignore', invalid='ignore'):
+        N1 = np.sqrt(np.where(k0 > 0, k2 / k0, 0.)) / (2 * np.pi)
+        x = np.sqrt(2 * np.log(np.where(N1 > 1, N1, np.e)))
+        value = np.sqrt(np.maximum(k0, 0.)) * (x + 0.5772 / x)
+    return np.where((N1 > 1) & (k2 > 0), value, 0.)
+
+
+def _matlab_sign(x, y, z):
+    """+1 where the vector comes first in the authors' grid order, else -1.
+
+    In the authors' MATLAB code the first strict maximum wins, so of two equivalent
+    directions the one with the smaller angle (phi or theta) is kept.
+    """
+    first = np.where(y != 0, y > 0, np.where(x != 0, x > 0, z >= 0))
+    return np.where(first, 1., -1.)
+
+
+def _max_shear_direction(cov, n, a, b):
+    """Coefficients (x1, x2) of the unit vector x1 a + x2 b (a, b _|_ n) that maximises
+    the variance of the shear stress x^T sigma n (closed form: top eigenvector)."""
+    ga, gb = _shear_vector(a, n), _shear_vector(b, n)
+    m11, m12, m22 = ga @ cov @ ga, ga @ cov @ gb, gb @ cov @ gb
+    d = 0.5 * (m11 - m22)
+    rad = np.hypot(d, m12)
+    x1, x2 = (d + rad, m12) if d >= 0 else (m12, rad - d)
+    norm = np.hypot(x1, x2)
+    if norm == 0:
+        return 1., 0.
+    return x1 / norm, x2 / norm
+
+
 def csrandom(multiaxial_psd, df, s_af, tau_af, f=None):
     '''Determine critical plane with the C-S random criterion.
 
-    Uses ZXZ Euler angles with 6x6 Voigt stress transformations derived
-    from first principles. The 5-angle sequence is:
-        phi (about Z), theta (about X), psi (about Z'),
-        delta (about X', material angle), chi (about Z/w-axis).
-
-    After transformation, sigma_w = S[2,2] and tau_vw = S[5,5].
+    Returns the 6x6 Voigt transformation CC to the critical-plane frame:
+    after transformation, sigma_w = S[2,2] and tau_vw = S[5,5].
 
     :param f: frequency vector in Hz for the spectral moments (Eq. 15a/b);
         defaults to arange(len) * df
+
+    The steps follow Sec. 3 and 4 of the article and the authors' MATLAB code
+    (Carpinteri, Spagnoli, Vantadori, C_S_Spettrale.m):
+        1. 1-hat maximises the Davenport expected maximum of the normal stress,
+           Eq. 17, over 0 <= phi <= 2 pi, 0 <= theta <= pi. The authors scan a
+           10 deg grid; here a 5 deg grid plus a local refinement is used.
+        2. 3-hat _|_ 1-hat maximises the variance of the shear stress on the
+           plane 1-hat (closed form instead of the 10 deg scan).
+        3. w = cos(delta) 1-hat + sin(delta) 3-hat (Eq. 19 for delta).
+        4. v _|_ w maximises the variance of tau_vw, Eq. 20 (closed form).
+    Where two directions are equivalent (n and -n), the one the authors' scan
+    meets first is kept, so the frame convention matches the authors' code.
 
     See also
     --------
@@ -274,12 +352,12 @@ def csrandom(multiaxial_psd, df, s_af, tau_af, f=None):
     domain of a critical plane-based multiaxial fatigue criterion,
     Int J Fat, 2014
     '''
-    multiaxial_psd = _plane_stress_to_voigt_3d(multiaxial_psd)
+    multiaxial_psd = _plane_stress_to_voigt_3d(np.asarray(multiaxial_psd))
     if f is None:
         f = np.arange(multiaxial_psd.shape[0]) * df
     f = np.asarray(f, dtype=float)
-    l0 = spectral_moment(f, multiaxial_psd, 0)
-    m2 = spectral_moment(f, multiaxial_psd, 2)
+    l0 = np.real(spectral_moment(f, multiaxial_psd, 0))
+    m2 = np.real(spectral_moment(f, multiaxial_psd, 2))
 
     # Normalise the moments before the plane search. The critical plane depends
     # only on the relative stress distribution, but SLSQP uses absolute
@@ -288,68 +366,45 @@ def csrandom(multiaxial_psd, df, s_af, tau_af, f=None):
     # common factor keeps the objective O(1) and leaves both the plane and the
     # moment ratio in N1 unchanged. The equivalent stress is computed later in
     # _cs from the unscaled stress.
-    scale = np.real(np.trace(l0))
+    scale = np.trace(l0)
     if scale > 0:
         l0 = l0 / scale
         m2 = m2 / scale
 
-    # Step 2: Find 1-hat direction (phi, theta).
-    # Maximize Davenport expected extreme of sigma_z at [2,2].
-    # C = Tx(theta) @ Tz(phi)  (psi=0 => Tz(psi) = I)
-    def s33crit(inp):
-        phi, th = inp
-        C = Tx(np.cos(th), np.sin(th)) @ Tz(np.cos(phi), np.sin(phi))
-        l0_ = C @ l0 @ C.T
-        m2_ = C @ m2 @ C.T
-        k0 = np.real(l0_[2, 2])
-        k2 = np.real(m2_[2, 2])
-        if k0 <= 0 or k2 <= 0:
-            return 0.0
-        N1 = np.sqrt(k2 / k0) / (2 * np.pi)
-        if N1 <= 1:
-            return 0.0
-        return -(np.sqrt(k0) * (np.sqrt(2 * np.log(N1))
-                 + 0.5772 / np.sqrt(2 * np.log(N1))))
+    def axis(phi, gamma):
+        return np.stack([np.sin(gamma) * np.cos(phi), np.sin(gamma) * np.sin(phi), np.cos(gamma)], axis=-1)
 
-    res = opt.minimize(s33crit, [0.33, 0.33], method='SLSQP',
-                       bounds=[(0, 2*np.pi), (0, np.pi)])
-    phi, th = res['x']
+    def extreme(phi, gamma):
+        a = _normal_vector(axis(phi, gamma))
+        return _davenport_extreme(np.einsum('...i,ij,...j->...', a, l0, a),
+                                  np.einsum('...i,ij,...j->...', a, m2, a))
 
-    # Step 3: Find 3-hat direction (psi).
-    # Maximize variance of tau_yz at [5,5].
-    # Tz(psi) leaves sigma_z invariant, so normal stress is preserved.
-    def taucrit(psi):
-        C = (Tz(np.cos(psi), np.sin(psi))
-             @ Tx(np.cos(th), np.sin(th))
-             @ Tz(np.cos(phi), np.sin(phi)))
-        return -np.real((C @ l0 @ C.T)[5, 5])
+    # 1. 1-hat: global maximum of Eq. 17 (grid, then local refinement)
+    phi, gamma = np.meshgrid(np.linspace(0, 2*np.pi, 73), np.linspace(0, np.pi, 37), indexing='ij')
+    values = extreme(phi, gamma)
+    best = np.argmax(values)                      # first maximum, as in the authors' code
+    x0 = np.array([phi.flat[best], gamma.flat[best]])
+    # no bounds: the angles are periodic, a bound at phi = 0 would stop the refinement there
+    res = opt.minimize(lambda x: -extreme(*x), x0, method='SLSQP', options={'ftol': 1e-14})
+    x = res.x if -res.fun > values.flat[best] else x0
+    n1 = axis(*x)
+    n1 = n1 * _matlab_sign(*n1)
+    phi = np.arctan2(n1[1], n1[0]) if np.hypot(n1[0], n1[1]) > 0 else 0.
+    a_v = np.array([-np.sin(phi), np.cos(phi), 0.])
+    a_u = np.cross(n1, a_v)
 
-    res = opt.minimize_scalar(taucrit, 0.33, method='bounded',
-                              bounds=(0, 2*np.pi))
-    psi = res['x'].real
+    # 2. 3-hat = cos(theta) a_u + sin(theta) a_v, 0 <= theta <= pi
+    x1, x2 = _max_shear_direction(l0, n1, a_u, a_v)
+    n3 = _matlab_sign(0., x2, x1) * (x1 * a_u + x2 * a_v)
+    n2 = np.cross(n1, n3)
 
-    # Step 4: Off-angle delta (Eq. 19).
-    delta = 3 * np.pi * (1 - (tau_af / s_af)**2) / 8
+    # 3. critical plane normal
+    delta = 3 * np.pi * (1 - (tau_af / s_af)**2) / 8   # Eq. 19
+    w = np.cos(delta) * n1 + np.sin(delta) * n3
 
-    # Build 3-angle rotation (phi, theta, psi).
-    C = (Tz(np.cos(psi), np.sin(psi))
-         @ Tx(np.cos(th), np.sin(th))
-         @ Tz(np.cos(phi), np.sin(phi)))
+    # 4. shear direction on the critical plane, Eq. 20
+    k = np.cross(w, n2)
+    x1, x2 = _max_shear_direction(l0, w, n2, k)
+    v = x1 * n2 + x2 * k
 
-    # Step 5: Find chi — maximize variance of tau_vw at [5,5].
-    # CC = Tz(chi) @ Tx(delta) @ C
-    # Tz(chi) leaves sigma_w invariant after delta tilt.
-    def tau2crit(chi):
-        CC = (Tz(np.cos(chi), np.sin(chi))
-              @ Tx(np.cos(delta), np.sin(delta))
-              @ C)
-        return -np.real((CC @ l0 @ CC.T)[5, 5])
-
-    res = opt.minimize_scalar(tau2crit, 0.33, method='bounded',
-                              bounds=(0, 2*np.pi))
-    chi = res['x'].real
-
-    CC = (Tz(np.cos(chi), np.sin(chi))
-          @ Tx(np.cos(delta), np.sin(delta))
-          @ C)
-    return CC
+    return voigt_transform(np.stack([np.cross(v, w), v, w]))
