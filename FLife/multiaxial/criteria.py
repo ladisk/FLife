@@ -1,7 +1,6 @@
 import warnings
 import numpy as np
 from . import cplane
-from scipy.optimize import minimize
 
 def _max_normal(self, s, search_method):
     """
@@ -139,48 +138,15 @@ def _cs(self, s, s_af, tau_af, T=None):
 def _multiaxial_rainflow(self, s):
     """
     Internal function for calculating equivalent stress at one node.
+
+    At each frequency, the maximum of c^T Re(s) c over unit vectors c is the largest
+    eigenvalue of Re(s) (Rayleigh quotient), so no numerical search is needed.
     """
     if s.shape[1] == 6 and s.shape[2] == 6:
         raise ValueError('Multiaxial rainflow only works for biaxial stresses: PSD matrix (f,3,3)')
-    
-    freq = self.multiaxial_psd[1]
-    df = freq[1] - freq[0]
 
-    
-
-    def constraint(c):
-        return np.sum(c**2) - 1
-
-    # unit vector, so the start point satisfies the constraint
-    initial_guess = np.ones(3) / np.sqrt(3)
-
-    # Define the constraint for the optimizaton
-    cons = {'type': 'eq', 'fun': constraint}
-
-    # Perform the optimization
-    s_eq = np.empty((len(s)))
-    for i in range(len(s)):
-        # s[i] is Hermitian, so the quadratic form c^T s[i] c only uses the real part.
-        r = np.real(s[i])
-        # Scale to unit trace, so the optimiser tolerances do not depend on the stress unit.
-        scale = np.trace(r)
-        if scale <= 0:
-            s_eq[i] = 0.
-            continue
-        r = r / scale
-
-        def Psi_m(c):
-            return -(c @ r @ c)
-
-        result = minimize(fun=Psi_m, x0=initial_guess, constraints=[cons], method='SLSQP')
-
-        if not result.success:
-            print("Optimization failed:", result.message)
-
-        # project the result on the unit sphere, also if the optimiser failed
-        c_opt = result.x / np.linalg.norm(result.x)
-        s_eq[i] = -scale * Psi_m(c_opt)
-    return s_eq
+    # s is Hermitian, so the quadratic form c^T s c only uses the real part.
+    return np.linalg.eigvalsh(np.real(s))[:, -1]
 
 
 def _thermoelastic(self,s):
