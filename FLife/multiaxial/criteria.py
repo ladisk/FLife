@@ -345,14 +345,28 @@ def _EVMS_out_of_phase(self, s):
 
     return s_eq
 
+def _clip_roundoff(G, scale, rtol=1e-10):
+    """
+    Set round-off negatives of an auto-PSD to 0.
+
+    An auto-PSD is >= 0 in exact arithmetic. Values below 0 but within
+    rtol*scale are round-off (e.g. the hydrostatic PSD of a rotated pure shear
+    state) and become 0. Larger negative values are kept as they are.
+    """
+    G = np.real(G)
+    return np.where((G < 0) & (G >= -rtol * scale), 0., G)
+
 def _Nieslony(self, s, s_af, tau_af,coefficient_load_type):
     """
     Internal function for calculating equivalent stress at one node.
     """
     s = cplane._plane_stress_to_voigt_3d(s)
 
-    G_p = 1/9*_thermoelastic(self,s)
-    G_EVMS = _EVMS(self,s)
+    # G_p and G_EMS are auto-PSDs (Niesłony et al. 2025, Eqs. (27)-(30)), so >= 0;
+    # clip round-off negatives before sqrt(G_p*G_EMS) in Eq. (31)
+    scale = np.real(np.trace(s, axis1=1, axis2=2))
+    G_p = _clip_roundoff(1/9*_thermoelastic(self,s), scale)
+    G_EVMS = _clip_roundoff(_EVMS(self,s), scale)
 
     s_eq = np.empty((len(s)))
 
