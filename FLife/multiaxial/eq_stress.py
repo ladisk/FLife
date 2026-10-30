@@ -48,6 +48,7 @@ class EquivalentStress(SpectralData): #equivalentstress
                 If multi-point PSD is provided, the shape should be (N,f,6,6) or (N,f,3,3) respectively.
                 Amplitude spectrum should be an array with shape (f,3) for 2D stress state or (f,6) for 3D stress state.
                 If multi-point amplitude spectrum is provided, the shape should be (N,f,3) or (N,f,6) respectively.
+                The amplitude spectrum A is the RMS amplitude per frequency line: PSD = |A|^2/df.
                 If instance of SpectralData class is passed, the multiaxial PSD is inherited.
         :param window: str or tuple or array_like, optional
                 Desired window to use. Defaults to ‘hann’.
@@ -115,8 +116,23 @@ class EquivalentStress(SpectralData): #equivalentstress
         if hasattr(self,'multiaxial_psd'):
             self.eq_psd_multipoint = (s_eq_multi_point, self.multiaxial_psd[1]) #(multipoint psd, freq)
         elif hasattr(self,'multiaxial_amplitude_spectrum'):
-            #calculate psd from amplitude spectrum at each point at each frequency
-            self.eq_psd_multipoint = (abs(s_eq_multi_point**2), self.multiaxial_amplitude_spectrum[1])
+            #calculate psd from amplitude spectrum at each point at each frequency: PSD = |A|^2/df
+            f = self.multiaxial_amplitude_spectrum[1]
+            self.eq_psd_multipoint = (np.abs(s_eq_multi_point)**2 / (f[1] - f[0]), f)
+
+    def _amplitude_criterion(self, criterion, *args, **kwargs):
+        """Apply an amplitude spectrum criterion at one or all points and set the equivalent PSD |A_eq|^2/df,
+        the same convention as for the uniaxial amplitude spectrum."""
+        a, f = self.multiaxial_amplitude_spectrum
+        if self.multipoint:
+            s_eq = np.array([criterion(self, s=a_i, *args, **kwargs) for a_i in a])
+        else:
+            s_eq = criterion(self, s=a, *args, **kwargs)
+        s_eq_psd = np.abs(s_eq)**2 / (f[1] - f[0])
+        if self.multipoint:
+            self.eq_psd_multipoint = (s_eq_psd, f)
+        else:
+            self.set_eq_stress(eq_psd=s_eq_psd, f=f)
 
     def set_eq_stress(self,eq_psd,f):
         """Set equivalent stress to the object. Also generate im ehistory if T and fs are provided"""
@@ -332,6 +348,10 @@ class EquivalentStress(SpectralData): #equivalentstress
 
         ONLY WORKS WITH BIAXIAL AMPLITUDE SPECTRUM (f,3) - single point or (N,f,3) - multiple points
 
+        The equivalent PSD is |A_eq|^2/df. A is the RMS amplitude per frequency line, as for the
+        uniaxial amplitude spectrum. For one-sided peak amplitudes (Schmidt and Pandiya 2021, Eqs. 1 and 7)
+        pass A/sqrt(2).
+
         --------
 
         - Alexander T. Schmidt, Nimish Pandiya,
@@ -342,18 +362,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         if not hasattr(self,'multiaxial_amplitude_spectrum'):
             raise Exception('Input Error. LiWI approach only works with multiaxial amplitude spectrum.')
         
-        # psd is multiple-point
-        if self.multipoint:
-            self.loop_over_points(criterion=criteria._liwi)
-        
-        # psd is single-point
-        else:
-            s_eq_amplitude_spectrum = criteria._liwi(self,s=self.multiaxial_amplitude_spectrum[0])
-
-            for i in range(len(s_eq_amplitude_spectrum)):
-                s_eq_psd = np.dot(s_eq_amplitude_spectrum[i], np.conj(s_eq_amplitude_spectrum[i].T))
-
-            self.set_eq_stress(eq_psd=s_eq_psd, f=self.multiaxial_psd[1])
+        self._amplitude_criterion(criteria._liwi)
 
 
     def coin_liwi(self, k_a, k_phi):
@@ -361,6 +370,10 @@ class EquivalentStress(SpectralData): #equivalentstress
         stress, using the COIN-LiWI method.
 
         ONLY WORKS WITH 3D AMPLITUDE SPECTRUM (f,6) - single point or (N,f,6) - multiple points
+
+        The equivalent PSD is |A_eq|^2/df. A is the RMS amplitude per frequency line, as for the
+        uniaxial amplitude spectrum. For one-sided peak amplitudes (Schmidt and Kraft 2023, Eqs. 9 and 37)
+        pass A/sqrt(2).
         
         :param k_a: float
             Tension shear strength ratio. (from article: 1.70 for aluminum alloy, 1.64 for structural steel, 1.43 for cast iron)
@@ -377,18 +390,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         if not hasattr(self,'multiaxial_amplitude_spectrum'):
             raise Exception('Input Error. COIN LiWI method only works with multiaxial amplitude spectrum.')
         
-        # psd is multiple-point
-        if self.multipoint:
-            self.loop_over_points(criterion=criteria._coin_liwi, k_a=k_a, k_phi=k_phi)
-        
-        # psd is single-point
-        else:
-            s_eq_amplitude_spectrum = criteria._coin_liwi(self,s=self.multiaxial_amplitude_spectrum[0], k_a=k_a, k_phi=k_phi)
-
-            for i in range(len(s_eq_amplitude_spectrum)):
-                s_eq_psd = np.dot(s_eq_amplitude_spectrum[i], np.conj(s_eq_amplitude_spectrum[i].T))
-
-            self.set_eq_stress(eq_psd=s_eq_psd, f=self.multiaxial_psd[1])
+        self._amplitude_criterion(criteria._coin_liwi, k_a=k_a, k_phi=k_phi)
 
 
     def EVMS_out_of_phase(self):
