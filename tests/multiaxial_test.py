@@ -20,8 +20,8 @@ def test_data():
         'cs': 1650.2990739257525, #s_af = 1, tau_af = 1; N1 = nu0*T, Eq. (16) (was 1647.0269200556531)
         'multiaxial_rainflow': 1621.007249408989, #k = 7.3; one fixed c of max single moment damage (was 1636.5919423074781, per-frequency maximum)
         'thermoelastic': 1027.6423513625518,
-        'liwi': 2083.2568582803156,
-        'coin_liwi': 2044.550993026664, #k_a=1.70, k_phi=0.90
+        'liwi': 694.4189527601052, #PSD = |A|^2/df (was 2083.2568582803156, |A|^2 without /df)
+        'coin_liwi': 681.5169976755546, #k_a=1.70, k_phi=0.90; PSD = |A|^2/df (was 2044.550993026664)
         'EVMS_out_of_phase': 2083.2568582803156,
         'Nieslony': 1592.0621836751761, #s_af = 1, tau_af = 1
         'Lemaitre': 1942.5082573579468 # poisson_ratio = 0.3
