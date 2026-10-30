@@ -328,6 +328,12 @@ def _coin_liwi(self, s, k_a, k_phi):
 def _EVMS_out_of_phase(self, s):
     """
     Internal function for calculating equivalent stress at one node.
+
+    The phases are taken relative to the component with the largest
+    auto-PSD at each frequency (Nieslony et al. 2025, Eq. 44). The
+    modulus in Bonte et al. (2007), Eq. 9, does not depend on the
+    reference component, but a reference with zero PSD has no defined
+    phase.
     """
     s_eq = np.empty((len(s)))
 
@@ -337,11 +343,13 @@ def _EVMS_out_of_phase(self, s):
         tau_xy_squared = np.real(s[i,2,2])
         sigma_xx_sigma_yy = np.sqrt(sigma_xx_squared * sigma_yy_squared)
 
-        phi_yy_phi_xx = np.angle(s[i,0,1])
         phi_xx_phi_yy = np.angle(s[i,1,0])
-        phi_xy_phi_xx = np.angle(s[i,0,2])
 
-        s_eq[i] = 0.5  * (sigma_xx_squared + sigma_yy_squared - sigma_xx_sigma_yy * np.cos(phi_xx_phi_yy) + 3 * tau_xy_squared) + 0.5 * np.abs(sigma_xx_squared + sigma_yy_squared * np.exp(2j * phi_yy_phi_xx) - sigma_xx_sigma_yy * np.exp(1j * phi_yy_phi_xx) + 3*tau_xy_squared * np.exp(2j * phi_xy_phi_xx))
+        # phases relative to the component with the largest auto-PSD
+        c = np.argmax(np.real(np.diagonal(s[i])))
+        phi_xx, phi_yy, phi_xy = np.angle(s[i,c,:])
+
+        s_eq[i] = 0.5  * (sigma_xx_squared + sigma_yy_squared - sigma_xx_sigma_yy * np.cos(phi_xx_phi_yy) + 3 * tau_xy_squared) + 0.5 * np.abs(sigma_xx_squared * np.exp(2j * phi_xx) + sigma_yy_squared * np.exp(2j * phi_yy) - sigma_xx_sigma_yy * np.exp(1j * (phi_xx + phi_yy)) + 3*tau_xy_squared * np.exp(2j * phi_xy))
 
     return s_eq
 

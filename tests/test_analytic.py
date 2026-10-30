@@ -152,3 +152,43 @@ def test_low_warns_for_small_beta():
     sd = FLife.SpectralData(input={'PSD': band(25, 35, 50.) + band(85, 95, 50.), 'f': F})
     with pytest.warns(UserWarning, match='studied the method only for beta = 4 and 10'):
         FLife.Low(sd, ('userDefinedBands', [60, 400])).get_life(1e12, 3)
+
+
+def _coherent_biaxial_psd(G, phi, f):
+    """Rank-1 (f, 3, 3) PSD matrix, S[j, k] = conj(a_j) a_k, a_j = sqrt(G_j) exp(i phi_j)."""
+    a = np.sqrt(G) * np.exp(1j*np.asarray(phi))
+    S = np.outer(np.conj(a), a)
+    return np.repeat(S[np.newaxis], len(f), axis=0)
+
+
+def _max_von_mises_squared(G, phi):
+    """Time-domain max of sigma_vM^2 for harmonic components (Bonte et al. 2007, Eqs. 4 and 9)."""
+    wt = np.linspace(0, 2*np.pi, 20001)
+    sx, sy, txy = (np.sqrt(G[j]) * np.cos(wt + phi[j]) for j in range(3))
+    return np.max(sx**2 + sy**2 - sx*sy + 3*txy**2)
+
+
+@pytest.mark.parametrize('G, phi', [
+    ([0., 4., 1.], [0., 0., np.pi/2]),        # sigma_x = 0, sigma_y and tau_xy 90 deg apart
+    ([0., 1., 2.], [0., 0.3, 1.9]),            # sigma_x = 0
+    ([1e-30, 2., 1.], [0., -0.7, 2.2]),        # sigma_x negligible
+    ([1., 3., 0.5], [0.4, -1.1, 2.0]),         # sigma_x not the largest component
+    ([3., 1., 0.5], [0.4, -1.1, 2.0]),         # sigma_x the largest component
+])
+def test_evms_out_of_phase_matches_time_domain_maximum(G, phi):
+    f = np.arange(1., 11.)
+    es = FLife.EquivalentStress(input={'PSD': _coherent_biaxial_psd(G, phi, f), 'f': f})
+    es.EVMS_out_of_phase()
+    np.testing.assert_allclose(es.psd[:, 1], _max_von_mises_squared(G, phi), rtol=1e-6)
+
+
+def test_evms_out_of_phase_swap_x_y():
+    # the von Mises stress is symmetric in sigma_x and sigma_y
+    f = np.arange(1., 11.)
+    G, phi = np.array([0., 2., 1.]), np.array([0., 0.5, 2.1])
+    res = []
+    for order in ([0, 1, 2], [1, 0, 2]):
+        es = FLife.EquivalentStress(input={'PSD': _coherent_biaxial_psd(G[order], phi[order], f), 'f': f})
+        es.EVMS_out_of_phase()
+        res.append(es.psd[:, 1])
+    np.testing.assert_allclose(res[0], res[1], rtol=1e-12)
