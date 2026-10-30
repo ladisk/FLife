@@ -371,6 +371,25 @@ amplitude spectrum:
    fatigue_life = rf.get_life(C=C, k=k)
    print(f'Fatigue life: {fatigue_life:.2f} s')
 
+Conversion between the amplitude spectrum and the PSD
+*****************************************************
+
+The amplitude spectrum A holds RMS amplitudes per frequency line, so that PSD = \|A\|\ :sup:`2`/df
+(use ``amplitude='peak'`` for one-sided peak amplitudes). A multiaxial amplitude spectrum gives the PSD
+matrix S\ :sub:`ij` = A\ :sub:`i` conj(A\ :sub:`j`)/df. The conversion back exists only for a fully coherent
+PSD matrix (rank 1 at each frequency) and is defined up to a common phase at each frequency.
+
+.. code-block:: python
+
+   import FLife
+   import numpy as np
+
+   freq = np.arange(0, 240, 3)
+   amplitude_spectrum = np.load('data/test_multiaxial_amplitude_spectrum_3D.npy')
+
+   psd = FLife.tools.amplitude_spectrum_to_psd(amplitude_spectrum, freq)
+   amplitude_spectrum_from_psd = FLife.tools.psd_to_amplitude_spectrum(psd, freq)
+
 References:
     1. Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 
        Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damage – Theory and Experiments, 
