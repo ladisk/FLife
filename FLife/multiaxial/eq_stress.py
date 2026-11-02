@@ -101,24 +101,13 @@ class EquivalentStress(SpectralData): #equivalentstress
 
 
     def loop_over_points(self, criterion, *args, **kwargs):
-        """Loop the selected criterion over multiple points on the model"""    
-        if hasattr(self,'multiaxial_psd'):
-            s_eq_multi_point = np.empty((self.multiaxial_psd[0].shape[:2]))
-        elif hasattr(self,'multiaxial_amplitude_spectrum'):
-            s_eq_multi_point = np.empty((self.multiaxial_amplitude_spectrum[0].shape[:2]),dtype=complex)
-        
+        """Loop the selected PSD criterion over multiple points on the model"""
+        if not hasattr(self,'multiaxial_psd'):
+            raise Exception('Input Error. This criterion only works with multiaxial PSD.')
+        s_eq_multi_point = np.empty((self.multiaxial_psd[0].shape[:2]))
         for i in range(len(s_eq_multi_point)):
-            if hasattr(self,'multiaxial_psd'):
-                s_eq = criterion(self,s=self.multiaxial_psd[0][i],*args, **kwargs)
-            elif hasattr(self,'multiaxial_amplitude_spectrum'):
-                s_eq = criterion(self,s=self.multiaxial_amplitude_spectrum[0][i],*args, **kwargs)
-            s_eq_multi_point[i] = s_eq
-        if hasattr(self,'multiaxial_psd'):
-            self.eq_psd_multipoint = (s_eq_multi_point, self.multiaxial_psd[1]) #(multipoint psd, freq)
-        elif hasattr(self,'multiaxial_amplitude_spectrum'):
-            #calculate psd from amplitude spectrum at each point at each frequency: PSD = |A|^2/df
-            f = self.multiaxial_amplitude_spectrum[1]
-            self.eq_psd_multipoint = (np.abs(s_eq_multi_point)**2 / (f[1] - f[0]), f)
+            s_eq_multi_point[i] = criterion(self,s=self.multiaxial_psd[0][i],*args, **kwargs)
+        self.eq_psd_multipoint = (s_eq_multi_point, self.multiaxial_psd[1]) #(multipoint psd, freq)
 
     def _amplitude_criterion(self, criterion, *args, **kwargs):
         """Apply an amplitude spectrum criterion at one or all points and set the equivalent PSD |A_eq|^2/df,
