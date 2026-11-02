@@ -3,6 +3,20 @@ import numpy as np
 from scipy.integrate import trapezoid
 from . import cplane
 
+
+def _quadratic_criterion(s, Q, Q_2D):
+    """
+    trace(Q S) for a constant weight matrix Q, at one node (f, n, n) or at all nodes (N, f, n, n).
+
+    S is Hermitian and Q real symmetric, so trace(Q S) is real; the round-off imaginary part is dropped.
+    """
+    if s.shape[-2:] == (6, 6):
+        return np.real(np.einsum('ij,...fji->...f', Q, s))
+    elif s.shape[-2:] == (3, 3):
+        return np.real(np.einsum('ij,...fji->...f', Q_2D, s))
+    raise Exception('Input Error. PSD matrix should be the size of (f,6,6) for 3D stress state or (f,3,3) for 2D stress state')
+
+
 def _max_normal(self, s, search_method):
     """
     Internal function for calculating equivalent stress at one node.
@@ -77,12 +91,8 @@ def _max_normal_and_shear(self, s, s_af, tau_af, search_method='local'):
 
 def _EVMS(self, s):
     """
-    Internal function for calculating equivalent stress at one node.
+    Internal function for calculating equivalent stress at one node or at all nodes.
     """
-    
-    freq = self.multiaxial_psd[1]
-    df = freq[1] - freq[0]
-
     Q = np.array([
         [1,-1/2,-1/2,0,0,0],
         [-1/2,1,-1/2,0,0,0],
@@ -96,14 +106,7 @@ def _EVMS(self, s):
         [-1/2,1,0],
         [0,0,3],])
 
-    if s.shape[1] == 6 and s.shape[2] == 6:
-        s_eq = np.trace(np.einsum('ij,kjl->kil', Q, s),axis1=1,axis2=2)
-    elif s.shape[1] == 3 and s.shape[2] == 3:
-        s_eq = np.trace(np.einsum('ij,kjl->kil', Q_2D, s),axis1=1,axis2=2)
-    else:
-        raise Exception('Input Error. PSD matrix should be the size of (f,6,6) for 3D stress state or (f,3,3) for 2D stress state')
-    # S is Hermitian and Q real symmetric, so trace(Q S) is real; drop the round-off imaginary part
-    return np.real(s_eq)
+    return _quadratic_criterion(s, Q, Q_2D)
 
 
 def _cs(self, s, s_af, tau_af, T=None):
@@ -180,12 +183,8 @@ def _multiaxial_rainflow(self, s, k=None):
 
 def _thermoelastic(self,s):
     """
-    Internal function for calculating equivalent stress at one node.
+    Internal function for calculating equivalent stress at one node or at all nodes.
     """
-    
-    freq = self.multiaxial_psd[1]
-    df = freq[1] - freq[0]
-
     Q = np.array([
         [1,1,1,0,0,0],
         [1,1,1,0,0,0],
@@ -198,15 +197,8 @@ def _thermoelastic(self,s):
         [1,1,0],
         [1,1,0],
         [0,0,0]])
-    
-    if s.shape[1] == 6 and s.shape[2] == 6:
-        s_eq = np.trace(np.einsum('ij,kjl->kil', Q, s),axis1=1,axis2=2)
-    elif s.shape[1] == 3 and s.shape[2] == 3:
-        s_eq = np.trace(np.einsum('ij,kjl->kil', Q_2D, s),axis1=1,axis2=2)
-    else:
-        raise Exception('Input Error. PSD matrix should be the size of (f, 6, 6) for 3D stress state or (f,3,3) for 2D stress state')
-    # S is Hermitian and Q real symmetric, so trace(Q S) is real; drop the round-off imaginary part
-    return np.real(s_eq)
+
+    return _quadratic_criterion(s, Q, Q_2D)
 
 
 def _liwi(self,s):
@@ -408,12 +400,8 @@ def _Nieslony(self, s, s_af, tau_af,coefficient_load_type):
 
 def _Lemaitre(self, s, poisson_ratio):
     """
-    Internal function for calculating equivalent stress at one node.
+    Internal function for calculating equivalent stress at one node or at all nodes.
     """
-    
-    freq = self.multiaxial_psd[1]
-    df = freq[1] - freq[0]
-
     Q = np.array([
         [1,-poisson_ratio,-poisson_ratio,0,0,0],
         [-poisson_ratio,1,-poisson_ratio,0,0,0],
@@ -427,11 +415,4 @@ def _Lemaitre(self, s, poisson_ratio):
         [-poisson_ratio,1,0],
         [0,0,2*(1+poisson_ratio)],])
 
-    if s.shape[1] == 6 and s.shape[2] == 6:
-        s_eq = np.trace(np.einsum('ij,kjl->kil', Q, s),axis1=1,axis2=2)
-    elif s.shape[1] == 3 and s.shape[2] == 3:
-        s_eq = np.trace(np.einsum('ij,kjl->kil', Q_2D, s),axis1=1,axis2=2)
-    else:
-        raise Exception('Input Error. PSD matrix should be the size of (f,6,6) for 3D stress state or (f,3,3) for 2D stress state')
-    # S is Hermitian and Q real symmetric, so trace(Q S) is real; drop the round-off imaginary part
-    return np.real(s_eq)
+    return _quadratic_criterion(s, Q, Q_2D)
