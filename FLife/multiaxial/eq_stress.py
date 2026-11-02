@@ -1,9 +1,7 @@
 import warnings
 import numpy as np
-from . import cplane
 from . import criteria
 from ..spectralData import SpectralData
-from scipy.optimize import minimize
 
 class EquivalentStress(SpectralData): #equivalentstress
     """EquivalentStress object contains multiaxial data, based on input power spectral density (PSD).
@@ -82,12 +80,6 @@ class EquivalentStress(SpectralData): #equivalentstress
             self.multipoint = self.spectral_data.multipoint
         else:
             raise Exception('Unrecognized Input Error. `input` should be a dictionary with keys: `PSD` and `f`).')
-
-
-    # def is_multiaxial_psd_4d(self):
-    #     """Check if the multiaxial PSD is 4D (i.e., multiple points on the model)"""
-    #     return len(self.multiaxial_psd[0].shape) == 4
-
 
     def loop_over_points(self, criterion, *args, **kwargs):
         """Deprecated, will be removed in a future version. The criterion methods
