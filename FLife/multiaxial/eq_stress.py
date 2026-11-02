@@ -153,7 +153,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         """
         # psd is multiple-point
         if self.multipoint: 
-            self.loop_over_points(criterion=criteria._max_normal,search_method = 'local')
+            self.loop_over_points(criterion=criteria._max_normal, search_method=search_method)
         
         # psd in single-point
         else: 
@@ -177,7 +177,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         """
         # psd is multiple-point
         if self.multipoint:
-            self.loop_over_points(criterion=criteria._max_shear,search_method = 'local')
+            self.loop_over_points(criterion=criteria._max_shear, search_method=search_method)
         
         # psd is single-point
         else:
@@ -195,7 +195,9 @@ class EquivalentStress(SpectralData): #equivalentstress
             Fully reversed bending-fatigue limit. Used for calculating material fatigue coefficient K [1].
         :param tau_af: float
             Fully reversed torsion-fatigue limit. Used Used for calculating material fatigue coefficient K [1].
-        
+        :param search_method: str, optional, default 'local'
+                Search method for optimization. Options are 'local' or 'global', see `max_normal`.
+
         --------
             
         - Nieslony, Adam and Macha, Ewald (2007);
@@ -208,7 +210,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         """
         # psd is multiple-point
         if self.multipoint:
-            self.loop_over_points(criterion=criteria._max_normal_and_shear, search_method='local', s_af=s_af, tau_af=tau_af)
+            self.loop_over_points(criterion=criteria._max_normal_and_shear, search_method=search_method, s_af=s_af, tau_af=tau_af)
         
         # psd is single-point
         else:
