@@ -48,27 +48,13 @@ def compute_lmn_angles(theta, phi, psi):
     return l1, m1, n1, l2, m2, n2, l3, m3, n3
 
 
-def _maximize(crit, x0, bounds, search_method, n_starts=16):
-    """Maximize -crit over the plane orientation.
+def _maximize(crit, x0, bounds, search_method):
+    """Maximize -crit over the plane orientation with differential evolution ('global').
 
-    'local' uses a deterministic multi-start SLSQP (the default start x0 plus
-    seeded random starts) so the search is not trapped at a stationary start
-    point; 'global' uses differential evolution. Results are reproducible.
+    The 'local' search of max_variance is _plane_search. Results are reproducible.
     """
     if search_method == 'global':
         return opt.differential_evolution(crit, bounds=bounds, seed=0)
-    elif search_method == 'local':
-        rng = np.random.default_rng(0)
-        lo = np.array([b[0] for b in bounds])
-        hi = np.array([b[1] for b in bounds])
-        starts = [np.asarray(x0, dtype=float)]
-        starts += [rng.uniform(lo, hi) for _ in range(n_starts - 1)]
-        best = None
-        for s0 in starts:
-            res = opt.minimize(crit, s0, method='SLSQP', bounds=bounds)
-            if best is None or res.fun < best.fun:
-                best = res
-        return best
     else:
         raise ValueError('Search method')
 
@@ -103,12 +89,155 @@ def max_variance_old(multiaxial_psd, df, method, K=None):
     return res['x'] / np.sqrt(np.sum(res['x']**2))
 
 
+# Fast plane search for max_variance(search_method='local')
+#
+# With the traction t = sigma n on the plane with normal n, its covariance
+# M(n) = Cov(t, t) (3x3) gives all three objectives. With e1 = (n + s) / sqrt(2)
+# and e3 = (n - s) / sqrt(2), s _|_ n the shear direction, the variances of
+# a . sigma in max_variance are
+#   maxnormal:       Var(n^T sigma n)                         = n^T M n
+#   maxshear:        Var(2 s^T sigma n)                       = 4 s^T M s
+#   maxnormalshear:  Var(2 (s + K n)^T sigma n) / (1 + K)^2   = 4 q^T M q / (1 + K)^2, q = s + K n
+# For 'maxshear' the best s is the top eigenvector of M projected on the plane
+# (closed form), so the search is over n only. All normals of a grid on the half
+# sphere are evaluated at once, then the best few grid points are refined locally.
+
+_VOIGT_INDEX = np.array([[0, 3, 4],
+                         [3, 1, 5],
+                         [4, 5, 2]])
+
+
+def _traction_operator(mu):
+    """Matrix (9, 9) that maps n_i n_k (flattened) to the traction covariance M_jl (flattened)."""
+    full = mu[_VOIGT_INDEX[:, :, None, None], _VOIGT_INDEX[None, None, :, :]]  # Cov(sigma_ji, sigma_lk)
+    return full.transpose(0, 2, 1, 3).reshape(9, 9)
+
+
+def _traction_covariance(op, n):
+    """Traction covariance M (..., 3, 3) for normals n (..., 3)."""
+    nn = (n[..., :, None] * n[..., None, :]).reshape(n.shape[:-1] + (9,))
+    return (nn @ op.T).reshape(n.shape[:-1] + (3, 3))
+
+
+def _hemisphere_grid(n_points=1000):
+    """Nearly uniform unit normals on the half sphere z > 0 (Fibonacci lattice, spacing about 4.5 deg)."""
+    i = np.arange(n_points) + 0.5
+    z = 1 - i / n_points
+    r = np.sqrt(1 - z**2)
+    phi = np.pi * (3 - np.sqrt(5)) * i
+    return np.stack([r * np.cos(phi), r * np.sin(phi), z], axis=-1)
+
+
+def _basis(n):
+    """Unit vectors u, w so that (n, u, w) is a right-handed orthonormal triad."""
+    use_x = np.abs(n[..., :1]) < 0.9
+    a = np.where(use_x, [1., 0., 0.], [0., 1., 0.])
+    u = a - np.sum(a * n, axis=-1, keepdims=True) * n
+    u = u / np.linalg.norm(u, axis=-1, keepdims=True)
+    return u, np.cross(n, u)
+
+
+def _plane_objective(op, n, method, K, s=None):
+    """Variance of a . sigma (see above) for normals n (..., 3) and shear directions s ('maxnormalshear')."""
+    M = _traction_covariance(op, n)
+    if method == 'maxnormalshear':
+        q = s + K * n
+        return 4 * np.einsum('...i,...ij,...j->...', q, M, q) / (1 + K)**2
+    v = np.einsum('...ij,...j->...i', M, n)
+    p = np.sum(n * v, axis=-1)
+    if method == 'maxnormal':
+        return p
+    # top eigenvalue of P M P, P = I - n n^T: its other eigenvalues are 0 and the second shear one
+    tr = np.trace(M, axis1=-2, axis2=-1) - p
+    tr2 = np.sum(M * M, axis=(-2, -1)) - 2 * np.sum(v * v, axis=-1) + p**2
+    return 2 * (tr + np.sqrt(np.maximum(2 * tr2 - tr**2, 0.)))
+
+
+def _plane_search(mu, method, K, n_starts=3, n_alpha=36):
+    """Direction cosines (l1, m1, n1, l2, m2, n2, l3, m3, n3) of the max-variance plane.
+
+    mu is the real stress covariance (6, 6). The search starts from a grid on the
+    half sphere (n and -n give the same plane) and refines the best grid point of
+    up to n_starts separate peaks with SLSQP in a local chart around each point.
+    """
+    op = _traction_operator(mu)
+    grid = _hemisphere_grid()
+    u, w = _basis(grid)
+    if method == 'maxnormalshear':
+        # q^T M q for q = cos(alpha) u + sin(alpha) w + K n, from the entries of M in the basis (u, w, n)
+        alpha = np.linspace(0, 2*np.pi, n_alpha, endpoint=False)
+        M = _traction_covariance(op, grid)
+        B = np.stack([u, w, grid], axis=-1)
+        Mb = np.einsum('gji,gjk,gkl->gil', B, M, B)
+        c, sn = np.cos(alpha), np.sin(alpha)
+        Muu, Muw, Mww, Mun, Mwn, Mnn = (Mb[:, i, j, None] for i, j in [(0, 0), (0, 1), (1, 1), (0, 2), (1, 2), (2, 2)])
+        values = 4 * (c**2 * Muu + 2 * c * sn * Muw + sn**2 * Mww
+                      + 2 * K * (c * Mun + sn * Mwn) + K**2 * Mnn) / (1 + K)**2
+        best_alpha = alpha[np.argmax(values, axis=1)]
+        values = values.max(axis=1)
+    else:
+        values = _plane_objective(op, grid, method, K)
+
+    # start points: best grid point of each separate peak (more than 15 deg apart). For 'maxshear'
+    # the plane with normal s and shear direction n is the same peak, so skip that one too.
+    starts, covered = [], []
+    for i in np.argsort(-values, kind='stable'):
+        if len(starts) == n_starts or values[i] < 0.95 * values[starts[0] if starts else i]:
+            break
+        if all(abs(grid[i] @ d) < np.cos(np.radians(15)) for d in covered):
+            starts.append(i)
+            covered.append(grid[i])
+            if method == 'maxshear':
+                x1, x2 = _max_shear_direction(mu, grid[i], u[i], w[i])
+                covered.append(x1 * u[i] + x2 * w[i])
+
+    def frame(x, i):
+        """Normal n and, for 'maxnormalshear', shear direction s in a local chart around grid point i."""
+        n = grid[i] + x[0] * u[i] + x[1] * w[i]
+        n = n / np.linalg.norm(n)
+        if method != 'maxnormalshear':
+            return n, None
+        a = u[i] - (u[i] @ n) * n
+        a = a / np.linalg.norm(a)
+        b = np.cross(n, a)
+        return n, np.cos(best_alpha[i] + x[2]) * a + np.sin(best_alpha[i] + x[2]) * b
+
+    n_vars = 3 if method == 'maxnormalshear' else 2
+    best_value, best_frame = -np.inf, None
+    for i in starts:
+        def crit(x):
+            n, s = frame(x, i)
+            return -_plane_objective(op, n, method, K, s)
+
+        res = opt.minimize(crit, np.zeros(n_vars), method='SLSQP', options={'ftol': 1e-14})
+        x = res.x if res.fun < -values[i] else np.zeros(n_vars)
+        value = -crit(x)
+        if value > best_value:
+            best_value, best_frame = value, frame(x, i)
+
+    n, s = best_frame
+    if method == 'maxnormal':
+        e1 = n
+        e2, e3 = _basis(n)
+    else:
+        if method == 'maxshear':
+            a, b = _basis(n)
+            x1, x2 = _max_shear_direction(mu, n, a, b)
+            s = x1 * a + x2 * b
+        e1, e3 = (n + s) / np.sqrt(2), (n - s) / np.sqrt(2)
+        e2 = np.cross(e3, e1)
+    return tuple(np.concatenate([e1, e2, e3]))
+
+
 def max_variance(multiaxial_psd, df, method, K=None, search_method='local'):
     '''Determine critical plane
     based on max variance.
 
     returns: l1, m1, n1, l2, m2, n2, l3, m3, n3
-    
+
+    search_method: 'local' (default) evaluates a grid of plane normals and
+    refines the best ones locally; 'global' uses differential evolution.
+
         -Lagoda, Macha and Nieslony; Fatigue Life Calculation
         by means of the cycle counting and spectral methods
         under multiaxial random loading.
@@ -138,7 +267,7 @@ def max_variance(multiaxial_psd, df, method, K=None, search_method='local'):
 
             return -np.abs(np.einsum('i,ij,j', a, mu, a).real)
 
-        res = _maximize(crit, [np.pi, np.pi, np.pi], bounds, search_method)
+        x0 = [np.pi, np.pi, np.pi]
 
 
     elif 'maxshear' == method:
@@ -152,7 +281,7 @@ def max_variance(multiaxial_psd, df, method, K=None, search_method='local'):
 
             return -np.abs(np.einsum('i,ij,j', a, mu, a).real)
 
-        res = _maximize(crit, [np.pi, np.pi, np.pi], bounds, search_method)
+        x0 = [np.pi, np.pi, np.pi]
 
     elif 'maxnormalshear' == method:
         if K is None:
@@ -171,13 +300,16 @@ def max_variance(multiaxial_psd, df, method, K=None, search_method='local'):
 
             return -np.abs(np.einsum('i,ij,j', a, mu, a).real)
 
-        res = _maximize(crit, [np.pi/3, np.pi/3, np.pi/3], bounds, search_method)
+        x0 = [np.pi/3, np.pi/3, np.pi/3]
 
     else:
         raise ValueError('Critical plane method')
 
+    if search_method == 'local':
+        return _plane_search(np.real(mu), method, K)
+    res = _maximize(crit, x0, bounds, search_method)
     direction_cosines = compute_lmn_angles(*res['x'])
-    
+
     return direction_cosines
 
 
