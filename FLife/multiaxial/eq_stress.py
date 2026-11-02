@@ -400,7 +400,8 @@ class EquivalentStress(SpectralData): #equivalentstress
         """Converts the stress tensor at one node to equivalent
         stress, using the phase-sensitive EVMS criterion, adjusted for out-of-phase components.
 
-        ONLY WORKS WITH BIAXIAL PSD (f,3,3) - single point or (N,f,3,3) - multiple points
+        ONLY WORKS WITH BIAXIAL PSD (f,3,3) - single point or (N,f,3,3) - multiple points.
+        A 3D PSD (f,6,6) raises ValueError.
                
         --------
 
@@ -412,7 +413,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         
         # psd is multiple-point
         if self.multipoint:
-            self.loop_over_points(criterion=criteria._EVMS_out_of_phase)
+            self._all_points(criterion=criteria._EVMS_out_of_phase)
         
         # psd is single-point
         else:
@@ -441,7 +442,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         """
         # psd is multiple-point
         if self.multipoint:
-            self.loop_over_points(criterion=criteria._Nieslony, s_af=s_af, tau_af=tau_af, coefficient_load_type=coefficient_load_type)
+            self._all_points(criterion=criteria._Nieslony, s_af=s_af, tau_af=tau_af, coefficient_load_type=coefficient_load_type)
         
         # psd is single-point
         else:
