@@ -323,7 +323,7 @@ def _coin_liwi(self, s, k_a, k_phi):
 
 def _EVMS_out_of_phase(self, s):
     """
-    Internal function for calculating equivalent stress at one node.
+    Internal function for calculating equivalent stress at one node or at all nodes.
 
     The phases are taken relative to the component with the largest
     auto-PSD at each frequency (Nieslony et al. 2025, Eq. 44). The
@@ -331,21 +331,22 @@ def _EVMS_out_of_phase(self, s):
     reference component, but a reference with zero PSD has no defined
     phase.
     """
-    s_eq = np.empty((len(s)))
+    if s.shape[-2:] != (3, 3):
+        raise ValueError('EVMS_out_of_phase only works for biaxial stresses: PSD matrix (f,3,3) or (N,f,3,3)')
 
-    for i in range(len(s)):
-        sigma_xx_squared = np.real(s[i,0,0])
-        sigma_yy_squared = np.real(s[i,1,1])
-        tau_xy_squared = np.real(s[i,2,2])
-        sigma_xx_sigma_yy = np.sqrt(sigma_xx_squared * sigma_yy_squared)
+    sigma_xx_squared = np.real(s[...,0,0])
+    sigma_yy_squared = np.real(s[...,1,1])
+    tau_xy_squared = np.real(s[...,2,2])
+    sigma_xx_sigma_yy = np.sqrt(sigma_xx_squared * sigma_yy_squared)
 
-        phi_xx_phi_yy = np.angle(s[i,1,0])
+    phi_xx_phi_yy = np.angle(s[...,1,0])
 
-        # phases relative to the component with the largest auto-PSD
-        c = np.argmax(np.real(np.diagonal(s[i])))
-        phi_xx, phi_yy, phi_xy = np.angle(s[i,c,:])
+    # phases relative to the component with the largest auto-PSD
+    c = np.argmax(np.real(np.diagonal(s, axis1=-2, axis2=-1)), axis=-1)
+    phi = np.angle(np.take_along_axis(s, c[..., None, None], axis=-2)[..., 0, :])
+    phi_xx, phi_yy, phi_xy = phi[...,0], phi[...,1], phi[...,2]
 
-        s_eq[i] = 0.5  * (sigma_xx_squared + sigma_yy_squared - sigma_xx_sigma_yy * np.cos(phi_xx_phi_yy) + 3 * tau_xy_squared) + 0.5 * np.abs(sigma_xx_squared * np.exp(2j * phi_xx) + sigma_yy_squared * np.exp(2j * phi_yy) - sigma_xx_sigma_yy * np.exp(1j * (phi_xx + phi_yy)) + 3*tau_xy_squared * np.exp(2j * phi_xy))
+    s_eq = 0.5  * (sigma_xx_squared + sigma_yy_squared - sigma_xx_sigma_yy * np.cos(phi_xx_phi_yy) + 3 * tau_xy_squared) + 0.5 * np.abs(sigma_xx_squared * np.exp(2j * phi_xx) + sigma_yy_squared * np.exp(2j * phi_yy) - sigma_xx_sigma_yy * np.exp(1j * (phi_xx + phi_yy)) + 3*tau_xy_squared * np.exp(2j * phi_xy))
 
     return s_eq
 
@@ -362,40 +363,39 @@ def _clip_roundoff(G, scale, rtol=1e-10):
 
 def _Nieslony(self, s, s_af, tau_af,coefficient_load_type):
     """
-    Internal function for calculating equivalent stress at one node.
+    Internal function for calculating equivalent stress at one node or at all nodes.
     """
+    if coefficient_load_type not in ('tension', 'torsion'):
+        raise ValueError('Invalid coefficient_load_type. Please choose either "tension" or "torsion"')
+
     s = cplane._plane_stress_to_voigt_3d(s)
 
     # G_p and G_EMS are auto-PSDs (Niesłony et al. 2025, Eqs. (27)-(30)), so >= 0;
     # clip round-off negatives before sqrt(G_p*G_EMS) in Eq. (31)
-    scale = np.real(np.trace(s, axis1=1, axis2=2))
+    scale = np.real(np.trace(s, axis1=-2, axis2=-1))
     G_p = _clip_roundoff(1/9*_thermoelastic(self,s), scale)
     G_EVMS = _clip_roundoff(_EVMS(self,s), scale)
 
-    s_eq = np.empty((len(s)))
+    a_sigma = np.sqrt(2*np.diagonal(s, axis1=-2, axis2=-1))
+    #find the index of maximum value of a_sigma
+    k = np.argmax(a_sigma, axis=-1)
+    phi_k = np.angle(np.take_along_axis(s, k[..., None, None], axis=-1)[..., 0])
+    s_ = a_sigma * np.exp(1j * phi_k)
+    s_ = [s_[..., i] for i in range(6)]
+    sigma_EMSc = 1/np.sqrt(2) * np.sqrt((s_[0]-s_[1])**2 + (s_[1]-s_[2])**2 + (s_[2]-s_[0])**2 + 6*(s_[3]**2+s_[4]**2+s_[5]**2))
+    sigma_pc = 1/3 * (s_[0]+s_[1]+s_[2])
+    rp_EMS = np.abs(np.cos(np.angle(sigma_EMSc)-np.angle(sigma_pc)))
 
-    for i in range(len(s)): 
-        a_sigma = np.sqrt(2*np.diagonal(s[i]))
-        #find the index of maximum value of a_sigma
-        k = np.argmax(a_sigma)
-        phi_k = np.angle(s[i,:,k])
-        s_ = a_sigma * np.exp(1j * phi_k)
-        sigma_EMSc = 1/np.sqrt(2) * np.sqrt((s_[0]-s_[1])**2 + (s_[1]-s_[2])**2 + (s_[2]-s_[0])**2 + 6*(s_[3]**2+s_[4]**2+s_[5]**2))
-        sigma_pc = 1/3 * (s_[0]+s_[1]+s_[2])
-        rp_EMS = np.abs(np.cos(np.angle(sigma_EMSc)-np.angle(sigma_pc)))
+    if coefficient_load_type == 'tension':
+        A = (-np.sqrt(3) / tau_af) * ((s_af * rp_EMS) - np.sqrt((s_af ** 2) * (rp_EMS ** 2) - (s_af ** 2) + 3 * (tau_af ** 2)))
+        B = (np.sqrt(3) / 3) * (s_af / tau_af)
 
-        if coefficient_load_type == 'tension':
-            A = (-np.sqrt(3) / tau_af) * ((s_af * rp_EMS) - np.sqrt((s_af ** 2) * (rp_EMS ** 2) - (s_af ** 2) + 3 * (tau_af ** 2)))
-            B = (np.sqrt(3) / 3) * (s_af / tau_af)
+    elif coefficient_load_type == 'torsion':
+        A = (-np.sqrt(3) / s_af) * ((s_af * rp_EMS) - np.sqrt((s_af ** 2) * (rp_EMS ** 2) - (s_af ** 2) + 3 * (tau_af ** 2)))
+        B = np.sqrt(3) / 3
 
-        elif coefficient_load_type == 'torsion':
-            A = (-np.sqrt(3) / s_af) * ((s_af * rp_EMS) - np.sqrt((s_af ** 2) * (rp_EMS ** 2) - (s_af ** 2) + 3 * (tau_af ** 2)))
-            B = np.sqrt(3) / 3
-        else:
-            raise ValueError('Invalid coefficient_load_type. Please choose either "tension" or "torsion"')
-        
-        s_eq[i] = np.real(A**2 * G_p[i] + B**2 * G_EVMS[i] + 2 * A * B * rp_EMS * np.sqrt(G_p[i] * G_EVMS[i]))
-    
+    s_eq = np.real(A**2 * G_p + B**2 * G_EVMS + 2 * A * B * rp_EMS * np.sqrt(G_p * G_EVMS))
+
     return s_eq
 
 def _Lemaitre(self, s, poisson_ratio):
