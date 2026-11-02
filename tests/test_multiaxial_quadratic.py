@@ -24,7 +24,8 @@ P = np.exp(-0.5 * ((F - 50) / 8)**2)
 P[0] = 0.
 
 CRITERIA = [('EVMS', {}), ('thermoelastic', {}), ('Lemaitre', {'poisson_ratio': 0.3})]
-PLANE_CRITERIA = [('max_normal', {}), ('max_shear', {}), ('max_normal_and_shear', {'s_af': 300., 'tau_af': 180.})]
+PLANE_CRITERIA = [('max_normal', {}), ('max_shear', {}), ('max_normal_and_shear', {'s_af': 300., 'tau_af': 180.}),
+                  ('gao_mwcm', {'s_af': 300., 'tau_af': 180.})]
 
 
 def random_psd(n_comp, n_points=None, seed=0):

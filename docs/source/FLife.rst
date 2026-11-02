@@ -269,6 +269,7 @@ Supported multiaxial criteria
    - Maximum normal stress on critical plane
    - Maximum shear stress on critical plane
    - Maximum normal and shear stress on critical plane
+   - Spectral Modified Wöhler Curve Method (Gao et al. 2021)
    - EVMS (Equivalent von Misses stress)
    - Carpinteri-Spagnoli criterion
    - Frequency-based multiaxial rainflow criterion

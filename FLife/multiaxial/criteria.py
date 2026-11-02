@@ -89,6 +89,50 @@ def _max_normal_and_shear(self, s, s_af, tau_af, search_method='local'):
     return s_eq
 
 
+def _gao_mwcm(self, s, s_af, tau_af, search_method='local'):
+    """
+    Internal function for calculating equivalent stress at one node.
+
+    Gao et al. (2021), zero mean stress (p = 1): tau_eq = tau_c + q sigma_c on the plane of
+    maximum shear stress variance (Eq. 12). G_eq = a^T G a with a = d1 + q d2 (Eqs. 20, 25, 27).
+    q = 1 - s_af / (2 tau_af) from Susmel and Lazzarin (2002), Eq. 11; Gao's Eq. 14 has
+    sigma_-1 and tau_-1 swapped.
+    """
+    s = cplane._plane_stress_to_voigt_3d(s)
+
+    freq = self.multiaxial_psd[1]
+    df = freq[1] - freq[0]
+
+    q = 1 - s_af / (2 * tau_af)
+    l1, m1, n1, l2, m2, n2, l3, m3, n3 = cplane.max_variance(multiaxial_psd=s, df=df, method='maxshear', search_method=search_method)
+
+    def plane_vector(e1, e3):
+        # normal n = (e1 + e3)/sqrt2 and shear direction t = (e1 - e3)/sqrt2:
+        # d1 = Voigt(t n^T + n t^T)/2 -> (e1 e1^T - e3 e3^T)/2 (Gao Eq. 8),
+        # d2 = Voigt(n n^T) -> (e1 + e3)(e1 + e3)^T/2 (Gao Eq. 10)
+        (l1, m1, n1), (l3, m3, n3) = e1, e3
+        return np.asarray([l1**2-l3**2+q*(l1+l3)**2,
+                           m1**2-m3**2+q*(m1+m3)**2,
+                           n1**2-n3**2+q*(n1+n3)**2,
+                           2*(l1*m1-l3*m3+q*(l1+l3)*(m1+m3)),
+                           2*(l1*n1-l3*n3+q*(l1+l3)*(n1+n3)),
+                           2*(m1*n1-m3*n3+q*(m1+m3)*(n1+n3))]) / 2
+
+    # Gao Eq. 12 maximises the shear stress variance only. That variance does not change when e3 is
+    # reversed or e1 and e3 are swapped, so it does not tell which of the two maximum-shear planes and
+    # which shear sign to use. Our choice (not from the article), as in _max_normal_and_shear: take the
+    # one with the largest equivalent stress variance.
+    e1, e3 = np.array([l1, m1, n1]), np.array([l3, m3, n3])
+    mu = np.sum(s, axis=0) * df
+    a = max((plane_vector(e1, e3), plane_vector(e1, -e3), plane_vector(e3, e1), plane_vector(e3, -e1)),
+            key=lambda a: np.einsum('i,ij,j', a, mu, a).real)
+
+    # G_eq = G_tau + 2 q Re(G_tau,sigma) + q^2 G_sigma (Gao Eq. 25 with p = 1).
+    # s is Hermitian and a real, so a^T s a is real; drop the round-off imaginary part
+    s_eq = np.real(np.einsum('i,zij,j', a, s, a))
+    return s_eq
+
+
 def _EVMS(self, s):
     """
     Internal function for calculating equivalent stress at one node or at all nodes.
