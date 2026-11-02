@@ -344,7 +344,7 @@ amplitude spectrum:
    import FLife
    import numpy as np
 
-   # Load multiaxial PSD data
+   # Load multiaxial amplitude spectrum (same stress state as the PSD data: PSD = A A^T/df)
    test_amplitude_spectrum_3D = np.load('data/test_multiaxial_amplitude_spectrum_3D.npy')
    freq=np.arange(0,240,3)
    input_dict = {'amplitude_spectrum': test_amplitude_spectrum_3D, 'f': freq}

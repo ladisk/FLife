@@ -167,3 +167,15 @@ def test_bad_shape_raises(shape):
 def test_unknown_amplitude_type_raises():
     with pytest.raises(ValueError, match='rms'):
         amplitude_spectrum_to_psd(np.ones(F.size), F, amplitude='rmsd')
+
+
+# --- bundled data -----------------------------------------------------------------------
+
+@pytest.mark.parametrize('dim', ['2D', '3D'])
+def test_bundled_amplitude_spectrum_matches_bundled_psd(dim):
+    """The bundled amplitude spectrum and PSD describe the same stress state: PSD = A A^T/df."""
+    data_dir = os.path.join(my_path, '..', 'data')
+    a = np.load(os.path.join(data_dir, f'test_multiaxial_amplitude_spectrum_{dim}.npy'))
+    psd = np.load(os.path.join(data_dir, f'test_multiaxial_PSD_{dim}.npy'))
+    f = np.arange(0, 240, 3)
+    np.testing.assert_allclose(amplitude_spectrum_to_psd(a, f), psd, rtol=1e-12, atol=1e-12)
