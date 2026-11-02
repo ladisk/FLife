@@ -17,6 +17,7 @@ class EquivalentStress(SpectralData): #equivalentstress
     - max_normal: Maximum normal stress on critical plane
     - max_shear: Maximum shear stress on critical plane
     - max_normal_and_shear: Maximum normal and shear stress on critical plane
+    - gao_mwcm: Spectral Modified Wöhler Curve Method (Gao et al. 2021)
     - EVMS: Equivalent von Misses stress
     - cs: Carpinteri-Spagnoli criterion
     - multiaxial_rainflow: Frequency-based multiaxial rainflow criterion
@@ -219,7 +220,59 @@ class EquivalentStress(SpectralData): #equivalentstress
         else:
             s_eq = criteria._max_normal_and_shear(self,s=self.multiaxial_psd[0], s_af=s_af, tau_af=tau_af, search_method=search_method)
             self.set_eq_stress(eq_psd=s_eq, f=self.multiaxial_psd[1])
-    
+
+    def gao_mwcm(self, s_af, tau_af, search_method='local'):
+        """
+        Converts the stress tensor at one node or multiple nodes to equivalent,
+        scalar psd stress, using the spectral Modified Wöhler Curve Method (MWCM) of Gao et al. [1].
+
+        Critical plane is the plane of maximum shear stress variance [1, Eq. 12]. On it, the
+        equivalent stress is tau_eq = tau_c + q sigma_c [1, Eqs. 16-18], with tau_c the shear
+        stress and sigma_c the normal stress, and its PSD is
+        G_eq = G_tau + 2 q Re(G_tau,sigma) + q^2 G_sigma [1, Eqs. 25-27].
+
+        q = 1 - s_af / (2 tau_af) follows Susmel and Lazzarin [2, Eq. 11]. Eq. 14 in [1] has
+        sigma_-1 and tau_-1 swapped, which gives q = s_af / tau_af - 1/2; with that value a fully
+        reversed uniaxial load does not reach its fatigue limit s_af.
+        The linear form [1, Eq. 16] is exact for pure torsion. For uniaxial load at s_af it differs
+        from [2, Eq. 11] by 1.8 % for s_af / tau_af = sqrt(3).
+
+        Only zero mean stress is supported (p = 1 in [1, Eqs. 19-20]). The Goodman mean stress
+        correction of [1] needs a mean stress input, which is not available yet.
+
+        tau_eq is a shear stress. As for the other criteria, the result is returned as an
+        equivalent normal stress sigma_eq = (s_af / tau_af) tau_eq, so that it is used with the
+        fully reversed axial S-N curve, as in [1, Eq. 30]. Pure torsion tau_af and uniaxial
+        s_af both give sigma_eq = s_af (the latter within the linearisation above).
+
+        :param s_af: float
+            Fully reversed axial fatigue limit sigma_-1.
+        :param tau_af: float
+            Fully reversed torsion fatigue limit tau_-1.
+        :param search_method: str, optional, default 'local'
+                Search method for optimization. Options are 'local' or 'global', see `max_normal`.
+
+        --------
+
+        - [1] Gao D, Yao W, Wen W, Huang J;
+            A multiaxial fatigue life prediction method for metallic material under combined
+            random vibration loading and mean stress loading in the frequency domain,
+            International Journal of Fatigue, 2021, https://doi.org/10.1016/j.ijfatigue.2021.106235
+
+        - [2] Susmel L, Lazzarin P;
+            A bi-parametric Wöhler curve for high cycle multiaxial fatigue assessment,
+            Fatigue & Fracture of Engineering Materials & Structures, 2002, https://doi.org/10.1046/j.1460-2695.2002.00462.x
+
+        """
+        # psd is multiple-point
+        if self.multipoint:
+            self.loop_over_points(criterion=criteria._gao_mwcm, search_method=search_method, s_af=s_af, tau_af=tau_af)
+
+        # psd is single-point
+        else:
+            s_eq = criteria._gao_mwcm(self,s=self.multiaxial_psd[0], s_af=s_af, tau_af=tau_af, search_method=search_method)
+            self.set_eq_stress(eq_psd=s_eq, f=self.multiaxial_psd[1])
+
     def EVMS(self):
         """
         Converts the stress tensor at one node or multiple nodes to equivalent,

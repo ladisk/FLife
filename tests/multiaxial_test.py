@@ -17,6 +17,7 @@ def test_data():
         'max_normal': 1650.300624416056,
         'max_shear': 2430.1468521282327,
         'max_normal_and_shear': 1746.6174328499, #s_af = 1, tau_af = 1; was 1565.051025 before the scaled plane search, two planes share the max shear variance
+        'gao_mwcm': 1103.5988027969481, #s_af = 1, tau_af = 1 (q = 0.5)
         'cs': 1650.2990739257525, #s_af = 1, tau_af = 1; N1 = nu0*T, Eq. (16) (was 1647.0269200556531)
         'multiaxial_rainflow': 1621.007249408989, #k = 7.3; one fixed c of max single moment damage (was 1636.5919423074781, per-frequency maximum)
         'thermoelastic': 1027.6423513625518,
@@ -53,6 +54,7 @@ def test_data():
     max_normal = FLife.EquivalentStress(input=input_dict_psd_3d,T=1,fs=5000)
     max_shear = FLife.EquivalentStress(input=input_dict_psd_3d,T=1,fs=5000)
     max_normal_and_shear = FLife.EquivalentStress(input=input_dict_psd_3d,T=1,fs=5000)
+    gao_mwcm = FLife.EquivalentStress(input=input_dict_psd_3d,T=1,fs=5000)
     cs = FLife.EquivalentStress(input=input_dict_psd_3d,T=1,fs=5000)
     multiaxial_rainflow = FLife.EquivalentStress(input=input_dict_psd_2d,T=1,fs=5000)
     thermoelastic = FLife.EquivalentStress(input=input_dict_psd_3d,T=1,fs=5000)
@@ -67,6 +69,7 @@ def test_data():
     max_normal.max_normal()
     max_shear.max_shear()
     max_normal_and_shear.max_normal_and_shear(s_af=1, tau_af=1)
+    gao_mwcm.gao_mwcm(s_af=1, tau_af=1)
     cs.cs(s_af=1, tau_af=1)
     multiaxial_rainflow.multiaxial_rainflow(k=k)
     thermoelastic.thermoelastic()
@@ -81,6 +84,7 @@ def test_data():
         'max_normal': max_normal.eq_psd_multipoint[0][0,24],
         'max_shear': max_shear.eq_psd_multipoint[0][0,24],
         'max_normal_and_shear': max_normal_and_shear.eq_psd_multipoint[0][0,24],
+        'gao_mwcm': gao_mwcm.eq_psd_multipoint[0][0,24],
         'cs': cs.eq_psd_multipoint[0][0,24],
         'multiaxial_rainflow': multiaxial_rainflow.eq_psd_multipoint[0][0,24],
         'thermoelastic': thermoelastic.eq_psd_multipoint[0][0,24],
@@ -93,7 +97,7 @@ def test_data():
 
     # criteria whose critical plane is found by numerical optimisation are only
     # reproducible to a relative tolerance across platforms / scipy versions
-    optimiser_based = {'max_normal', 'max_shear', 'max_normal_and_shear', 'cs'}
+    optimiser_based = {'max_normal', 'max_shear', 'max_normal_and_shear', 'gao_mwcm', 'cs'}
 
     for criterion, value in results.items():
 
@@ -135,6 +139,7 @@ def test_plane_stress_reference_psd_matches_zero_padded_3d_reference():
         ('max_normal', {}),
         ('max_shear', {}),
         ('max_normal_and_shear', {'s_af': 1, 'tau_af': 1}),
+        ('gao_mwcm', {'s_af': 1, 'tau_af': 1}),
         ('cs', {'s_af': 1, 'tau_af': 1}),
         ('Nieslony', {'s_af': 1, 'tau_af': 1}),
     ],
