@@ -76,26 +76,27 @@ def m0(S, s_af=S_AF):
 
 @pytest.mark.parametrize('n, i', [(6, 3), (6, 4), (6, 5), (3, 2)])
 def test_pure_torsion(n, i):
-    # sigma_c = 0 on the maximum shear plane, so G_eq = G_tau
+    # sigma_c = 0 on the maximum shear plane, so tau_eq = tau and G_eq = (s_af/tau_af)^2 G_tau
     S = single_component(i, n)
-    np.testing.assert_allclose(eq_psd(S).psd[:, 1], S[:, i, i], rtol=1e-6, atol=1e-12 * S.max())
+    np.testing.assert_allclose(eq_psd(S).psd[:, 1], (S_AF / TAU_AF)**2 * S[:, i, i], rtol=1e-6, atol=1e-12 * S.max())
 
 
 @pytest.mark.parametrize('r', [np.sqrt(3), 1.5, 2.])
 @pytest.mark.parametrize('seed', [0, 1, 2])
 def test_uniaxial_in_any_direction(r, seed):
     # tau_c = sigma_c = sigma/2 on the maximum shear plane, q = 1 - r/2 (Susmel and Lazzarin 2002, Eq. 11),
-    # so G_eq = G_sigma (1 + q)^2 / 4 = G_sigma (2 - r/2)^2 / 4
+    # so G_tau_eq = G_sigma (1 + q)^2 / 4 = G_sigma (2 - r/2)^2 / 4 and G_eq = r^2 G_tau_eq
     S = single_component(0)
     S_rot = rotate(S, np.random.default_rng(seed))
-    expected = np.sum(S[:, 0, 0]) * DF * (2 - r / 2)**2 / 4
+    expected = np.sum(S[:, 0, 0]) * DF * r**2 * (2 - r / 2)**2 / 4
     np.testing.assert_allclose(m0(S_rot, s_af=r * TAU_AF), expected, rtol=1e-5)
 
 
 def test_torsion_fatigue_limit():
-    # Susmel and Lazzarin (2002), Eq. 11, pure torsion: tau_a = tau_-1 is the limit; the linear form is exact
+    # Susmel and Lazzarin (2002), Eq. 11, pure torsion: tau_a = tau_-1 is the limit; the linear form is exact,
+    # and the equivalent normal stress there is s_af
     S = single_component(3, variance=TAU_AF**2)
-    np.testing.assert_allclose(np.sqrt(m0(S)), TAU_AF, rtol=1e-6)
+    np.testing.assert_allclose(np.sqrt(m0(S)), S_AF, rtol=1e-6)
 
 
 def test_uniaxial_fatigue_limit_within_linearisation():
@@ -108,7 +109,7 @@ def test_uniaxial_fatigue_limit_within_linearisation():
     np.testing.assert_allclose(susmel, TAU_AF, rtol=1e-12)
 
     S = single_component(0, variance=s_a**2)
-    tau_eq = np.sqrt(m0(S))
+    tau_eq = np.sqrt(m0(S)) * TAU_AF / S_AF
     np.testing.assert_allclose(tau_eq, np.sqrt(3) * (2 - np.sqrt(3) / 2) / 2 * TAU_AF, rtol=1e-5)
     assert abs(tau_eq / susmel - 1) < 0.02
     assert abs(tau_eq / susmel - 1) > 0.017

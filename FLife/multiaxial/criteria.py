@@ -130,7 +130,9 @@ def _gao_mwcm(self, s, s_af, tau_af, search_method='local'):
     # G_eq = G_tau + 2 q Re(G_tau,sigma) + q^2 G_sigma (Gao Eq. 25 with p = 1).
     # s is Hermitian and a real, so a^T s a is real; drop the round-off imaginary part
     s_eq = np.real(np.einsum('i,zij,j', a, s, a))
-    return s_eq
+    # tau_eq is a shear stress; scale it by s_af / tau_af to an equivalent normal stress, as the
+    # other criteria return, so that it is used with the axial S-N curve
+    return s_eq * (s_af / tau_af)**2
 
 
 def _EVMS(self, s):

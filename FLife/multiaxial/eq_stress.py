@@ -240,9 +240,10 @@ class EquivalentStress(SpectralData): #equivalentstress
         Only zero mean stress is supported (p = 1 in [1, Eqs. 19-20]). The Goodman mean stress
         correction of [1] needs a mean stress input, which is not available yet.
 
-        The result is a shear stress (it equals tau for pure torsion), so use it with the
-        fully reversed torsion S-N curve. Gao et al. [1] used the axial S-N curve [1, Eq. 30];
-        no scaling is applied here.
+        tau_eq is a shear stress. As for the other criteria, the result is returned as an
+        equivalent normal stress sigma_eq = (s_af / tau_af) tau_eq, so that it is used with the
+        fully reversed axial S-N curve, as in [1, Eq. 30]. Pure torsion tau_af and uniaxial
+        s_af both give sigma_eq = s_af (the latter within the linearisation above).
 
         :param s_af: float
             Fully reversed axial fatigue limit sigma_-1.
