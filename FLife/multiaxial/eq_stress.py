@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from . import cplane
 from . import criteria
@@ -92,7 +93,19 @@ class EquivalentStress(SpectralData): #equivalentstress
 
 
     def loop_over_points(self, criterion, *args, **kwargs):
-        """Loop the selected criterion over multiple points on the model"""    
+        """Deprecated, will be removed in a future version. The criterion methods
+        (for example `max_normal` or `EVMS`) handle multiple points themselves; call them instead.
+
+        Loop the selected criterion over multiple points on the model and set `eq_psd_multipoint`.
+        """
+        warnings.warn('`EquivalentStress.loop_over_points` is deprecated and will be removed in a future '
+                      'version. Call the criterion method (for example `max_normal` or `EVMS`) instead; '
+                      'it handles multiple points itself.', DeprecationWarning, stacklevel=2)
+        self._each_point(criterion, *args, **kwargs)
+
+    def _each_point(self, criterion, *args, **kwargs):
+        """Apply a criterion for one point (f, ...) to each point in turn and set `eq_psd_multipoint`.
+        Used by the criteria whose critical-plane search works on one point at a time."""
         s_eq_multi_point = np.empty((self.multiaxial_psd[0].shape[:2]))
         for i in range(len(s_eq_multi_point)):
             s_eq_multi_point[i] = criterion(self,s=self.multiaxial_psd[0][i],*args, **kwargs)
@@ -138,7 +151,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         """
         # psd is multiple-point
         if self.multipoint: 
-            self.loop_over_points(criterion=criteria._max_normal, search_method=search_method)
+            self._each_point(criterion=criteria._max_normal, search_method=search_method)
         
         # psd in single-point
         else: 
@@ -162,7 +175,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         """
         # psd is multiple-point
         if self.multipoint:
-            self.loop_over_points(criterion=criteria._max_shear, search_method=search_method)
+            self._each_point(criterion=criteria._max_shear, search_method=search_method)
         
         # psd is single-point
         else:
@@ -195,7 +208,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         """
         # psd is multiple-point
         if self.multipoint:
-            self.loop_over_points(criterion=criteria._max_normal_and_shear, search_method=search_method, s_af=s_af, tau_af=tau_af)
+            self._each_point(criterion=criteria._max_normal_and_shear, search_method=search_method, s_af=s_af, tau_af=tau_af)
         
         # psd is single-point
         else:
@@ -247,7 +260,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         """
         # psd is multiple-point
         if self.multipoint:
-            self.loop_over_points(criterion=criteria._gao_mwcm, search_method=search_method, s_af=s_af, tau_af=tau_af)
+            self._each_point(criterion=criteria._gao_mwcm, search_method=search_method, s_af=s_af, tau_af=tau_af)
 
         # psd is single-point
         else:
@@ -296,7 +309,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         """
         # psd is multiple-point
         if self.multipoint:
-            self.loop_over_points(criterion=criteria._cs, s_af=s_af, tau_af=tau_af, T=T)
+            self._each_point(criterion=criteria._cs, s_af=s_af, tau_af=tau_af, T=T)
         
         # psd is single-point
         else:
