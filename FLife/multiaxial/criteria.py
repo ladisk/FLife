@@ -17,7 +17,8 @@ def _max_normal(self, s, search_method):
     a = np.asarray([l1**2, m1**2, n1**2,
                 2*l1*m1, 2*l1*n1, 2*m1*n1])
 
-    s_eq = np.einsum('i,zij,j', a, s, a)
+    # s is Hermitian and a real, so a^T s a is real; drop the round-off imaginary part
+    s_eq = np.real(np.einsum('i,zij,j', a, s, a))
     return s_eq
 
 
@@ -35,7 +36,8 @@ def _max_shear(self, s, search_method):
     a = np.asarray([l1**2-l3**2, m1**2-m3**2, n1**2-n3**2,
             2*(l1*m1-l3*m3), 2*(l1*n1-l3*n3), 2*(m1*n1-m3*n3)])
 
-    s_eq = np.einsum('i,zij,j', a, s, a)
+    # s is Hermitian and a real, so a^T s a is real; drop the round-off imaginary part
+    s_eq = np.real(np.einsum('i,zij,j', a, s, a))
     return s_eq
 
 
@@ -68,7 +70,8 @@ def _max_normal_and_shear(self, s, s_af, tau_af, search_method='local'):
     a = max((plane_vector(e1, e3), plane_vector(e1, -e3), plane_vector(e3, e1), plane_vector(e3, -e1)),
             key=lambda a: np.einsum('i,ij,j', a, mu, a).real)
 
-    s_eq = np.einsum('i,zij,j', a, s, a)
+    # s is Hermitian and a real, so a^T s a is real; drop the round-off imaginary part
+    s_eq = np.real(np.einsum('i,zij,j', a, s, a))
     return s_eq
 
 
@@ -99,7 +102,8 @@ def _EVMS(self, s):
         s_eq = np.trace(np.einsum('ij,kjl->kil', Q_2D, s),axis1=1,axis2=2)
     else:
         raise Exception('Input Error. PSD matrix should be the size of (f,6,6) for 3D stress state or (f,3,3) for 2D stress state')
-    return s_eq
+    # S is Hermitian and Q real symmetric, so trace(Q S) is real; drop the round-off imaginary part
+    return np.real(s_eq)
 
 
 def _cs(self, s, s_af, tau_af, T=None):
@@ -201,8 +205,8 @@ def _thermoelastic(self,s):
         s_eq = np.trace(np.einsum('ij,kjl->kil', Q_2D, s),axis1=1,axis2=2)
     else:
         raise Exception('Input Error. PSD matrix should be the size of (f, 6, 6) for 3D stress state or (f,3,3) for 2D stress state')
-                
-    return s_eq
+    # S is Hermitian and Q real symmetric, so trace(Q S) is real; drop the round-off imaginary part
+    return np.real(s_eq)
 
 
 def _liwi(self,s):
@@ -429,4 +433,5 @@ def _Lemaitre(self, s, poisson_ratio):
         s_eq = np.trace(np.einsum('ij,kjl->kil', Q_2D, s),axis1=1,axis2=2)
     else:
         raise Exception('Input Error. PSD matrix should be the size of (f,6,6) for 3D stress state or (f,3,3) for 2D stress state')
-    return s_eq
+    # S is Hermitian and Q real symmetric, so trace(Q S) is real; drop the round-off imaginary part
+    return np.real(s_eq)
