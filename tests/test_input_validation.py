@@ -118,5 +118,9 @@ def test_multiaxial_shape_check_precedence():
     # 3D array with wrong trailing dims must be rejected (and/or precedence)
     with pytest.raises(Exception, match='size of'):
         FLife.SpectralData(input={'PSD': np.ones((40, 3, 4)), 'f': np.arange(40) * 3.0})
-    with pytest.raises(Exception, match='size of'):
-        FLife.SpectralData(input={'amplitude_spectrum': np.ones((40, 4)), 'f': np.arange(40) * 3.0})
+
+
+def test_multiaxial_amplitude_spectrum_rejected():
+    # multiaxial amplitude-spectrum input was removed together with LiWI / COIN-LiWI
+    with pytest.raises(ValueError, match='1D'):
+        FLife.SpectralData(input={'amplitude_spectrum': np.ones((40, 3)), 'f': np.arange(40) * 3.0})
