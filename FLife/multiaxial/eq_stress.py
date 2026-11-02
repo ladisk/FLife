@@ -116,6 +116,11 @@ class EquivalentStress(SpectralData): #equivalentstress
             #calculate psd from amplitude spectrum at each point at each frequency
             self.eq_psd_multipoint = (abs(s_eq_multi_point**2), self.multiaxial_amplitude_spectrum[1])
 
+    def _all_points(self, criterion, *args, **kwargs):
+        """Apply a criterion that accepts all points at once (N, f, ...) and set `eq_psd_multipoint`."""
+        psd, f = self.multiaxial_psd
+        self.eq_psd_multipoint = (criterion(self, s=psd, *args, **kwargs), f) #(multipoint psd, freq)
+
     def set_eq_stress(self,eq_psd,f):
         """Set equivalent stress to the object. Also generate im ehistory if T and fs are provided"""
         self.psd = np.column_stack((f, eq_psd))
@@ -228,7 +233,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         """
         # psd is multiple-point
         if self.multipoint:
-            self.loop_over_points(criterion=criteria._EVMS)
+            self._all_points(criterion=criteria._EVMS)
         
         # psd is single-point
         else:
@@ -319,7 +324,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         """
         # psd is multiple-point
         if self.multipoint:
-            self.loop_over_points(criterion=criteria._thermoelastic)
+            self._all_points(criterion=criteria._thermoelastic)
         
         # psd is single-point
         else:
@@ -457,7 +462,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         """
         # psd is multiple-point
         if self.multipoint:
-            self.loop_over_points(criterion=criteria._Lemaitre, poisson_ratio=poisson_ratio)
+            self._all_points(criterion=criteria._Lemaitre, poisson_ratio=poisson_ratio)
         
         # psd is single-point
         else:
