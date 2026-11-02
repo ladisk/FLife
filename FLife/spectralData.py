@@ -260,6 +260,7 @@ class SpectralData(object):
                         if T is not None and fs is not None:
                             self.t = T
                             self.fs = fs
+                            self.rg = rg
                     else:
                         raise Exception('Input Error. PSD matrix should be the size of (f,6,6) for 3D stress state or (f,3,3) for 2D stress state')
 
@@ -296,6 +297,7 @@ class SpectralData(object):
                         if T is not None and fs is not None:
                             self.t = T
                             self.fs = fs
+                            self.rg = rg
                     else:
                         raise Exception('Input Error. PSD matrix should be the size of (f,6,6) for 3D stress state or (f,3,3) for 2D stress state')
 
