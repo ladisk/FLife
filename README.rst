@@ -278,7 +278,7 @@ Supported multiaxial criteria
    - Maximum shear stress on critical plane
    - Maximum normal and shear stress on critical plane
    - Spectral Modified Wöhler Curve Method (Gao et al. 2021)
-   - EVMS (Equivalent von Misses stress)
+   - EVMS (Equivalent von Mises stress)
    - Carpinteri-Spagnoli criterion
    - Frequency-based multiaxial rainflow criterion
    - Thermoelasticity-based criterion
@@ -322,7 +322,7 @@ the whole FEM model.
    print(f'Fatigue life: {fatigue_life:.2f} s')
 
 Instead of manual point selection, critical point can be selected with
-GUI by right clickling on the model. Heatmap of equivalent stress can be
+GUI by right clicking on the model. Heatmap of equivalent stress can be
 shown at a desired frequency, set by the slider on the bottom-left side
 of the GUI.
 
