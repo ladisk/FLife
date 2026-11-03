@@ -59,36 +59,6 @@ def _maximize(crit, x0, bounds, search_method):
         raise ValueError('Search method')
 
 
-def max_variance_old(multiaxial_psd, df, method, K=None):
-    '''Determine critical plane
-    based on max variance.
-
-    Notes
-    -----
-    Took this from article (its older tough):
-        - Lagoda, Macha and Nieslony; Fatigue Life Calculation
-        by means of the cycle counting and spectral methods
-        under multiaxial random loading.
-    '''
-    mu = np.sum(multiaxial_psd, axis=0) * df
-
-    if 'maxnormal' == method:
-
-        def crit(v):
-            """Criterion for optimization."""
-            v = v / np.sqrt(np.sum(v ** 2))
-            l, m, n = v
-            a = np.asarray([l**2, m**2, n**2,
-                            2*l*m, 2*l*n, 2*m*n])
-
-            return -np.abs(np.einsum('i,ij,j', a, mu, a).real)
-
-
-        res = opt.minimize(fun=crit, x0=[0.33,0.33,0.33], method='SLSQP', bounds=[(0,1),(0,1),(0,1)], options={'disp':False})
-
-    return res['x'] / np.sqrt(np.sum(res['x']**2))
-
-
 # Fast plane search for max_variance(search_method='local')
 #
 # With the traction t = sigma n on the plane with normal n, its covariance
