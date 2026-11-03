@@ -1,3 +1,7 @@
+.. image:: docs/source/_static/logo/flife-banner.svg
+    :width: 640
+    :alt: FLife logo
+
 |pytest| |Docs Status| |zenodo|
 
 FLife - Vibration Fatigue by Spectral Methods
