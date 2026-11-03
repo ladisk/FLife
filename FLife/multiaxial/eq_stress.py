@@ -10,14 +10,13 @@ class EquivalentStress(SpectralData): #equivalentstress
     EquivalentStress inherits from SpectralData class, so all methods from SpectralData are available for fatigue analysis.
     If instance of SpectralData is passed as input, the multiaxial PSD is inherited, otherwise it is created from input PSD.
     
-    -----
     
     The following multiaxial criteria are available for equivalent stress calculation:
     - max_normal: Maximum normal stress on critical plane
     - max_shear: Maximum shear stress on critical plane
     - max_normal_and_shear: Maximum normal and shear stress on critical plane
     - gao_mwcm: Spectral Modified Wöhler Curve Method (Gao et al. 2021)
-    - EVMS: Equivalent von Misses stress
+    - EVMS: Equivalent von Mises stress
     - cs: Carpinteri-Spagnoli criterion
     - multiaxial_rainflow: Frequency-based multiaxial rainflow criterion
     - thermoelastic: Thermoelasticity-based criterion
@@ -145,9 +144,9 @@ class EquivalentStress(SpectralData): #equivalentstress
         scalar psd stress, using method of maximum normal stress.
         
         :param search_method: str, optional, default 'local'
-                Search method for optimization. Options are 'local' or 'global'. Local is prefered, unless the optimization fails.
+                Search method for optimization. Options are 'local' or 'global'. Local is preferred, unless the optimization fails.
         
-        --------
+        References:
 
         - Nieslony, Adam and Macha, Ewald (2007);
             Spectral method in multiaxial random fatigue
@@ -162,9 +161,9 @@ class EquivalentStress(SpectralData): #equivalentstress
         scalar psd stress, using method of maximum shear stress.
         
         :param search_method: str, optional, default 'local'
-                Search method for optimization. Options are 'local' or 'global'. Local is prefered, unless the optimization fails.
+                Search method for optimization. Options are 'local' or 'global'. Local is preferred, unless the optimization fails.
         
-        --------
+        References:
             
         - Nieslony, Adam and Macha, Ewald (2007);
             Spectral method in multiaxial random fatigue
@@ -182,11 +181,11 @@ class EquivalentStress(SpectralData): #equivalentstress
         :param s_af: float
             Fully reversed bending-fatigue limit. Used for calculating material fatigue coefficient K [1].
         :param tau_af: float
-            Fully reversed torsion-fatigue limit. Used Used for calculating material fatigue coefficient K [1].
+            Fully reversed torsion-fatigue limit. Used for calculating material fatigue coefficient K [1].
         :param search_method: str, optional, default 'local'
                 Search method for optimization. Options are 'local' or 'global', see `max_normal`.
 
-        --------
+        References:
             
         - Nieslony, Adam and Macha, Ewald (2007);
             Spectral method in multiaxial random fatigue
@@ -209,7 +208,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         G_eq = G_tau + 2 q Re(G_tau,sigma) + q^2 G_sigma [1, Eqs. 25-27].
 
         q = 1 - s_af / (2 tau_af) follows Susmel and Lazzarin [2, Eq. 11]. Eq. 14 in [1] has
-        sigma_-1 and tau_-1 swapped, which gives q = s_af / tau_af - 1/2; with that value a fully
+        ``sigma_-1`` and ``tau_-1`` swapped, which gives q = s_af / tau_af - 1/2; with that value a fully
         reversed uniaxial load does not reach its fatigue limit s_af.
         The linear form [1, Eq. 16] is exact for pure torsion. For uniaxial load at s_af it differs
         from [2, Eq. 11] by 1.8 % for s_af / tau_af = sqrt(3).
@@ -223,13 +222,13 @@ class EquivalentStress(SpectralData): #equivalentstress
         s_af both give sigma_eq = s_af (the latter within the linearisation above).
 
         :param s_af: float
-            Fully reversed axial fatigue limit sigma_-1.
+            Fully reversed axial fatigue limit ``sigma_-1``.
         :param tau_af: float
-            Fully reversed torsion fatigue limit tau_-1.
+            Fully reversed torsion fatigue limit ``tau_-1``.
         :param search_method: str, optional, default 'local'
                 Search method for optimization. Options are 'local' or 'global', see `max_normal`.
 
-        --------
+        References:
 
         - [1] Gao D, Yao W, Wen W, Huang J;
             A multiaxial fatigue life prediction method for metallic material under combined
@@ -246,9 +245,9 @@ class EquivalentStress(SpectralData): #equivalentstress
     def EVMS(self):
         """
         Converts the stress tensor at one node or multiple nodes to equivalent,
-        scalar psd stress, using ther equivalent von Misses stress in frequency domain (EVMS)
+        scalar psd stress, using the equivalent von Mises stress in frequency domain (EVMS)
     
-        --------
+        References:
 
         - Preumont, A., & Piéfort, V. (1994);
             Predicting Random High-Cycle Fatigue Life With Finite Elements.
@@ -269,7 +268,7 @@ class EquivalentStress(SpectralData): #equivalentstress
             Davenport peak factor that sets the critical plane. Defaults to the
             T given to EquivalentStress or SpectralData, else 1 s with a warning.
         
-        --------
+        References:
 
         - Carpinteri A, Spagnoli A and Vantadori S; 
             Reformulation in the frequency domain of a critical plane-based multiaxial fatigue criterion,
@@ -299,7 +298,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         The chosen c is stored in `multiaxial_rainflow_direction`, shape (3,) or (N, 3).
         The sign of c does not matter (c and -c give the same PSD).
 
-        --------
+        References:
 
         - Pitoiset, Xavier, and André Preumont; 
             Spectral methods for multiaxial random fatigue analysis of metallic structures, 
@@ -317,7 +316,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         scalar psd stress, using the thermoelasticity based criterion, 
         simulating the equivalent stress, detected with the thermal camera
 
-        --------
+        References:
 
         - Šonc J, Zaletelj K and Slavič J;
             Application of thermoelasticity in the frequency-domain multiaxial vibration-fatigue criterion, 
@@ -333,7 +332,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         ONLY WORKS WITH BIAXIAL PSD (f,3,3) - single point or (N,f,3,3) - multiple points.
         A 3D PSD (f,6,6) raises ValueError.
                
-        --------
+        References:
 
         - Bonte, Martijn HA and de Boer, Andries and Liebregts R
             Determining the von Mises stress power spectral density for frequency domain fatigue analysis including out-of-phase stress components,
@@ -353,7 +352,7 @@ class EquivalentStress(SpectralData): #equivalentstress
         :param coefficient_load_type: str
             Type of load with which the material fatigue properties were determined. Options are 'tension' for tension-compression load or 'torsion'.
         
-        --------
+        References:
 
         - Adam Niesłony, Michał Böhm, Robert Owsiński, Artur Dziura, Karol Czekaj,
             Integrating von Mises and hydrostatic stresses in frequency domain multiaxial fatigue criteria for vibration fatigue analysis,
@@ -365,9 +364,9 @@ class EquivalentStress(SpectralData): #equivalentstress
     def Lemaitre(self, poisson_ratio):
         """
         Converts the stress tensor at one node or multiple nodes to equivalent,
-        scalar psd stress, using ther equivalent Lemaitre stress in frequency domain
+        scalar psd stress, using the equivalent Lemaitre stress in frequency domain
     
-        --------
+        References:
 
         - Jingran Ge, Yi Sun, Song Zhou;
             Fatigue life estimation under multiaxial random loading by means of the equivalent Lemaitre stress and multiaxial S–N curve methods.
