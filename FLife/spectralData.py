@@ -272,7 +272,7 @@ class SpectralData(object):
                 amplitude_spectrum = input['amplitude_spectrum']
                 f = input['f']
                 self._validate_input(f, amplitude_spectrum, kind='amplitude_spectrum')
-                psd = amplitude_spectrum**2/(f[1]-f[0])
+                psd = np.abs(amplitude_spectrum)**2/(f[1]-f[0])
                 self.psd = np.column_stack((f, psd))
                 # needed parameters for time-history generation
                 if T is not None and fs is not None:
