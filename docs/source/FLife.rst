@@ -277,8 +277,6 @@ Supported multiaxial criteria
    - EVMS adaptation for out-of-phase components
    - Nieslony criterion, combining EVMS and hydrostatic stresses
    - Equivalent Lemaitre stress
-   - LiWI approach
-   - COIN-LiWI method
 
 Here is a simple example of using EVMS criterion on a multiaxial PSD for
 the whole FEM model.
@@ -321,48 +319,6 @@ shown at a desired frequency, set by the slider on the bottom-left side
 of the GUI.
 
 |GUI Multiaxial|
-
-Some criteria are defined for multiaxial amplitude spectra instead of
-multiaxial PSD. In this case, input must be a multiaxial amplitude
-sprectrum (size (f,6) or (f,3) for single point, and (N,f,6) or (N,f,3)
-for whole FEM model.) After the uniaxial equivalent stress is calculated
-using the chosen criteria, PSD is calculated automatically and can be
-used with all available spectral methods.
-
-Here is a simple example of using one of the criteria defined for the
-amplitude spectrum:
-
-.. code-block:: python
-
-   import FLife
-   import numpy as np
-
-   # Load multiaxial PSD data
-   test_amplitude_spectrum_3D = np.load('data/test_multiaxial_amplitude_spectrum_3D.npy')
-   freq=np.arange(0,240,3)
-   input_dict = {'amplitude_spectrum': test_amplitude_spectrum_3D, 'f': freq}
-
-   # Create EquivalentStress object
-   eqs = FLife.EquivalentStress(input=input_dict,T=1,fs=5000)
-
-   # Use multiaxial criterion
-   eqs.coin_liwi(k_a=1.70, k_phi=0.90)
-
-   # manual critical point selection
-   eqs.select_critical_point(point_index=331)
-
-   # GUI critical point selection
-   #FLife.visualize.set_mesh(eqs,'data/L_shape.vtk')
-   #FLife.visualize.pick_point(eqs)
-
-   # Define material properties
-   C = 1.8e+22  # S-N curve intercept [MPa**k]
-   k = 7.3  # S-N curve inverse slope [/]
-
-   # Calculate fatigue life in seconds
-   rf = FLife.TovoBenasciutti(eqs)
-   fatigue_life = rf.get_life(C=C, k=k)
-   print(f'Fatigue life: {fatigue_life:.2f} s')
 
 Reference:
 Janko Slavič, Matjaž Mršnik, Martin Česnik, Jaka Javh, Miha Boltežar. 

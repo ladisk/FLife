@@ -142,11 +142,7 @@ class SpectralData(object):
                 with the shape of (N,f,6,6) for 3D stress state or (N,f,3,3) for 2D stress state, 
                 where N is the number of points on the model.
                 
-                For uniaxial amplitude spectrum input, amplitude_spectrum array should be the shape of (f), 
-                for multiaxial amplitude spectrum input, amplitude_spectrum array should be a matrix
-                with the shape of (f,6) for 3D stress state or (f,3) for 2D stress state.
-                For multi-point amplitude spectrum input (whole FEM model), amplitude_spectrum array should be a matrix
-                with the shape of (N,f,6) for 3D stress state or (N,f,3) for 2D stress state, 
+                Amplitude spectrum input is uniaxial only, amplitude_spectrum array should be the shape of (f).
 
         :param window: str or tuple or array_like, optional
                 Desired window to use. Defaults to ‘hann’.
@@ -280,34 +276,11 @@ class SpectralData(object):
                         self._set_time_history(f=f, psd=psd, T=T, fs=fs, rg=rg, **kwargs)
             
             elif 'amplitude_spectrum' in input and 'f' in input:
-                #multiaxial amplitude spectrum
                 if input['amplitude_spectrum'].ndim>1:
-                    self.multiaxial_amplitude_spectrum = (input['amplitude_spectrum'],input['f'])
+                    raise ValueError('Input Error. `amplitude_spectrum` should be 1D (uniaxial). For multiaxial input use a PSD matrix with keys `PSD` and `f`.')
 
-                    # Check dimension of multiaxial amplitude spectrum
-                    if self.multiaxial_amplitude_spectrum[0].ndim in (2, 3) and (
-                        (self.multiaxial_amplitude_spectrum[0].shape[-1] == 6) or
-                        (self.multiaxial_amplitude_spectrum[0].shape[-1] == 3)
-                    ):     
-                        if self.multiaxial_amplitude_spectrum[0].ndim == 3:
-                            self.multipoint = True
-                        else:
-                            self.multipoint = False
-
-                        if T is not None and fs is not None:
-                            self.t = T
-                            self.fs = fs
-                            self.rg = rg
-                    else:
-                        raise Exception('Input Error. PSD matrix should be the size of (f,6,6) for 3D stress state or (f,3,3) for 2D stress state')
-
-                    freq_axis = 1 if self.multipoint else 0
-                    self._validate_input(input['f'], input['amplitude_spectrum'], freq_axis=freq_axis, kind='multiaxial_amplitude_spectrum')
-                    if T is not None and fs is not None:
-                        self._check_fs(f=input['f'], psd=input['amplitude_spectrum'], T=T, fs=fs, freq_axis=freq_axis)
-                
                 # Uniaxial amplitude spectrum
-                elif input['amplitude_spectrum'].ndim==1:
+                else:
                     print('Input amplitude spectrum is uniaxial')
                     amplitde_spectrum = input['amplitude_spectrum']
                     f = input['f']
@@ -371,7 +344,7 @@ class SpectralData(object):
             power = np.real(np.diagonal(values, axis1=-2, axis2=-1))
         else:
             power = np.abs(values)**2
-        if kind in ('multiaxial_psd', 'multiaxial_amplitude_spectrum') and not np.allclose(df, np.median(df), rtol=1e-3):
+        if kind == 'multiaxial_psd' and not np.allclose(df, np.median(df), rtol=1e-3):
             raise ValueError('Multiaxial input requires a uniform frequency vector `f`.')
         scale = np.max(np.abs(power)) if power.size else 0.
         if np.min(power) < -1e-8 * scale:
