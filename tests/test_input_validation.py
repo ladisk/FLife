@@ -124,3 +124,19 @@ def test_multiaxial_amplitude_spectrum_rejected():
     # multiaxial amplitude-spectrum input was removed together with LiWI / COIN-LiWI
     with pytest.raises(ValueError, match='1D'):
         FLife.SpectralData(input={'amplitude_spectrum': np.ones((40, 3)), 'f': np.arange(40) * 3.0})
+
+
+@pytest.mark.parametrize('shape', [(40, 3), (40, 6, 3), (40, 4, 4), (1, 2, 40, 3, 3)])
+def test_multiaxial_wrong_shape_rejected(shape):
+    with pytest.raises(Exception, match='size of'):
+        FLife.SpectralData(input={'PSD': np.ones(shape), 'f': np.arange(40) * 3.0})
+
+
+@pytest.mark.parametrize('n_points', [None, 2])
+def test_multiaxial_attributes(n_points):
+    rg = np.random.default_rng(0)
+    sd = FLife.SpectralData(input=_multiaxial(n_points=n_points), T=1, fs=5000, rg=rg)
+    assert sd.multipoint is (n_points is not None)
+    assert (sd.t, sd.fs, sd.rg) == (1, 5000, rg)
+    sd = FLife.SpectralData(input=_multiaxial(n_points=n_points))
+    assert not hasattr(sd, 't') and not hasattr(sd, 'fs')
