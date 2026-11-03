@@ -337,9 +337,9 @@ Vibration Fatigue by Spectral Methods, From Structural Dynamics to Fatigue Damag
 .. |GUI Multiaxial| image:: ../../GUI_multiaxial.png
    :target: https://github.com/ladisk/FLife
     
-.. |SpectralMethods_img| image:: ../../FreqMethodsTree.png
-    :target: https://github.com/ladisk/FLife/tree/ales/FLife/freq_domain
-    :alt: Spectral methods
+.. |SpectralMethods_img| image:: ../../SpectralMethods.svg
+    :target: https://github.com/ladisk/FLife/tree/main/FLife
+    :alt: Multiaxial criteria and spectral methods
 
 .. |zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.6816640.svg?
    :target: https://doi.org/10.5281/zenodo.6816640

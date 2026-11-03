@@ -27,6 +27,7 @@
 - The criteria EVMS, thermoelastic, Lemaitre, `max_normal`, `max_shear` and `max_normal_and_shear` return a real equivalent PSD (#62).
 - `EquivalentStress` handles single and multiple points in one place, and `SpectralData` input checks are simpler. Results are unchanged (#72, #73).
 - Showcase notebooks re-run with the current API (#75).
+- README and docs show a new overview figure of the multiaxial criteria and spectral methods (`SpectralMethods.svg`), which replaces `FreqMethodsTree.png` (#77).
 - Supported Python versions are 3.11 to 3.15.
 
 ### Fixed
