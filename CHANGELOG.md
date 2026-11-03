@@ -42,6 +42,7 @@ Result changes:
 - `multiaxial_rainflow` uses one fixed direction for the whole spectrum, as in Pitoiset and Preumont (2000), not one per frequency. Results were too high. Test value 1636.59 to 1621.01 (-1 %) (#57).
 - `EVMS_out_of_phase` uses the largest component as phase reference. Before, the result was too high when the sigma_x PSD was zero (7 instead of 4 in one case) (#58).
 - `multiaxial_rainflow` no longer depends on the stress unit (#55).
+- Complex uniaxial amplitude spectrum input gives a real PSD |A|^2/df. Before, the PSD and the life were complex (#79).
 
 Other fixes:
 
