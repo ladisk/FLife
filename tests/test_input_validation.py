@@ -54,6 +54,16 @@ def test_amplitude_spectrum_negative_f():
         FLife.SpectralData(input={'amplitude_spectrum': PSD, 'f': F - 1})
 
 
+def test_complex_amplitude_spectrum_gives_real_psd():
+    # PSD = |A|^2/df; a complex amplitude spectrum must not give a complex PSD
+    f = np.arange(0., 120., 2.)
+    a = (1 + 1j) * np.ones(f.size)
+    sd = FLife.SpectralData(input={'amplitude_spectrum': a, 'f': f})
+    assert np.isrealobj(sd.psd)
+    np.testing.assert_allclose(sd.psd[:, 1], np.abs(a)**2 / 2.)
+    sd_real = FLife.SpectralData(input={'amplitude_spectrum': np.abs(a), 'f': f})
+    np.testing.assert_allclose(sd.psd, sd_real.psd)
+
 def _multiaxial(n_points=None, nf=40, df=3.0):
     f = np.arange(nf) * df
     f[0] = 1e-3
