@@ -29,8 +29,8 @@ Use `pip` to install it by:
 
     $ pip install FLife
 
-The 3D mesh visualization (``set_mesh``, ``pick_point``) needs the optional GUI dependencies: ``pip install FLife[gui]``.
-The PSD input window (``input='GUI'``) needs ``tkinter`` (Ubuntu: ``sudo apt install python3-tk``).
+Plotting and GUI features (``set_mesh``, ``pick_point``, ``input='GUI'``) need the optional GUI dependencies, including ``matplotlib``: ``pip install FLife[gui]``.
+The PSD input window (``input='GUI'``) also needs ``tkinter`` (Ubuntu: ``sudo apt install python3-tk``).
 
 
 Supported methods in the frequency-domain

@@ -2,8 +2,11 @@ import numpy as np
 import tkinter as tk
 import time
 from tkinter.filedialog import asksaveasfilename
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+try:
+    from matplotlib.figure import Figure
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+except ImportError as e:
+    raise ImportError('The PSD input window requires matplotlib: pip install FLife[gui]') from e
 
 
 class PSDgen(object):

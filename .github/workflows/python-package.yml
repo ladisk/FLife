@@ -49,4 +49,4 @@ jobs:
       - name: Import check
         run: python -c "import FLife; FLife.SpectralData"
       - name: Core tests
-        run: pytest tests/test_basic.py
+        run: pytest tests/test_basic.py tests/test_optional_matplotlib.py

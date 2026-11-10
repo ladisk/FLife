@@ -1,6 +1,13 @@
 import numpy as np
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+
+
+def _import_matplotlib():
+    try:
+        from matplotlib.figure import Figure
+        from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+        return Figure, FigureCanvas
+    except ImportError as e:
+        raise ImportError('Mesh visualization requires the GUI extras: pip install FLife[gui]') from e
 
 
 def _import_pyvista(qt=False):
@@ -34,6 +41,7 @@ def pick_point(self):
     When the point is selected, the equivalent stress PSD data at that point is written to self.psd argument to be used in fatigue analysis.
     """
     pv, pvqt = _import_pyvista(qt=True)
+    Figure, FigureCanvas = _import_matplotlib()
     if not hasattr(self, 'mesh'):
         raise AttributeError("Mesh not set. Use set_mesh method to set the mesh.")
     

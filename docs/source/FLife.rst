@@ -14,14 +14,14 @@ Use `pip` to install it by:
     $ pip install FLife
 
 The 3D mesh visualization in ``FLife.visualize`` (``set_mesh``, ``pick_point``) needs
-the optional GUI dependencies (``pyvista``, ``pyvistaqt`` and ``PySide6``):
+the optional GUI dependencies (``matplotlib``, ``pyvista``, ``pyvistaqt`` and ``PySide6``):
 
 .. code-block:: console
 
     $ pip install FLife[gui]
 
-The PSD input window (``PSDgen``, used by ``SpectralData(input='GUI')``) needs ``tkinter``
-from the system (Ubuntu: ``sudo apt install python3-tk``).
+The PSD input window (``PSDgen``, used by ``SpectralData(input='GUI')``) needs ``matplotlib``
+(``pip install FLife[gui]``) and ``tkinter`` from the system (Ubuntu: ``sudo apt install python3-tk``).
 
 
 Supported methods in the frequency-domain
