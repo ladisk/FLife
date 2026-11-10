@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "FLife"
-version = "3.0"
+version = "3.0.1"
 license = "MIT"
 description = "Vibration Fatigue by Spectral Methods."
 readme = "README.rst"

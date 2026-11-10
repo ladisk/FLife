@@ -27,7 +27,7 @@ author = 'Aleš Zorman, Jaša Šonc, Matjaž Mršnik, Janko Slavič'
 # The short X.Y version
 version = '3'
 # The full version, including alpha/beta/rc tags
-release = '3.0'
+release = '3.0.1'
 
 
 # -- General configuration ---------------------------------------------------

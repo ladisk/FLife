@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.0.1 (2026-11-10)
+
+### Changed
+
+- matplotlib is no longer a required dependency. It is part of the `gui` extra (`pip install FLife[gui]`), which the PSD input window and the mesh picker need. Without it these raise an `ImportError` that says so. Scripts that plot with matplotlib must install it themselves (#86).
+
 ## 3.0 (2026-11-03)
 
 ### Breaking changes
