@@ -22,7 +22,6 @@ dependencies = [
     "scipy",
     "fatpack",
     "rainflow",
-    "matplotlib>=3.3",
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -48,11 +47,13 @@ authors = [
 
 [project.optional-dependencies]
 gui = [
+    "matplotlib>=3.3",
     "pyvista[all]",
     "pyvistaqt",
     "PySide6",
 ]
 dev = [
+    "matplotlib>=3.3",
     "pytest",
     "pytest-cov",
     "pylint",

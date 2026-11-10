@@ -14,11 +14,11 @@ results (the first example uses an unseeded random signal).
 import os
 import re
 
-import matplotlib
+import pytest
+
+matplotlib = pytest.importorskip("matplotlib")
 matplotlib.use("Agg")          # headless: no window, plt.show() is a no-op
 import matplotlib.pyplot as plt
-
-import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 

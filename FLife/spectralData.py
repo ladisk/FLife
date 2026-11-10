@@ -222,7 +222,8 @@ class SpectralData(object):
             try:
                 from .gui import PSDgen
             except ImportError as e:
-                raise ImportError('GUI input requires tkinter (Ubuntu: `sudo apt install python3-tk`).') from e
+                raise ImportError('GUI input requires tkinter (Ubuntu: `sudo apt install python3-tk`) '
+                                  'and matplotlib (pip install FLife[gui]).') from e
             self.psd = PSDgen().get_PSD()
             
             # needed parameters for time-history generation
