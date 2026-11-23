@@ -63,3 +63,12 @@ def test_rotation_invariance(seed):
         S += np.exp(-0.5 * ((F - rng.uniform(10, 90)) / rng.uniform(3, 10))**2)[:, None, None] * np.outer(v, v.conj())
     T = voigt_T(random_rotation(rng))
     np.testing.assert_allclose(m0_eq(np.einsum('ij,fjk,lk->fil', T, S, T)), m0_eq(S), rtol=1e-4)
+
+
+def test_plane_follows_shear_variance():
+    # the critical plane is the maximum shear stress variance plane (Nieslony and Macha 2007, Eq. 3.23;
+    # Mrsnik et al. 2016, Sec. 3.1.1). Adding an uncorrelated tau_xy with variance above Var(sigma_x)/4
+    # moves the plane from 45 deg to 0 deg, and the equivalent stress then drops slightly
+    S = single_component(0)
+    S_shear = S + 0.3 * single_component(3)
+    assert m0_eq(S_shear) < m0_eq(S)

@@ -176,8 +176,15 @@ class EquivalentStress(SpectralData): #equivalentstress
         Converts the stress tensor at one node or multiple nodes to equivalent,
         scalar psd stress, using method of maximum normal and shear stress.
         
-        Critical plane is based on max variance of shear stress
-        
+        The equivalent stress is (tau_ns + K sigma_n) / (1 + K) [1, Eq. 3.23], with K = 2 tau_af / s_af - 1.
+        The critical plane is the plane of maximum shear stress variance [1, Eq. 3.23], as in [2, Sec. 3.1.1]
+        (following Matake [3]). Of the two maximum-shear planes and the two shear signs, the one with
+        the largest equivalent stress variance is used [1, Eq. 4.1]. With this plane, uniaxial stress
+        gives sigma and pure torsion gives (s_af / tau_af) tau. The general variance method [1, Sec. 4.2]
+        would instead search the plane of maximum equivalent stress variance, which gives higher values.
+        Because the plane follows the shear variance, it can jump when the loading changes, and adding a
+        small uncorrelated stress component can then lower the equivalent stress.
+
         :param s_af: float
             Fully reversed bending-fatigue limit. Used for calculating material fatigue coefficient K [1].
         :param tau_af: float
@@ -187,12 +194,16 @@ class EquivalentStress(SpectralData): #equivalentstress
 
         References:
             
-        - Nieslony, Adam and Macha, Ewald (2007);
+        - [1] Nieslony, Adam and Macha, Ewald (2007);
             Spectral method in multiaxial random fatigue
 
-        - Matjaz Mrsnik, Janko Slavic and Miha Boltezar
+        - [2] Matjaz Mrsnik, Janko Slavic and Miha Boltezar
             Multiaxial Vibration Fatigue A Theoretical and Experimental Comparison.
             Mechanical Systems and Signal Processing, 2016
+
+        - [3] Matake, Tsuyoshi (1977);
+            An explanation on fatigue limit under combined stress.
+            Bulletin of the JSME, 20(141), 257-263
 
         """
         self._apply(criteria._max_normal_and_shear, each_point=True, search_method=search_method, s_af=s_af, tau_af=tau_af)
