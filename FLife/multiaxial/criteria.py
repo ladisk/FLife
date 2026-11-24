@@ -65,7 +65,9 @@ def _max_normal_and_shear(self, s, s_af, tau_af, search_method='local'):
     df = freq[1] - freq[0]
 
     K = 2 * tau_af / s_af - 1
-    l1, m1, n1, l2, m2, n2, l3, m3, n3 = cplane.max_variance(multiaxial_psd=s, df=df, method='maxshear',K=K, search_method=search_method)
+    # critical plane: maximum shear stress variance (Nieslony and Macha 2007, Eq. 3.23; Mrsnik et al.
+    # 2016, Sec. 3.1.1), not maximum equivalent stress variance (the 'maxnormalshear' search)
+    l1, m1, n1, l2, m2, n2, l3, m3, n3 = cplane.max_variance(multiaxial_psd=s, df=df, method='maxshear', search_method=search_method)
 
     def plane_vector(e1, e3):
         (l1, m1, n1), (l3, m3, n3) = e1, e3
